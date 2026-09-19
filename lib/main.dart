@@ -1,17 +1,64 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'screens/library_screen.dart';
+import 'screens/browse_screen.dart';
+import 'screens/extensions_screen.dart';
+import 'screens/updates_screen.dart';
 
-/// Feed of new chapters/episodes/parts across everything in the library,
-/// regardless of content type. Populated by a background refresh job that
-/// diffs each library entry's `getChunks()` against last-seen state.
-/// TODO: wire to Isar + a periodic WorkManager/background_fetch job.
-class UpdatesScreen extends StatelessWidget {
-  const UpdatesScreen({super.key});
+void main() {
+  runApp(const ProviderScope(child: KaimonoApp()));
+}
+
+class KaimonoApp extends StatelessWidget {
+  const KaimonoApp({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      title: 'Kaimono',
+      debugShowCheckedModeBanner: false,
+      theme: ThemeData(
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: const Color(0xFF7C5CFC),
+          brightness: Brightness.dark,
+        ),
+        useMaterial3: true,
+      ),
+      home: const RootShell(),
+    );
+  }
+}
+
+class RootShell extends StatefulWidget {
+  const RootShell({super.key});
+  @override
+  State<RootShell> createState() => _RootShellState();
+}
+
+class _RootShellState extends State<RootShell> {
+  int _index = 0;
+
+  final _screens = const [
+    LibraryScreen(),
+    UpdatesScreen(),
+    BrowseScreen(),
+    ExtensionsScreen(),
+  ];
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Updates')),
-      body: const Center(child: Text('Nothing new yet — add titles to your library first.')),
+      body: IndexedStack(index: _index, children: _screens),
+      bottomNavigationBar: NavigationBar(
+        selectedIndex: _index,
+        onDestinationSelected: (i) => setState(() => _index = i),
+        destinations: const [
+          NavigationDestination(icon: Icon(Icons.collections_bookmark_outlined), label: 'Library'),
+          NavigationDestination(icon: Icon(Icons.new_releases_outlined), label: 'Updates'),
+          NavigationDestination(icon: Icon(Icons.explore_outlined), label: 'Browse'),
+          NavigationDestination(icon: Icon(Icons.extension_outlined), label: 'Extensions'),
+        ],
+      ),
     );
   }
 }
