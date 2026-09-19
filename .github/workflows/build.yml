@@ -17,6 +17,7 @@ jobs:
           channel: 'stable'
 
       - name: Generate missing Android platform files
+        run: flutter create . --platforms=android --project-name kaimono
         run: flutter create . --platforms=android
 
       - name: Get dependencies
