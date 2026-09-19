@@ -1,0 +1,11 @@
+[
+  {
+    "id": "demo.manga.xkcd",
+    "name": "Demo Comic Source",
+    "lang": "en",
+    "type": "manga",
+    "icon": "",
+    "script": "https://your-host.example.com/kaimono-extensions/demo_manga.js",
+    "version": 1
+  }
+]
