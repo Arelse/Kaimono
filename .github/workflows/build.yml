@@ -18,4 +18,12 @@ jobs:
           channel: 'stable'
 
       - name: Generate missing Android platform files
-        run: flutter create . --platforms=android --pr
+        run: flutter create . --platforms=android --project-name kaimono
+
+      - name: Get dependencies
+        run: flutter pub get
+
+      - name: Build release APK
+        run: flutter build apk --release
+
+      - uses: actions/uploa
