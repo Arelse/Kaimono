@@ -67,7 +67,10 @@ class JsSource implements Source {
       return res.data;
     });
 
-    final code = await _dio.get<String>(manifest.scriptUrl);
+    final code = await _dio.get<String>(
+      manifest.scriptUrl,
+      options: Options(responseType: ResponseType.plain),
+    );
     _js.evaluate('''
       const __pending = {};
       let __id = 0;
