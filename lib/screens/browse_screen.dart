@@ -1,79 +1,167 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../models/content_type.dart';
 import '../services/extension_manager.dart';
+import '../widgets/entry_grid.dart';
+import 'entry_detail_screen.dart';
 
-/// App-wide settings: source repo management for now, appearance/backup
-/// later. Its own tab rather than a buried menu, since repo setup is
-/// something people reach for early and often.
-class SettingsScreen extends ConsumerStatefulWidget {
-  const SettingsScreen({super.key});
+/// Lets the user pick an installed source and browse its popular list
+/// or search it directly — the "discover new titles" half of the app.
+class BrowseScreen extends ConsumerStatefulWidget {
+  const BrowseScreen({super.key});
   @override
-  ConsumerState<SettingsScreen> createState() => _SettingsScreenState();
+  ConsumerState<BrowseScreen> createState() => _BrowseScreenState();
 }
 
-class _SettingsScreenState extends ConsumerState<SettingsScreen> {
+class _BrowseScreenState extends ConsumerState<BrowseScreen> {
+  ContentType _type = ContentType.manga;
+
   @override
   Widget build(BuildContext context) {
-    final manager = ref.read(extensionManagerProvider.notifier);
+    final sources = ref.watch(extensionManagerProvider).values.where((s) => s.type == _type).toList();
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Settings')),
-      body: ListView(
-        children: [
-          _sectionHeader('Source repositories'),
-          ...manager.repos.map((r) => ListTile(
-                leading: const Icon(Icons.link),
-                title: Text(r.url, maxLines: 1, overflow: TextOverflow.ellipsis),
-                trailing: IconButton(
-                  icon: const Icon(Icons.delete_outline),
-                  onPressed: () => setState(() => manager.removeRepo(r.url)),
-                ),
-              )),
-          ListTile(
-            leading: const Icon(Icons.add_link),
-            title: const Text('Add repository'),
-            onTap: _addRepoDialog,
+      appBar: AppBar(
+        title: const Text('Discover'),
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(48),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            child: SegmentedButton<ContentType>(
+              segments: ContentType.values
+                  .map((t) => ButtonSegment(value: t, label: Text(t.label)))
+                  .toList(),
+              selected: {_type},
+              onSelectionChanged: (s) => setState(() => _type = s.first),
+            ),
           ),
-          const Divider(),
-          _sectionHeader('About'),
-          const ListTile(
-            leading: Icon(Icons.info_outline),
-            title: Text('Kaimono'),
-            subtitle: Text('v0.1.0 — manga, anime & novel reader'),
+        ),
+      ),
+      body: sources.isEmpty
+          ? Center(
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: Text(
+                  'No ${_type.label} sources installed.\nAdd some from the Sources tab.',
+                  textAlign: TextAlign.center,
+                ),
+              ),
+            )
+          : ListView.builder(
+              itemCount: sources.length,
+              itemBuilder: (context, i) {
+                final s = sources[i];
+                return ListTile(
+                  leading: CircleAvatar(backgroundImage: s.iconUrl.isNotEmpty ? NetworkImage(s.iconUrl) : null),
+                  title: Text(s.name),
+                  subtitle: Text(s.lang.toUpperCase()),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => SourceBrowseScreen(sourceId: s.id)),
+                  ),
+                );
+              },
+            ),
+    );
+  }
+}
+
+/// Popular/search view for a single source. Tap the search icon to turn
+/// the app bar into a text field and submit to search this source.
+class SourceBrowseScreen extends ConsumerStatefulWidget {
+  final String sourceId;
+  const SourceBrowseScreen({super.key, required this.sourceId});
+  @override
+  ConsumerState<SourceBrowseScreen> createState() => _SourceBrowseScreenState();
+}
+
+class _SourceBrowseScreenState extends ConsumerState<SourceBrowseScreen> {
+  bool _loading = true;
+  bool _searching = false;
+  List _entries = [];
+  final TextEditingController _searchController = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    _loadPopular();
+  }
+
+  Future<void> _loadPopular() async {
+    setState(() => _loading = true);
+    final source = ref.read(extensionManagerProvider)[widget.sourceId]!;
+    final result = await source.popular();
+    setState(() {
+      _entries = result;
+      _loading = false;
+    });
+  }
+
+  Future<void> _runSearch(String query) async {
+    if (query.trim().isEmpty) {
+      _loadPopular();
+      return;
+    }
+    setState(() => _loading = true);
+    final source = ref.read(extensionManagerProvider)[widget.sourceId]!;
+    final result = await source.search(query.trim());
+    setState(() {
+      _entries = result;
+      _loading = false;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final source = ref.watch(extensionManagerProvider)[widget.sourceId]!;
+    return Scaffold(
+      appBar: AppBar(
+        title: _searching
+            ? TextField(
+                controller: _searchController,
+                autofocus: true,
+                decoration: const InputDecoration(
+                  hintText: 'Search this source…',
+                  border: InputBorder.none,
+                ),
+                style: const TextStyle(fontSize: 16),
+                onSubmitted: _runSearch,
+              )
+            : Text(source.name),
+        actions: [
+          IconButton(
+            icon: Icon(_searching ? Icons.close : Icons.search),
+            onPressed: () {
+              setState(() {
+                if (_searching) {
+                  _searchController.clear();
+                  _loadPopular();
+                }
+                _searching = !_searching;
+              });
+            },
           ),
         ],
       ),
+      body: _loading
+          ? const Center(child: CircularProgressIndicator())
+          : EntryGrid(
+              entries: _entries.cast(),
+              emptyLabel: 'No results',
+              onTap: (entry) => Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => EntryDetailScreen(sourceId: widget.sourceId, entry: entry),
+                ),
+              ),
+            ),
     );
   }
 
-  Widget _sectionHeader(String text) => Padding(
-        padding: const EdgeInsets.fromLTRB(16, 20, 16, 4),
-        child: Text(text, style: Theme.of(context).textTheme.titleSmall),
-      );
-
-  void _addRepoDialog() {
-    final controller = TextEditingController();
-    showDialog(
-      context: context,
-      builder: (_) => AlertDialog(
-        title: const Text('Add repository'),
-        content: TextField(
-          controller: controller,
-          decoration: const InputDecoration(hintText: 'https://.../index.json'),
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
-          FilledButton(
-            onPressed: () {
-              if (controller.text.trim().isNotEmpty) {
-                setState(() => ref.read(extensionManagerProvider.notifier).addRepo(controller.text.trim()));
-              }
-              Navigator.pop(context);
-            },
-            child: const Text('Add'),
-          ),
-        ],
-      ),
-    );
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
   }
 }
