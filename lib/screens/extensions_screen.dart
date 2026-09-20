@@ -36,9 +36,8 @@ class _ExtensionsScreenState extends ConsumerState<ExtensionsScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Extensions'),
+        title: const Text('Sources'),
         actions: [
-          IconButton(icon: const Icon(Icons.settings_input_component), onPressed: _manageRepos),
           IconButton(icon: const Icon(Icons.refresh), onPressed: _refresh),
         ],
       ),
@@ -70,7 +69,7 @@ class _ExtensionsScreenState extends ConsumerState<ExtensionsScreen> {
                   const Padding(
                     padding: EdgeInsets.all(24),
                     child: Text(
-                      'No repos configured or reachable.\nAdd a repo index URL via the repo icon above.',
+                      'No repos reachable right now.\nManage repositories from the Settings tab.',
                       textAlign: TextAlign.center,
                     ),
                   ),
@@ -83,29 +82,4 @@ class _ExtensionsScreenState extends ConsumerState<ExtensionsScreen> {
         padding: const EdgeInsets.fromLTRB(16, 16, 16, 4),
         child: Text(text, style: Theme.of(context).textTheme.titleSmall),
       );
-
-  void _manageRepos() {
-    final controller = TextEditingController();
-    showDialog(
-      context: context,
-      builder: (_) => AlertDialog(
-        title: const Text('Add extension repo'),
-        content: TextField(
-          controller: controller,
-          decoration: const InputDecoration(hintText: 'https://.../index.json'),
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
-          FilledButton(
-            onPressed: () {
-              ref.read(extensionManagerProvider.notifier).repos.add(ExtensionRepo(controller.text));
-              Navigator.pop(context);
-              _refresh();
-            },
-            child: const Text('Add'),
-          ),
-        ],
-      ),
-    );
-  }
 }
