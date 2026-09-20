@@ -71,7 +71,7 @@ class JsSource implements Source {
       manifest.scriptUrl,
       options: Options(responseType: ResponseType.plain),
     );
-    _js.evaluate('''
+    final setup = _js.evaluate('''
       const __pending = {};
       let __id = 0;
       globalThis.httpGet = (url, headers = {}) => new Promise((resolve) => {
@@ -83,6 +83,9 @@ class JsSource implements Source {
       var module = {};
       ${code.data}
     ''');
+    if (setup.isError) {
+      throw Exception('Source script failed to load: ${setup.stringResult}');
+    }
     _ready = true;
   }
 
@@ -92,6 +95,9 @@ class JsSource implements Source {
     final result = await _js.evaluateAsync(
       '(async () => { return JSON.stringify(await module.$fn($argsJs)); })()',
     );
+    if (result.isError) {
+      throw Exception('Source call "$fn" failed: ${result.stringResult}');
+    }
     return jsonDecode(result.stringResult);
   }
 
