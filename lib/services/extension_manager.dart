@@ -10,7 +10,10 @@ class ExtensionRepo {
   ExtensionRepo(this.url);
 
   Future<List<ExtensionManifest>> fetchIndex() async {
-    final res = await Dio().get<String>(url);
+    final res = await Dio().get<String>(
+      url,
+      options: Options(responseType: ResponseType.plain),
+    );
     final list = jsonDecode(res.data!) as List;
     return list.map((e) => ExtensionManifest.fromJson(e)).toList();
   }
