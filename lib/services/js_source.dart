@@ -89,7 +89,9 @@ class JsSource implements Source {
   Future<dynamic> _call(String fn, List<dynamic> args) async {
     await _ensureReady();
     final argsJs = args.map(jsonEncode).join(',');
-    final result = await _js.evaluateAsync('JSON.stringify(await module.$fn($argsJs))');
+    final result = await _js.evaluateAsync(
+      '(async () => { return JSON.stringify(await module.$fn($argsJs)); })()',
+    );
     return jsonDecode(result.stringResult);
   }
 
