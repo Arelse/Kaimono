@@ -1,17 +1,20 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/content_type.dart';
+import '../services/library_manager.dart';
 import '../widgets/entry_grid.dart';
 import 'entry_detail_screen.dart';
 
-/// Shows saved (favorited) entries, split by content type. This is the
-/// screen that differentiates the app from a single-medium reader like
-/// Komikku: the same library shell hosts manga, anime, and novels side
-/// by side instead of three separate apps.
-class LibraryScreen extends StatelessWidget {
+/// Shows favorited entries, split by content type, backed by persistent
+/// storage via [libraryManagerProvider] — survives app restarts.
+class LibraryScreen extends ConsumerWidget {
   const LibraryScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final library = ref.watch(libraryManagerProvider.notifier);
+    ref.watch(libraryManagerProvider); // rebuild on changes
+
     return DefaultTabController(
       length: ContentType.values.length,
       child: Scaffold(
@@ -20,16 +23,13 @@ class LibraryScreen extends StatelessWidget {
           bottom: TabBar(
             tabs: ContentType.values.map((t) => Tab(text: t.label)).toList(),
           ),
-          actions: [
-            IconButton(icon: const Icon(Icons.search), onPressed: () {}),
-          ],
         ),
         body: TabBarView(
           children: ContentType.values.map((type) {
-            // TODO: wire to Isar-backed library provider filtered by `type`.
+            final entries = library.byType(type);
             return EntryGrid(
-              entries: const [],
-              emptyLabel: 'No ${type.label.toLowerCase()} yet',
+              entries: entries,
+              emptyLabel: 'No ${type.label.toLowerCase()} yet\nFavorite something from Discover',
               onTap: (entry) => Navigator.push(
                 context,
                 MaterialPageRoute(
