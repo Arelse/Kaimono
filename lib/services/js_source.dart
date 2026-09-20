@@ -5,32 +5,6 @@ import '../models/content_type.dart';
 import '../models/entry.dart';
 import '../models/source.dart';
 
-/// A [Source] whose logic lives in a downloaded JS file rather than
-/// compiled Dart. This is the "extension" mechanism: installing an
-/// extension = downloading a `.js` module + a `manifest.json` and
-/// registering both here.
-///
-/// The JS module contract (what an extension author implements):
-///
-/// ```js
-/// class Extension {
-///   async search(query, page) { ... return [{id,title,cover,...}] }
-///   async popular(page) { ... }
-///   async latest(page) { ... }
-///   async details(id) { ... return {id,title,description,genres,...} }
-///   async chunks(id) { ... return [{id,title,number,uploadDate}] }
-///   async pages(chunkId) { ... return ["https://...jpg", ...] }
-///   async streams(chunkId) { ... return [{url,quality,headers}] }
-/// }
-/// register(new Extension());
-/// ```
-///
-/// This shape is deliberately close to Mangayomi's JS source API and to
-/// Mihon's per-source method set (popularMangaRequest/searchMangaRequest/
-/// chapterListRequest/pageListRequest), so porting an existing open-source
-/// extension's *scraping logic* here is mostly a syntax translation, not a
-/// rewrite of the approach. Actual porting is still per-source manual work
-/// — there is no automatic loader for .apk or .mmrpm packages.
 class JsSource implements Source {
   final ExtensionManifest manifest;
   late final JavascriptRuntime _js;
@@ -56,11 +30,6 @@ class JsSource implements Source {
     if (_ready) return;
     _js = getJavascriptRuntime();
 
-// Bridge: flutter_js's channel does NOT await async Dart callbacks —
-    // it uses whatever they return immediately. So this handler returns
-    // right away (fire-and-forget), and once the real HTTP response
-    // arrives later, we manually resolve the matching JS-side Promise by
-    // evaluating code that calls back into the pending-promise map.
     _js.onMessage('__httpGetStart', (args) {
       final url = args[0] as String;
       final headers = (jsonDecode(args[1] as String) as Map).cast<String, dynamic>();
@@ -101,13 +70,41 @@ class JsSource implements Source {
   Future<dynamic> _call(String fn, List<dynamic> args) async {
     await _ensureReady();
     final argsJs = args.map(jsonEncode).join(',');
-    final result = await _js.evaluateAsync(
-      '(async () => { return JSON.stringify(await module.$fn($argsJs)); })()',
-    );
-    if (result.isError) {
-      throw Exception('Source call "$fn" failed: ${result.stringResult}');
+    final callId = 'call${DateTime.now().microsecondsSinceEpoch}';
+
+    _js.evaluate('''
+      (function() {
+        module.$fn($argsJs).then(function(r) {
+          globalThis['${callId}_result'] = JSON.stringify(r);
+        }).catch(function(e) {
+          globalThis['${callId}_error'] = String(e);
+        });
+      })();
+    ''');
+
+    String status = 'pending';
+    for (int i = 0; i < 500; i++) {
+      _js.executePendingJob();
+      final check = _js.evaluate(
+        "typeof globalThis['${callId}_result'] !== 'undefined' ? 'result' : (typeof globalThis['${callId}_error'] !== 'undefined' ? 'error' : 'pending')",
+      );
+      status = check.stringResult;
+      if (status != 'pending') break;
+      await Future.delayed(const Duration(milliseconds: 20));
     }
-    return jsonDecode(result.stringResult);
+
+    if (status == 'pending') {
+      throw Exception('Source call "$fn" timed out waiting for a response.');
+    }
+    if (status == 'error') {
+      final err = _js.evaluate("globalThis['${callId}_error']");
+      _js.evaluate("delete globalThis['${callId}_error'];");
+      throw Exception('Source call "$fn" failed: ${err.stringResult}');
+    }
+
+    final res = _js.evaluate("globalThis['${callId}_result']");
+    _js.evaluate("delete globalThis['${callId}_result'];");
+    return jsonDecode(res.stringResult);
   }
 
   @override
