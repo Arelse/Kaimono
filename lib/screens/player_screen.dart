@@ -58,7 +58,7 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
   }
 
   Future<void> _play(StreamLink link) async {
-    await _chewieController?.dispose();
+    _chewieController?.dispose();
     await _videoController?.dispose();
     final controller = VideoPlayerController.networkUrl(
       Uri.parse(link.url),
