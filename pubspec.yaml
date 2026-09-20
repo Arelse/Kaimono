@@ -14,6 +14,9 @@ dependencies:
   # State management
   flutter_riverpod: ^2.5.1
 
+  # Persistent local storage (library favorites, installed sources)
+  shared_preferences: ^2.2.3
+
   # Networking (talking to source backends / extension repos)
   dio: ^5.4.3
   html: ^0.15.4          # for parsing HTML-based sources (cloudflare, scraping)
@@ -32,4 +35,3 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
-  shared_preferences: ^2.2.3
