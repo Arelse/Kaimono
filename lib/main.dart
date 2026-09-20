@@ -4,6 +4,7 @@ import 'screens/library_screen.dart';
 import 'screens/browse_screen.dart';
 import 'screens/extensions_screen.dart';
 import 'screens/updates_screen.dart';
+import 'screens/settings_screen.dart';
 
 void main() {
   runApp(const ProviderScope(child: KaimonoApp()));
@@ -43,6 +44,7 @@ class _RootShellState extends State<RootShell> {
     UpdatesScreen(),
     BrowseScreen(),
     ExtensionsScreen(),
+    SettingsScreen(),
   ];
 
   @override
@@ -55,8 +57,9 @@ class _RootShellState extends State<RootShell> {
         destinations: const [
           NavigationDestination(icon: Icon(Icons.collections_bookmark_outlined), label: 'Library'),
           NavigationDestination(icon: Icon(Icons.new_releases_outlined), label: 'Updates'),
-          NavigationDestination(icon: Icon(Icons.explore_outlined), label: 'Browse'),
-          NavigationDestination(icon: Icon(Icons.extension_outlined), label: 'Extensions'),
+          NavigationDestination(icon: Icon(Icons.explore_outlined), label: 'Discover'),
+          NavigationDestination(icon: Icon(Icons.extension_outlined), label: 'Sources'),
+          NavigationDestination(icon: Icon(Icons.settings_outlined), label: 'Settings'),
         ],
       ),
     );
