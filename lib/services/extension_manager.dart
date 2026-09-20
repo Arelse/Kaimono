@@ -4,12 +4,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/source.dart';
 import 'js_source.dart';
 
-/// A repo is just a URL hosting an `index.json` listing available
-/// extensions (id, name, script url, icon, version) — the same shape
-/// Mihon/Mangayomi/Keiyoshi repos use for their index files, so pointing
-/// this at a *compatible* community repo (one already publishing JS
-/// sources in the shape [JsSource] expects) works without extra glue.
-/// Repos that only publish compiled .apk sources are not installable here.
 class ExtensionRepo {
   final String url;
   ExtensionRepo(this.url);
@@ -24,10 +18,11 @@ class ExtensionRepo {
 class ExtensionManager extends StateNotifier<Map<String, Source>> {
   ExtensionManager() : super({});
 
+  // Default repo: this project's own sample repo, served straight off
+  // GitHub's raw file host — no separate server needed. Manage repos
+  // (add/remove more) from the Settings tab.
   final List<ExtensionRepo> repos = [
-    // Placeholder — point this at your own JSON index. See
-    // assets/sample_repo/index.json in this project for the expected shape.
-    ExtensionRepo('https://example.com/kaimono-extensions/index.json'),
+    ExtensionRepo('https://raw.githubusercontent.com/Arelse/Kaimono/main/assets/sample_repo/index.json'),
   ];
 
   Future<List<ExtensionManifest>> browseAll() async {
@@ -42,10 +37,17 @@ class ExtensionManager extends StateNotifier<Map<String, Source>> {
     return results;
   }
 
+  void addRepo(String url) {
+    repos.add(ExtensionRepo(url));
+  }
+
+  void removeRepo(String url) {
+    repos.removeWhere((r) => r.url == url);
+  }
+
   Future<void> install(ExtensionManifest manifest) async {
     final source = JsSource(manifest);
     state = {...state, manifest.id: source};
-    // TODO: persist manifest to Isar so installed extensions survive restart.
   }
 
   void uninstall(String sourceId) {
