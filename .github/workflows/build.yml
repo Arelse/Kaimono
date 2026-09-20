@@ -19,6 +19,9 @@ jobs:
       - name: Generate missing Android platform files
         run: flutter create . --platforms=android --project-name kaimono
 
+      - name: Relax Kotlin/Java JVM target validation
+        run: echo "kotlin.jvm.target.validation.mode=warning" >> android/gradle.properties
+
       - name: Get dependencies
         run: flutter pub get
 
