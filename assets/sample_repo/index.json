@@ -5,7 +5,16 @@
     "lang": "en",
     "type": "manga",
     "icon": "",
-    "script": "https://your-host.example.com/kaimono-extensions/demo_manga.js",
+    "script": "https://raw.githubusercontent.com/Arelse/Kaimono/main/assets/sample_repo/demo_manga.js",
+    "version": 1
+  },
+  {
+    "id": "mangadex",
+    "name": "MangaDex",
+    "lang": "en",
+    "type": "manga",
+    "icon": "",
+    "script": "https://raw.githubusercontent.com/Arelse/Kaimono/main/assets/sample_repo/mangadex.js",
     "version": 1
   }
 ]
