@@ -7,6 +7,7 @@ import '../services/extension_manager.dart';
 import 'manga_reader_screen.dart';
 import 'novel_reader_screen.dart';
 import 'player_screen.dart';
+import '../services/library_manager.dart';
 
 /// Shows an entry's synopsis/metadata plus its chunk list (chapters or
 /// episodes), and routes each chunk to the right consumption screen —
@@ -26,8 +27,7 @@ class _EntryDetailScreenState extends ConsumerState<EntryDetailScreen> {
   Entry? _details;
   List<EntryChunk> _chunks = [];
   bool _loading = true;
-  bool _inLibrary = false; // TODO: back with Isar
-
+  
   @override
   void initState() {
     super.initState();
@@ -86,9 +86,16 @@ class _EntryDetailScreenState extends ConsumerState<EntryDetailScreen> {
             expandedHeight: 220,
             pinned: true,
             actions: [
-              IconButton(
-                icon: Icon(_inLibrary ? Icons.favorite : Icons.favorite_border),
-                onPressed: () => setState(() => _inLibrary = !_inLibrary),
+            Consumer(
+               builder: (context, ref, _) {
+                  final library = ref.watch(libraryManagerProvider.notifier);
+                  ref.watch(libraryManagerProvider);
+                  final fav = library.isFavorite(widget.sourceId, widget.entry.id);
+                  return IconButton(
+                    icon: Icon(fav ? Icons.favorite : Icons.favorite_border),
+                    onPressed: () => library.toggle(e),
+                  );
+                },
               ),
             ],
             flexibleSpace: FlexibleSpaceBar(
