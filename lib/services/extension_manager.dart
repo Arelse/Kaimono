@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../models/source.dart';
 import 'js_source.dart';
 
@@ -16,11 +17,12 @@ class ExtensionRepo {
 }
 
 class ExtensionManager extends StateNotifier<Map<String, Source>> {
-  ExtensionManager() : super({});
+  ExtensionManager() : super({}) {
+    _loadInstalled();
+  }
 
-  // Default repo: this project's own sample repo, served straight off
-  // GitHub's raw file host — no separate server needed. Manage repos
-  // (add/remove more) from the Settings tab.
+  static const _installedKey = 'installed_sources';
+
   final List<ExtensionRepo> repos = [
     ExtensionRepo('https://raw.githubusercontent.com/Arelse/Kaimono/main/assets/sample_repo/index.json'),
   ];
@@ -45,14 +47,45 @@ class ExtensionManager extends StateNotifier<Map<String, Source>> {
     repos.removeWhere((r) => r.url == url);
   }
 
+  Future<void> _loadInstalled() async {
+    final prefs = await SharedPreferences.getInstance();
+    final raw = prefs.getStringList(_installedKey);
+    if (raw == null) return;
+    final map = <String, Source>{};
+    for (final item in raw) {
+      final manifest = ExtensionManifest.fromJson(jsonDecode(item));
+      map[manifest.id] = JsSource(manifest);
+    }
+    state = map;
+  }
+
+  Future<void> _persistInstalled() async {
+    final prefs = await SharedPreferences.getInstance();
+    final list = state.values.map((s) {
+      final m = (s as JsSource).manifest;
+      return jsonEncode({
+        'id': m.id,
+        'name': m.name,
+        'lang': m.lang,
+        'type': m.type.name,
+        'icon': m.iconUrl,
+        'script': m.scriptUrl,
+        'version': m.version,
+      });
+    }).toList();
+    await prefs.setStringList(_installedKey, list);
+  }
+
   Future<void> install(ExtensionManifest manifest) async {
     final source = JsSource(manifest);
     state = {...state, manifest.id: source};
+    await _persistInstalled();
   }
 
-  void uninstall(String sourceId) {
+  Future<void> uninstall(String sourceId) async {
     final next = {...state}..remove(sourceId);
     state = next;
+    await _persistInstalled();
   }
 }
 
