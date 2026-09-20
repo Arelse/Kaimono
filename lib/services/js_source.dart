@@ -87,7 +87,7 @@ class JsSource implements Source {
     await _ensureReady();
     final argsJs = args.map(jsonEncode).join(',');
     final result = await _js.evaluateAsync('JSON.stringify(await module.$fn($argsJs))');
-    return jsonDecode(_js.getStringResult(result));
+    return jsonDecode(result.stringResult);
   }
 
   @override
