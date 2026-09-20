@@ -56,15 +56,25 @@ class JsSource implements Source {
     if (_ready) return;
     _js = getJavascriptRuntime();
 
-    // Bridge: gives the JS module an async-capable HTTP client backed by
-    // Dio, since flutter_js has no native fetch(). The JS side calls
-    // `__httpGet(url, headersJson)` and awaits a promise we resolve here.
-    _js.onMessage('__httpGet', (args) async {
+// Bridge: flutter_js's channel does NOT await async Dart callbacks —
+    // it uses whatever they return immediately. So this handler returns
+    // right away (fire-and-forget), and once the real HTTP response
+    // arrives later, we manually resolve the matching JS-side Promise by
+    // evaluating code that calls back into the pending-promise map.
+    _js.onMessage('__httpGetStart', (args) {
       final url = args[0] as String;
-      final headers = jsonDecode(args[1] as String) as Map<String, dynamic>;
-      final res = await _dio.get<String>(url,
-          options: Options(headers: headers, responseType: ResponseType.plain));
-      return res.data;
+      final headers = (jsonDecode(args[1] as String) as Map).cast<String, dynamic>();
+      final rid = args[2] as String;
+      _dio
+          .get<String>(url, options: Options(headers: headers, responseType: ResponseType.plain))
+          .then((res) {
+        final payload = jsonEncode(res.data ?? '');
+        _js.evaluate("__pending['$rid'] && __pending['$rid']($payload); delete __pending['$rid'];");
+      }).catchError((err) {
+        final payload = jsonEncode('');
+        _js.evaluate("__pending['$rid'] && __pending['$rid']($payload); delete __pending['$rid'];");
+      });
+      return null;
     });
 
     final code = await _dio.get<String>(
@@ -75,10 +85,9 @@ class JsSource implements Source {
       const __pending = {};
       let __id = 0;
       globalThis.httpGet = (url, headers = {}) => new Promise((resolve) => {
-        const rid = __id++;
+        const rid = String(__id++);
         __pending[rid] = resolve;
-        sendMessage('__httpGet', url, JSON.stringify(headers))
-          .then(r => { __pending[rid](r); delete __pending[rid]; });
+        sendMessage('__httpGetStart', url, JSON.stringify(headers), rid);
       });
       var module = {};
       ${code.data}
