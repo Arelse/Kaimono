@@ -80,6 +80,7 @@ class _SourceBrowseScreenState extends ConsumerState<SourceBrowseScreen> {
   bool _loading = true;
   bool _searching = false;
   List _entries = [];
+  String? _error;
   final TextEditingController _searchController = TextEditingController();
 
   @override
@@ -89,13 +90,23 @@ class _SourceBrowseScreenState extends ConsumerState<SourceBrowseScreen> {
   }
 
   Future<void> _loadPopular() async {
-    setState(() => _loading = true);
-    final source = ref.read(extensionManagerProvider)[widget.sourceId]!;
-    final result = await source.popular();
     setState(() {
-      _entries = result;
-      _loading = false;
+      _loading = true;
+      _error = null;
     });
+    try {
+      final source = ref.read(extensionManagerProvider)[widget.sourceId]!;
+      final result = await source.popular().timeout(const Duration(seconds: 20));
+      setState(() {
+        _entries = result;
+        _loading = false;
+      });
+    } catch (e) {
+      setState(() {
+        _error = e.toString();
+        _loading = false;
+      });
+    }
   }
 
   Future<void> _runSearch(String query) async {
@@ -103,13 +114,23 @@ class _SourceBrowseScreenState extends ConsumerState<SourceBrowseScreen> {
       _loadPopular();
       return;
     }
-    setState(() => _loading = true);
-    final source = ref.read(extensionManagerProvider)[widget.sourceId]!;
-    final result = await source.search(query.trim());
     setState(() {
-      _entries = result;
-      _loading = false;
+      _loading = true;
+      _error = null;
     });
+    try {
+      final source = ref.read(extensionManagerProvider)[widget.sourceId]!;
+      final result = await source.search(query.trim()).timeout(const Duration(seconds: 20));
+      setState(() {
+        _entries = result;
+        _loading = false;
+      });
+    } catch (e) {
+      setState(() {
+        _error = e.toString();
+        _loading = false;
+      });
+    }
   }
 
   @override
@@ -146,16 +167,23 @@ class _SourceBrowseScreenState extends ConsumerState<SourceBrowseScreen> {
       ),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
-          : EntryGrid(
-              entries: _entries.cast(),
-              emptyLabel: 'No results',
-              onTap: (entry) => Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => EntryDetailScreen(sourceId: widget.sourceId, entry: entry),
+          : _error != null
+              ? Padding(
+                  padding: const EdgeInsets.all(24),
+                  child: Center(
+                    child: Text('Error loading this source:\n\n$_error', textAlign: TextAlign.center),
+                  ),
+                )
+              : EntryGrid(
+                  entries: _entries.cast(),
+                  emptyLabel: 'No results',
+                  onTap: (entry) => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => EntryDetailScreen(sourceId: widget.sourceId, entry: entry),
+                    ),
+                  ),
                 ),
-              ),
-            ),
     );
   }
 
