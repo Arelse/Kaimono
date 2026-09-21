@@ -14,6 +14,7 @@ class Entry {
   final List<String> genres;
   final String? author;
   final EntryStatus status;
+  final String? sourceUrl; // the entry's page on the source's own website, if the source provides one
 
   Entry({
     required this.id,
@@ -25,6 +26,7 @@ class Entry {
     this.genres = const [],
     this.author,
     this.status = EntryStatus.unknown,
+    this.sourceUrl,
   });
 
   factory Entry.fromJson(Map<String, dynamic> json, String sourceId, ContentType type) {
@@ -41,6 +43,7 @@ class Entry {
         (s) => s.name == (json['status']?.toString() ?? 'unknown'),
         orElse: () => EntryStatus.unknown,
       ),
+      sourceUrl: json['url']?.toString(),
     );
   }
 }
