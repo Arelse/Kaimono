@@ -29,16 +29,16 @@ class Entry {
 
   factory Entry.fromJson(Map<String, dynamic> json, String sourceId, ContentType type) {
     return Entry(
-      id: json['id'] as String,
+      id: json['id']?.toString() ?? '',
       sourceId: sourceId,
       type: type,
-      title: json['title'] as String,
-      coverUrl: json['cover'] as String?,
-      description: json['description'] as String?,
-      genres: (json['genres'] as List?)?.cast<String>() ?? const [],
-      author: json['author'] as String?,
+      title: json['title']?.toString() ?? 'Untitled',
+      coverUrl: json['cover']?.toString(),
+      description: json['description']?.toString(),
+      genres: (json['genres'] as List?)?.map((g) => g.toString()).toList() ?? const [],
+      author: json['author']?.toString(),
       status: EntryStatus.values.firstWhere(
-        (s) => s.name == (json['status'] ?? 'unknown'),
+        (s) => s.name == (json['status']?.toString() ?? 'unknown'),
         orElse: () => EntryStatus.unknown,
       ),
     );
