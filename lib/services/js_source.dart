@@ -31,9 +31,10 @@ class JsSource implements Source {
     _js = getJavascriptRuntime();
 
     _js.onMessage('__httpGetStart', (args) {
-      final url = args[0] as String;
-      final headers = (jsonDecode(args[1] as String) as Map).cast<String, dynamic>();
-      final rid = args[2] as String;
+      final data = jsonDecode(args[0] as String) as Map<String, dynamic>;
+      final url = data['url'] as String;
+      final headers = (data['headers'] as Map).cast<String, dynamic>();
+      final rid = data['rid'] as String;
       _dio
           .get<String>(url, options: Options(headers: headers, responseType: ResponseType.plain))
           .then((res) {
@@ -56,7 +57,7 @@ class JsSource implements Source {
       globalThis.httpGet = (url, headers = {}) => new Promise((resolve) => {
         const rid = String(__id++);
         __pending[rid] = resolve;
-        sendMessage('__httpGetStart', url, JSON.stringify(headers), rid);
+        sendMessage('__httpGetStart', JSON.stringify({url: url, headers: headers, rid: rid}));
       });
       var module = {};
       ${code.data}
