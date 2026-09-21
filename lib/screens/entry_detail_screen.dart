@@ -31,6 +31,7 @@ class _EntryDetailScreenState extends ConsumerState<EntryDetailScreen> {
   }
 
   Future<void> _load() async {
+    setState(() => _loading = true);
     final source = ref.read(extensionManagerProvider)[widget.sourceId]!;
     final details = await source.getEntryDetails(widget.entry.id);
     final chunks = await source.getChunks(widget.entry.id);
@@ -95,6 +96,17 @@ class _EntryDetailScreenState extends ConsumerState<EntryDetailScreen> {
           SliverAppBar(
             expandedHeight: 220,
             pinned: true,
+            actions: [
+              PopupMenuButton<String>(
+                icon: const Icon(Icons.more_vert),
+                onSelected: (value) {
+                  if (value == 'refresh') _load();
+                },
+                itemBuilder: (context) => [
+                  const PopupMenuItem(value: 'refresh', child: Text('Refresh')),
+                ],
+              ),
+            ],
             flexibleSpace: FlexibleSpaceBar(
               background: e.coverUrl != null
                   ? Stack(
@@ -140,7 +152,7 @@ class _EntryDetailScreenState extends ConsumerState<EntryDetailScreen> {
                           ),
                           _actionButton(
                             icon: Icons.public,
-                            label: 'Source',
+                            label: 'WebView',
                             active: false,
                             onTap: () => _openWebView(e),
                           ),
