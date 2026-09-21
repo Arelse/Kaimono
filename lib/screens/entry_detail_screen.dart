@@ -4,10 +4,10 @@ import 'package:cached_network_image/cached_network_image.dart';
 import '../models/content_type.dart';
 import '../models/entry.dart';
 import '../services/extension_manager.dart';
+import '../services/library_manager.dart';
 import 'manga_reader_screen.dart';
 import 'novel_reader_screen.dart';
 import 'player_screen.dart';
-import '../services/library_manager.dart';
 
 /// Shows an entry's synopsis/metadata plus its chunk list (chapters or
 /// episodes), and routes each chunk to the right consumption screen —
@@ -27,7 +27,7 @@ class _EntryDetailScreenState extends ConsumerState<EntryDetailScreen> {
   Entry? _details;
   List<EntryChunk> _chunks = [];
   bool _loading = true;
-  
+
   @override
   void initState() {
     super.initState();
@@ -85,19 +85,6 @@ class _EntryDetailScreenState extends ConsumerState<EntryDetailScreen> {
           SliverAppBar(
             expandedHeight: 220,
             pinned: true,
-            actions: [
-            Consumer(
-               builder: (context, ref, _) {
-                  final library = ref.watch(libraryManagerProvider.notifier);
-                  ref.watch(libraryManagerProvider);
-                  final fav = library.isFavorite(widget.sourceId, widget.entry.id);
-                  return IconButton(
-                    icon: Icon(fav ? Icons.favorite : Icons.favorite_border),
-                    onPressed: () => library.toggle(e),
-                  );
-                },
-              ),
-            ],
             flexibleSpace: FlexibleSpaceBar(
               background: e.coverUrl != null
                   ? Stack(
@@ -126,7 +113,32 @@ class _EntryDetailScreenState extends ConsumerState<EntryDetailScreen> {
                 children: [
                   Text(e.title, style: Theme.of(context).textTheme.headlineSmall),
                   if (e.author != null) Text(e.author!, style: Theme.of(context).textTheme.bodyMedium),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 16),
+                  Consumer(
+                    builder: (context, ref, _) {
+                      final library = ref.watch(libraryManagerProvider.notifier);
+                      ref.watch(libraryManagerProvider);
+                      final fav = library.isFavorite(widget.sourceId, widget.entry.id);
+                      return Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                        children: [
+                          _actionButton(
+                            icon: fav ? Icons.favorite : Icons.favorite_border,
+                            label: fav ? 'In library' : 'Add to library',
+                            active: fav,
+                            onTap: () => library.toggle(e),
+                          ),
+                          _actionButton(
+                            icon: Icons.public,
+                            label: 'Source',
+                            active: false,
+                            onTap: () {},
+                          ),
+                        ],
+                      );
+                    },
+                  ),
+                  const Divider(height: 32),
                   Wrap(
                     spacing: 6,
                     children: e.genres.map((g) => Chip(label: Text(g), visualDensity: VisualDensity.compact)).toList(),
@@ -134,7 +146,8 @@ class _EntryDetailScreenState extends ConsumerState<EntryDetailScreen> {
                   const SizedBox(height: 12),
                   if (e.description != null) Text(e.description!),
                   const SizedBox(height: 20),
-                  Text('$chunkWord list (${_chunks.length})', style: Theme.of(context).textTheme.titleMedium),
+                  Text('${_chunks.length} $chunkWord${_chunks.length == 1 ? '' : 's'}',
+                      style: Theme.of(context).textTheme.titleMedium),
                 ],
               ),
             ),
@@ -154,6 +167,24 @@ class _EntryDetailScreenState extends ConsumerState<EntryDetailScreen> {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _actionButton({required IconData icon, required String label, required bool active, required VoidCallback onTap}) {
+    final color = active ? Theme.of(context).colorScheme.primary : null;
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        child: Column(
+          children: [
+            Icon(icon, color: color),
+            const SizedBox(height: 4),
+            Text(label, style: TextStyle(fontSize: 12, color: color)),
+          ],
+        ),
       ),
     );
   }
