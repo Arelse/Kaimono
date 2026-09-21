@@ -3,12 +3,6 @@ import 'entry.dart';
 
 /// Contract every installed extension satisfies, regardless of whether it's
 /// backed by a JS module, a bundled scraper, or a wrapped API client.
-///
-/// This mirrors the shape Mihon/Mangayomi sources expose (search, entry
-/// details, chunk list, page/stream list) so porting source *logic* from
-/// those ecosystems into a JS module here is a translation job, not a
-/// redesign. We do not claim binary compatibility with .apk (Mihon) or
-/// .mmrpm (Mangayomi) extension packages — see EXTENSIONS.md.
 abstract class Source {
   String get id;
   String get name;
@@ -17,9 +11,9 @@ abstract class Source {
   String get iconUrl;
   int get version;
 
-  Future<List<Entry>> search(String query, {int page = 1});
-  Future<List<Entry>> popular({int page = 1});
-  Future<List<Entry>> latest({int page = 1});
+  Future<List<Entry>> search(String query, {int page = 1, String? genre});
+  Future<List<Entry>> popular({int page = 1, String? genre});
+  Future<List<Entry>> latest({int page = 1, String? genre});
   Future<Entry> getEntryDetails(String entryId);
   Future<List<EntryChunk>> getChunks(String entryId);
 
@@ -30,6 +24,10 @@ abstract class Source {
 
   /// Anime only: playable stream URLs/qualities for an episode.
   Future<List<StreamLink>> getStreamLinks(String chunkId);
+
+  /// Genre/tag list for filtering, as [{id, name}]. Not every source
+  /// supports this — default is an empty list, meaning "no filter UI."
+  Future<List<Map<String, String>>> getGenres() async => [];
 }
 
 class StreamLink {
