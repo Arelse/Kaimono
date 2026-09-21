@@ -45,19 +45,25 @@ async function fetchMangaList(query) {
   return (json.data || []).map(toEntry);
 }
 
-module.popular = async (page) => {
+module.popular = async (page, genre) => {
   const offset = (page - 1) * 20;
-  return fetchMangaList(`order[followedCount]=desc&limit=20&offset=${offset}&contentRating[]=safe&contentRating[]=suggestive&includes[]=cover_art&includes[]=author`);
+  let query = `order[followedCount]=desc&limit=20&offset=${offset}&contentRating[]=safe&contentRating[]=suggestive&includes[]=cover_art&includes[]=author`;
+  if (genre) query += `&includedTags[]=${genre}`;
+  return fetchMangaList(query);
 };
 
-module.latest = async (page) => {
+module.latest = async (page, genre) => {
   const offset = (page - 1) * 20;
-  return fetchMangaList(`order[latestUploadedChapter]=desc&limit=20&offset=${offset}&contentRating[]=safe&contentRating[]=suggestive&includes[]=cover_art&includes[]=author`);
+  let query = `order[latestUploadedChapter]=desc&limit=20&offset=${offset}&contentRating[]=safe&contentRating[]=suggestive&includes[]=cover_art&includes[]=author`;
+  if (genre) query += `&includedTags[]=${genre}`;
+  return fetchMangaList(query);
 };
 
-module.search = async (query, page) => {
+module.search = async (query, page, genre) => {
   const offset = (page - 1) * 20;
-  return fetchMangaList(`title=${encodeURIComponent(query)}&limit=20&offset=${offset}&contentRating[]=safe&contentRating[]=suggestive&includes[]=cover_art&includes[]=author`);
+  let q = `title=${encodeURIComponent(query)}&limit=20&offset=${offset}&contentRating[]=safe&contentRating[]=suggestive&includes[]=cover_art&includes[]=author`;
+  if (genre) q += `&includedTags[]=${genre}`;
+  return fetchMangaList(q);
 };
 
 module.details = async (id) => {
@@ -89,5 +95,13 @@ module.pages = async (chunkId) => {
 };
 
 module.streams = async (chunkId) => {
-  return []; // manga source, no video
+  return [];
+};
+
+module.genres = async () => {
+  const res = await httpGet(`${API}/manga/tag`, { "Accept": "application/json" });
+  const json = JSON.parse(res);
+  return (json.data || [])
+    .filter(t => t.attributes && t.attributes.group === "genre")
+    .map(t => ({ id: t.id, name: (t.attributes.name && t.attributes.name.en) || "Unknown" }));
 };
