@@ -23,6 +23,7 @@ class _EntryDetailScreenState extends ConsumerState<EntryDetailScreen> {
   Entry? _details;
   List<EntryChunk> _chunks = [];
   bool _loading = true;
+  bool _descending = false;
 
   @override
   void initState() {
@@ -41,6 +42,8 @@ class _EntryDetailScreenState extends ConsumerState<EntryDetailScreen> {
       _loading = false;
     });
   }
+
+  List<EntryChunk> get _displayedChunks => _descending ? _chunks.reversed.toList() : _chunks;
 
   void _openChunk(EntryChunk chunk) {
     final type = widget.entry.type;
@@ -101,9 +104,14 @@ class _EntryDetailScreenState extends ConsumerState<EntryDetailScreen> {
                 icon: const Icon(Icons.more_vert),
                 onSelected: (value) {
                   if (value == 'refresh') _load();
+                  if (value == 'sort') setState(() => _descending = !_descending);
                 },
                 itemBuilder: (context) => [
                   const PopupMenuItem(value: 'refresh', child: Text('Refresh')),
+                  PopupMenuItem(
+                    value: 'sort',
+                    child: Text(_descending ? 'Sort: newest first ✓' : 'Sort: oldest first ✓'),
+                  ),
                 ],
               ),
             ],
@@ -177,7 +185,7 @@ class _EntryDetailScreenState extends ConsumerState<EntryDetailScreen> {
           SliverList(
             delegate: SliverChildBuilderDelegate(
               (context, i) {
-                final c = _chunks[i];
+                final c = _displayedChunks[i];
                 return ListTile(
                   leading: c.read ? const Icon(Icons.check_circle, size: 18) : null,
                   title: Text(c.title),
@@ -185,7 +193,7 @@ class _EntryDetailScreenState extends ConsumerState<EntryDetailScreen> {
                   onTap: () => _openChunk(c),
                 );
               },
-              childCount: _chunks.length,
+              childCount: _displayedChunks.length,
             ),
           ),
         ],
