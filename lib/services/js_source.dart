@@ -73,13 +73,20 @@ class JsSource implements Source {
     final argsJs = args.map(jsonEncode).join(',');
     final callId = 'call${DateTime.now().microsecondsSinceEpoch}';
 
+    // Wrapped in try/catch + Promise.resolve so a missing/optional
+    // function (e.g. a source with no genres() support) fails fast with
+    // a real error instead of hanging until the poll loop times out.
     _js.evaluate('''
       (function() {
-        module.$fn($argsJs).then(function(r) {
-          globalThis['${callId}_result'] = JSON.stringify(r);
-        }).catch(function(e) {
+        try {
+          Promise.resolve(module.$fn($argsJs)).then(function(r) {
+            globalThis['${callId}_result'] = JSON.stringify(r);
+          }).catch(function(e) {
+            globalThis['${callId}_error'] = String(e);
+          });
+        } catch (e) {
           globalThis['${callId}_error'] = String(e);
-        });
+        }
       })();
     ''');
 
@@ -109,20 +116,20 @@ class JsSource implements Source {
   }
 
   @override
-  Future<List<Entry>> search(String query, {int page = 1}) async {
-    final list = await _call('search', [query, page]) as List;
+  Future<List<Entry>> search(String query, {int page = 1, String? genre}) async {
+    final list = await _call('search', [query, page, genre]) as List;
     return list.map((e) => Entry.fromJson(e, id, type)).toList();
   }
 
   @override
-  Future<List<Entry>> popular({int page = 1}) async {
-    final list = await _call('popular', [page]) as List;
+  Future<List<Entry>> popular({int page = 1, String? genre}) async {
+    final list = await _call('popular', [page, genre]) as List;
     return list.map((e) => Entry.fromJson(e, id, type)).toList();
   }
 
   @override
-  Future<List<Entry>> latest({int page = 1}) async {
-    final list = await _call('latest', [page]) as List;
+  Future<List<Entry>> latest({int page = 1, String? genre}) async {
+    final list = await _call('latest', [page, genre]) as List;
     return list.map((e) => Entry.fromJson(e, id, type)).toList();
   }
 
@@ -162,6 +169,16 @@ class JsSource implements Source {
               headers: (s['headers'] as Map?)?.cast<String, String>() ?? const {},
             ))
         .toList();
+  }
+
+  @override
+  Future<List<Map<String, String>>> getGenres() async {
+    try {
+      final list = await _call('genres', []) as List;
+      return list.map((g) => {'id': g['id'].toString(), 'name': g['name'].toString()}).toList();
+    } catch (_) {
+      return [];
+    }
   }
 }
 
