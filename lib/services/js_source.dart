@@ -31,7 +31,7 @@ class JsSource implements Source {
     _js = getJavascriptRuntime();
 
     _js.onMessage('__httpGetStart', (args) {
-      final data = jsonDecode(args[0] as String) as Map<String, dynamic>;
+      final data = (args as Map).cast<String, dynamic>();
       final url = data['url'] as String;
       final headers = (data['headers'] as Map).cast<String, dynamic>();
       final rid = data['rid'] as String;
