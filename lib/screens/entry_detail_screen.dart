@@ -8,12 +8,8 @@ import '../services/library_manager.dart';
 import 'manga_reader_screen.dart';
 import 'novel_reader_screen.dart';
 import 'player_screen.dart';
+import 'webview_screen.dart';
 
-/// Shows an entry's synopsis/metadata plus its chunk list (chapters or
-/// episodes), and routes each chunk to the right consumption screen —
-/// paged image reader, text reader, or video player — based on
-/// [Entry.type]. This is the single fan-out point that keeps the reader
-/// and player screens from needing to know about each other.
 class EntryDetailScreen extends ConsumerStatefulWidget {
   final String sourceId;
   final Entry entry;
@@ -69,6 +65,20 @@ class _EntryDetailScreenState extends ConsumerState<EntryDetailScreen> {
         ),
       );
     }
+  }
+
+  void _openWebView(Entry e) {
+    final url = e.sourceUrl;
+    if (url == null || url.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('This source has no webpage link for this entry.')),
+      );
+      return;
+    }
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => SourceWebViewScreen(url: url, title: e.title)),
+    );
   }
 
   @override
@@ -132,7 +142,7 @@ class _EntryDetailScreenState extends ConsumerState<EntryDetailScreen> {
                             icon: Icons.public,
                             label: 'Source',
                             active: false,
-                            onTap: () {},
+                            onTap: () => _openWebView(e),
                           ),
                         ],
                       );
