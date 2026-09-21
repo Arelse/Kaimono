@@ -35,6 +35,7 @@ function toEntry(manga) {
     genres: (attrs.tags || []).map(t => (t.attributes && t.attributes.name && t.attributes.name.en) || "").filter(Boolean),
     author: authorFor(manga),
     status: attrs.status || "unknown",
+    url: "https://mangadex.org/title/" + manga.id,
   };
 }
 
