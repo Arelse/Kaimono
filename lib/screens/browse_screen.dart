@@ -5,8 +5,6 @@ import '../services/extension_manager.dart';
 import '../widgets/entry_grid.dart';
 import 'entry_detail_screen.dart';
 
-/// Lets the user pick an installed source and browse its popular list
-/// or search it directly — the "discover new titles" half of the app.
 class BrowseScreen extends ConsumerStatefulWidget {
   const BrowseScreen({super.key});
   @override
@@ -67,8 +65,6 @@ class _BrowseScreenState extends ConsumerState<BrowseScreen> {
   }
 }
 
-/// Popular/search view for a single source. Tap the search icon to turn
-/// the app bar into a text field and submit to search this source.
 class SourceBrowseScreen extends ConsumerStatefulWidget {
   final String sourceId;
   const SourceBrowseScreen({super.key, required this.sourceId});
@@ -83,6 +79,9 @@ class _SourceBrowseScreenState extends ConsumerState<SourceBrowseScreen> {
   String? _error;
   final TextEditingController _searchController = TextEditingController();
 
+  List<Map<String, String>>? _genres; // null = not fetched yet, [] = source has none
+  String? _selectedGenreId;
+
   @override
   void initState() {
     super.initState();
@@ -96,7 +95,7 @@ class _SourceBrowseScreenState extends ConsumerState<SourceBrowseScreen> {
     });
     try {
       final source = ref.read(extensionManagerProvider)[widget.sourceId]!;
-      final result = await source.popular().timeout(const Duration(seconds: 20));
+      final result = await source.popular(genre: _selectedGenreId).timeout(const Duration(seconds: 20));
       setState(() {
         _entries = result;
         _loading = false;
@@ -120,7 +119,7 @@ class _SourceBrowseScreenState extends ConsumerState<SourceBrowseScreen> {
     });
     try {
       final source = ref.read(extensionManagerProvider)[widget.sourceId]!;
-      final result = await source.search(query.trim()).timeout(const Duration(seconds: 20));
+      final result = await source.search(query.trim(), genre: _selectedGenreId).timeout(const Duration(seconds: 20));
       setState(() {
         _entries = result;
         _loading = false;
@@ -131,6 +130,39 @@ class _SourceBrowseScreenState extends ConsumerState<SourceBrowseScreen> {
         _loading = false;
       });
     }
+  }
+
+  Future<void> _openGenreFilter() async {
+    if (_genres == null) {
+      final source = ref.read(extensionManagerProvider)[widget.sourceId]!;
+      final fetched = await source.getGenres();
+      setState(() => _genres = fetched);
+    }
+    if (_genres!.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('This source has no genre filters.')),
+      );
+      return;
+    }
+    if (!mounted) return;
+    final chosen = await showDialog<String?>(
+      context: context,
+      builder: (context) => SimpleDialog(
+        title: const Text('Filter by genre'),
+        children: [
+          SimpleDialogOption(
+            onPressed: () => Navigator.pop(context, null),
+            child: const Text('All'),
+          ),
+          ..._genres!.map((g) => SimpleDialogOption(
+                onPressed: () => Navigator.pop(context, g['id']),
+                child: Text(g['name'] ?? ''),
+              )),
+        ],
+      ),
+    );
+    setState(() => _selectedGenreId = chosen);
+    _loadPopular();
   }
 
   @override
@@ -151,6 +183,10 @@ class _SourceBrowseScreenState extends ConsumerState<SourceBrowseScreen> {
               )
             : Text(source.name),
         actions: [
+          IconButton(
+            icon: Icon(_selectedGenreId != null ? Icons.filter_alt : Icons.filter_alt_outlined),
+            onPressed: _openGenreFilter,
+          ),
           IconButton(
             icon: Icon(_searching ? Icons.close : Icons.search),
             onPressed: () {
