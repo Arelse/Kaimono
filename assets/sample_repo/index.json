@@ -16,5 +16,14 @@
     "icon": "",
     "script": "https://raw.githubusercontent.com/Arelse/Kaimono/main/assets/sample_repo/mangadex.js",
     "version": 1
+  },
+  {
+    "id": "gutenberg",
+    "name": "Project Gutenberg",
+    "lang": "en",
+    "type": "novel",
+    "icon": "",
+    "script": "https://raw.githubusercontent.com/Arelse/Kaimono/main/assets/sample_repo/gutenberg.js",
+    "version": 1
   }
 ]
