@@ -1,12 +1,18 @@
 const API = "https://api.asurascans.com/api";
 const SITE = "https://asurascans.com";
+const USER_AGENT = "Mozilla/5.0 (Linux; Android 13; SM-S918B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Mobile Safari/537.36";
 
 async function fetchJson(endpoint) {
   try {
     const res = await httpGet(`${API}${endpoint}`, {
-      "Accept": "application/json",
-      "User-Agent": "Mozilla/5.0",
-      "Referer": `${SITE}/`
+      "Accept": "application/json, text/plain, */*",
+      "User-Agent": USER_AGENT,
+      "Referer": `${SITE}/`,
+      "Origin": SITE,
+      "DNT": "1",
+      "Sec-Fetch-Dest": "empty",
+      "Sec-Fetch-Mode": "cors",
+      "Sec-Fetch-Site": "same-site"
     });
     return JSON.parse(res);
   } catch (e) {
@@ -16,7 +22,6 @@ async function fetchJson(endpoint) {
 
 function extractCover(data) {
   if (!data) return "";
-  // Check every known key Asura uses for images
   const url = data.image_url || data.cover_url || data.thumbnail_url || data.poster_url || data.thumbnail || data.image || data.cover || "";
   if (url && !url.startsWith("http")) {
     return SITE + (url.startsWith("/") ? "" : "/") + url;
@@ -65,13 +70,12 @@ module.search = async (query, page, genre) => {
 module.details = async (id) => {
   const json = await fetchJson(`/series/${id}`);
   
-  // Failsafe to prevent infinite loading if the API rejects the request
   if (!json || (!json.data && !json.id && !json.name)) {
     return {
       id: id,
-      title: "Load Error",
+      title: "Cloudflare Block",
       cover: "",
-      description: "Failed to load details. The Asura API may have blocked this request.",
+      description: "Asura Scans blocked the request. Please tap the 'WebView' button, pass the human verification, and refresh this page.",
       genres: [],
       author: null,
       status: "unknown",
@@ -105,9 +109,7 @@ module.pages = async (chunkId) => {
   return pages.map(img => (typeof img === "string" ? img : img.url || img.src || ""));
 };
 
-module.streams = async (chunkId) => {
-  return [];
-};
+module.streams = async (chunkId) => [];
 
 module.genres = async () => {
   return [
@@ -120,4 +122,3 @@ module.genres = async () => {
     { id: "sci-fi", name: "Sci-fi" }
   ];
 };
-
