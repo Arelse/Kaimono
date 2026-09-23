@@ -26,6 +26,7 @@ function extractCover(data) {
 
 function toEntry(item) {
   const data = item.attributes || item || {};
+  // The API now returns the slug with the hash already attached
   const slug = data.slug || data.id?.toString() || "";
   return {
     id: slug,
@@ -35,71 +36,52 @@ function toEntry(item) {
     genres: (data.genres || []).map(g => (typeof g === "string" ? g : g.name || "")).filter(Boolean),
     author: data.author || data.artist || null,
     status: (data.status || "unknown").toLowerCase(),
-    url: `${SITE}/series/${slug}`,
+    // Updated frontend path to /comics/
+    url: `${SITE}/comics/${slug}`,
   };
 }
 
-// Fallback to allow WebView Cloudflare clearance without 404ing
-function fallbackBlocker() {
-  return [{
-    id: "cloudflare-bypass",
-    title: "⚠️ Tap here to bypass Cloudflare",
-    cover: "",
-    description: "Cloudflare is blocking the connection. Tap WebView to verify.",
-    url: SITE 
-  }];
-}
-
 module.popular = async (page, genre) => {
-  let endpoint = `/series?order=popular&page=${page || 1}&limit=20`;
+  // Updated API path to /comics
+  let endpoint = `/comics?order=popular&page=${page || 1}&limit=20`;
   if (genre) endpoint += `&genre=${encodeURIComponent(genre)}`;
   const json = await fetchJson(endpoint);
-  if (!json || (!json.data && !json.series && !json.results)) return fallbackBlocker();
+  if (!json || (!json.data && !json.series && !json.results)) return [];
   return (json.data || json.series || json.results || []).map(toEntry);
 };
 
 module.latest = async (page, genre) => {
-  let endpoint = `/series?order=latest&page=${page || 1}&limit=20`;
+  // Updated API path to /comics
+  let endpoint = `/comics?order=latest&page=${page || 1}&limit=20`;
   if (genre) endpoint += `&genre=${encodeURIComponent(genre)}`;
   const json = await fetchJson(endpoint);
-  if (!json || (!json.data && !json.series && !json.results)) return fallbackBlocker();
+  if (!json || (!json.data && !json.series && !json.results)) return [];
   return (json.data || json.series || json.results || []).map(toEntry);
 };
 
 module.search = async (query, page, genre) => {
-  let endpoint = `/series?name=${encodeURIComponent(query || "")}&page=${page || 1}&limit=20`;
+  // Updated API path to /comics
+  let endpoint = `/comics?name=${encodeURIComponent(query || "")}&page=${page || 1}&limit=20`;
   if (genre) endpoint += `&genre=${encodeURIComponent(genre)}`;
   const json = await fetchJson(endpoint);
-  if (!json || (!json.data && !json.series && !json.results)) return fallbackBlocker();
+  if (!json || (!json.data && !json.series && !json.results)) return [];
   return (json.data || json.series || json.results || []).map(toEntry);
 };
 
 module.details = async (id) => {
-  if (id === "cloudflare-bypass") {
-    return {
-      id: id,
-      title: "Cloudflare Blocked",
-      cover: "",
-      description: "Tap the 'WebView' button above, verify you are human on the homepage, then go back and refresh.",
-      genres: [],
-      author: null,
-      status: "unknown",
-      url: SITE // Sending to main site prevents the 404 error
-    };
-  }
-
-  const json = await fetchJson(`/series/${id}`);
+  // Updated API path to /comics
+  const json = await fetchJson(`/comics/${id}`);
   
   if (!json || (!json.data && !json.id && !json.name)) {
     return {
       id: id,
       title: "Load Error",
       cover: "",
-      description: "Failed to load via API. Cloudflare may be blocking this request. Tap WebView to verify.",
+      description: "Failed to load details. The API path may have changed or blocked the request.",
       genres: [],
       author: null,
       status: "unknown",
-      url: SITE
+      url: `${SITE}/comics/${id}`
     };
   }
   
@@ -108,9 +90,8 @@ module.details = async (id) => {
 };
 
 module.chunks = async (id) => {
-  if (id === "cloudflare-bypass") return [];
-  
-  const json = await fetchJson(`/series/${id}/chapters?limit=500`);
+  // Updated API path to /comics
+  const json = await fetchJson(`/comics/${id}/chapters?limit=500`);
   if (!json) return [];
   
   const list = json.data || json.chapters || [];
@@ -123,8 +104,6 @@ module.chunks = async (id) => {
 };
 
 module.pages = async (chunkId) => {
-  if (chunkId === "cloudflare-bypass") return [];
-
   const json = await fetchJson(`/chapters/${chunkId}`);
   if (!json) return [];
   
