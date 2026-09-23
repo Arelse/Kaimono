@@ -1,124 +1,158 @@
-const API = "https://api.asurascans.com/api";
 const SITE = "https://asurascans.com";
 const USER_AGENT = "Mozilla/5.0 (Linux; Android 13; SM-S918B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Mobile Safari/537.36";
 
-async function fetchJson(endpoint) {
+function cleanText(str) {
+  return (str || "")
+    .replace(/<[^>]*>/g, "")
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&#039;/g, "'")
+    .replace(/&quot;/g, '"')
+    .trim();
+}
+
+async function fetchHtml(url) {
   try {
-    const res = await httpGet(`${API}${endpoint}`, {
-      "Accept": "application/json, text/plain, */*",
-      "User-Agent": USER_AGENT,
-      "Referer": `${SITE}/`,
-      "Origin": SITE,
-      "DNT": "1",
-      "Sec-Fetch-Dest": "empty",
-      "Sec-Fetch-Mode": "cors",
-      "Sec-Fetch-Site": "same-site"
+    return await httpGet(url, { 
+      "User-Agent": USER_AGENT, 
+      "Referer": `${SITE}/` 
     });
-    return JSON.parse(res);
   } catch (e) {
-    return null; 
+    return ""; 
   }
 }
 
-function extractCover(data) {
-  if (!data) return "";
-  const url = data.image_url || data.cover_url || data.thumbnail_url || data.poster_url || data.thumbnail || data.image || data.cover || "";
-  if (url && !url.startsWith("http")) {
-    return SITE + (url.startsWith("/") ? "" : "/") + url;
-  }
-  return url;
-}
+function parseMangaCards(html) {
+  const results = [];
+  const cardRegex = /<a[^>]+href="(?:\/series\/|https?:\/\/[^\/]+\/series\/)([^"\/]+)"[^>]*>([\s\S]*?)<\/a>/gi;
+  let match;
 
-function toEntry(item) {
-  const data = item.attributes || item || {};
-  return {
-    id: data.slug || data.id?.toString() || "",
-    title: data.name || data.title || "Untitled",
-    cover: extractCover(data),
-    description: data.synopsis || data.description || "",
-    genres: (data.genres || []).map(g => (typeof g === "string" ? g : g.name || "")).filter(Boolean),
-    author: data.author || data.artist || null,
-    status: (data.status || "unknown").toLowerCase(),
-    url: `${SITE}/series/${data.slug || data.id}`,
-  };
+  while ((match = cardRegex.exec(html)) !== null) {
+    const slug = match[1];
+    const inner = match[2];
+
+    const titleMatch = inner.match(/<span[^>]*class="[^"]*font-bold[^"]*"[^>]*>([\s\S]*?)<\/span>/i) 
+                    || inner.match(/<h5[^>]*>([\s\S]*?)<\/h5>/i)
+                    || inner.match(/title="([^"]+)"/i)
+                    || inner.match(/<div[^>]*class="[^"]*font-bold[^"]*"[^>]*>([\s\S]*?)<\/div>/i);
+    
+    const imgMatch = inner.match(/<img[^>]+src="([^">]+)"/i);
+
+    if (slug && titleMatch) {
+      let coverUrl = imgMatch ? imgMatch[1] : "";
+      if (coverUrl && !coverUrl.startsWith("http")) {
+        coverUrl = SITE + (coverUrl.startsWith("/") ? "" : "/") + coverUrl;
+      }
+
+      results.push({
+        id: slug,
+        title: cleanText(titleMatch[1]),
+        cover: coverUrl,
+        description: "",
+        genres: [],
+        author: null,
+        status: "unknown",
+        url: `${SITE}/series/${slug}`,
+      });
+    }
+  }
+  return Array.from(new Map(results.map(item => [item.id, item])).values());
 }
 
 module.popular = async (page, genre) => {
-  let endpoint = `/series?order=popular&page=${page || 1}&limit=20`;
-  if (genre) endpoint += `&genre=${encodeURIComponent(genre)}`;
-  const json = await fetchJson(endpoint);
-  if (!json) return [];
-  return (json.data || json.series || json.results || []).map(toEntry);
+  const html = await fetchHtml(`${SITE}/series?page=${page || 1}&order=popular${genre ? `&genre=${genre}` : ""}`);
+  return parseMangaCards(html);
 };
 
 module.latest = async (page, genre) => {
-  let endpoint = `/series?order=latest&page=${page || 1}&limit=20`;
-  if (genre) endpoint += `&genre=${encodeURIComponent(genre)}`;
-  const json = await fetchJson(endpoint);
-  if (!json) return [];
-  return (json.data || json.series || json.results || []).map(toEntry);
+  const html = await fetchHtml(`${SITE}/series?page=${page || 1}&order=update${genre ? `&genre=${genre}` : ""}`);
+  return parseMangaCards(html);
 };
 
 module.search = async (query, page, genre) => {
-  let endpoint = `/series?name=${encodeURIComponent(query || "")}&page=${page || 1}&limit=20`;
-  if (genre) endpoint += `&genre=${encodeURIComponent(genre)}`;
-  const json = await fetchJson(endpoint);
-  if (!json) return [];
-  return (json.data || json.series || json.results || []).map(toEntry);
+  const html = await fetchHtml(`${SITE}/series?page=${page || 1}&name=${encodeURIComponent(query || "")}${genre ? `&genre=${genre}` : ""}`);
+  return parseMangaCards(html);
 };
 
 module.details = async (id) => {
-  const json = await fetchJson(`/series/${id}`);
-  
-  if (!json || (!json.data && !json.id && !json.name)) {
+  const url = `${SITE}/series/${id}`;
+  const html = await fetchHtml(url);
+
+  // If Cloudflare blocks the request, trigger the WebView failsafe
+  if (!html || html.includes("Just a moment...") || html.includes("Cloudflare")) {
     return {
       id: id,
       title: "Cloudflare Block",
       cover: "",
-      description: "Asura Scans blocked the request. Please tap the 'WebView' button, pass the human verification, and refresh this page.",
+      description: "Asura Scans blocked the request. Please tap 'WebView', verify you are human, and refresh this page.",
       genres: [],
       author: null,
       status: "unknown",
-      url: `${SITE}/series/${id}`
+      url: url
     };
   }
+
+  const titleMatch = html.match(/<span class="text-xl font-bold[^"]*">([\s\S]*?)<\/span>/i) || html.match(/<h1[^>]*>([\s\S]*?)<\/h1>/i) || ["", id];
+  const coverMatch = html.match(/<img[^>]+alt="poster"[^>]+src="([^">]+)"/i) || html.match(/<img[^>]+class="[^"]*rounded-md[^"]*"[^>]+src="([^">]+)"/i);
+  const descMatch = html.match(/<span class="font-medium text-sm text-[#a2a2a2][^"]*">([\s\S]*?)<\/span>/i) || html.match(/<p[^>]*>([\s\S]*?)<\/p>/i);
   
-  const item = json.data || json;
-  return toEntry(item);
+  return {
+    id: id,
+    title: cleanText(titleMatch[1]),
+    cover: coverMatch ? coverMatch[1] : "",
+    description: descMatch ? cleanText(descMatch[1]) : "",
+    genres: [],
+    author: null,
+    status: "unknown",
+    url: url,
+  };
 };
 
 module.chunks = async (id) => {
-  const json = await fetchJson(`/series/${id}/chapters?limit=500`);
-  if (!json) return [];
-  
-  const list = json.data || json.chapters || [];
-  return list.map(ch => ({
-    id: ch.slug || ch.id?.toString() || `${id}-chapter-${ch.number || ch.name}`,
-    title: ch.title || (ch.name ? `Chapter ${ch.name}` : `Chapter ${ch.number || "?"}`),
-    number: parseFloat(ch.number || ch.name) || 0,
-    uploadDate: ch.created_at || ch.release_date || null,
-  }));
+  const html = await fetchHtml(`${SITE}/series/${id}`);
+  if (!html) return [];
+
+  const chapters = [];
+  const chRegex = /<a[^>]+href="(?:\/series\/[^\/]+\/chapter\/|https?:\/\/[^\/]+\/series\/[^\/]+\/chapter\/|https?:\/\/[^\/]+\/chapter\/|\/chapter\/)([^"\/]+)"[^>]*>([\s\S]*?)<\/a>/gi;
+  let match;
+
+  while ((match = chRegex.exec(html)) !== null) {
+    const chSlug = match[1];
+    const inner = match[2];
+
+    const titleMatch = inner.match(/<h3[^>]*>([\s\S]*?)<\/h3>/i) || inner.match(/Chapter\s*[\d.]+/i);
+    const num = parseFloat(chSlug.replace(/[^0-9.]/g, "")) || 0;
+
+    chapters.push({
+      id: chSlug,
+      title: titleMatch ? cleanText(titleMatch[0] || titleMatch[1]) : `Chapter ${num}`,
+      number: num,
+      uploadDate: null,
+    });
+  }
+  return chapters.reverse();
 };
 
 module.pages = async (chunkId) => {
-  const json = await fetchJson(`/chapters/${chunkId}`);
-  if (!json) return [];
+  const html = await fetchHtml(`${SITE}/chapter/${chunkId}`);
+  const pages = [];
   
-  const data = json.data || json.chapter || json;
-  const pages = data.pages || data.images || [];
-  return pages.map(img => (typeof img === "string" ? img : img.url || img.src || ""));
+  const imgRegex = /<img[^>]+src="(https?:\/\/[^">]+)"[^>]+alt="chapter-[^"]*"[^>]*>/gi;
+  let match;
+
+  while ((match = imgRegex.exec(html)) !== null) {
+    pages.push(match[1]);
+  }
+
+  if (pages.length === 0) {
+    const altRegex = /<img[^>]+src="(https?:\/\/[^">]+(?:ggpht|asura|storage)[^">]+)"/gi;
+    while ((match = altRegex.exec(html)) !== null) {
+      pages.push(match[1]);
+    }
+  }
+  return pages;
 };
 
 module.streams = async (chunkId) => [];
-
-module.genres = async () => {
-  return [
-    { id: "action", name: "Action" },
-    { id: "adventure", name: "Adventure" },
-    { id: "comedy", name: "Comedy" },
-    { id: "fantasy", name: "Fantasy" },
-    { id: "martial-arts", name: "Martial Arts" },
-    { id: "reincarnation", name: "Reincarnation" },
-    { id: "sci-fi", name: "Sci-fi" }
-  ];
-};
+module.genres = async () => [];
