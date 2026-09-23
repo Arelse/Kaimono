@@ -26,7 +26,6 @@ function extractCover(data) {
 
 function toEntry(item) {
   const data = item.attributes || item || {};
-  // The API now returns the slug with the hash already attached
   const slug = data.slug || data.id?.toString() || "";
   return {
     id: slug,
@@ -36,14 +35,14 @@ function toEntry(item) {
     genres: (data.genres || []).map(g => (typeof g === "string" ? g : g.name || "")).filter(Boolean),
     author: data.author || data.artist || null,
     status: (data.status || "unknown").toLowerCase(),
-    // Updated frontend path to /comics/
+    // Keep the frontend UI paths mapped to the new /comics/ structure
     url: `${SITE}/comics/${slug}`,
   };
 }
 
 module.popular = async (page, genre) => {
-  // Updated API path to /comics
-  let endpoint = `/comics?order=popular&page=${page || 1}&limit=20`;
+  // Reverted backend fetch to /series
+  let endpoint = `/series?order=popular&page=${page || 1}&limit=20`;
   if (genre) endpoint += `&genre=${encodeURIComponent(genre)}`;
   const json = await fetchJson(endpoint);
   if (!json || (!json.data && !json.series && !json.results)) return [];
@@ -51,8 +50,7 @@ module.popular = async (page, genre) => {
 };
 
 module.latest = async (page, genre) => {
-  // Updated API path to /comics
-  let endpoint = `/comics?order=latest&page=${page || 1}&limit=20`;
+  let endpoint = `/series?order=latest&page=${page || 1}&limit=20`;
   if (genre) endpoint += `&genre=${encodeURIComponent(genre)}`;
   const json = await fetchJson(endpoint);
   if (!json || (!json.data && !json.series && !json.results)) return [];
@@ -60,8 +58,7 @@ module.latest = async (page, genre) => {
 };
 
 module.search = async (query, page, genre) => {
-  // Updated API path to /comics
-  let endpoint = `/comics?name=${encodeURIComponent(query || "")}&page=${page || 1}&limit=20`;
+  let endpoint = `/series?name=${encodeURIComponent(query || "")}&page=${page || 1}&limit=20`;
   if (genre) endpoint += `&genre=${encodeURIComponent(genre)}`;
   const json = await fetchJson(endpoint);
   if (!json || (!json.data && !json.series && !json.results)) return [];
@@ -69,15 +66,14 @@ module.search = async (query, page, genre) => {
 };
 
 module.details = async (id) => {
-  // Updated API path to /comics
-  const json = await fetchJson(`/comics/${id}`);
+  const json = await fetchJson(`/series/${id}`);
   
   if (!json || (!json.data && !json.id && !json.name)) {
     return {
       id: id,
       title: "Load Error",
       cover: "",
-      description: "Failed to load details. The API path may have changed or blocked the request.",
+      description: "Failed to load details. The API request may have failed.",
       genres: [],
       author: null,
       status: "unknown",
@@ -90,8 +86,7 @@ module.details = async (id) => {
 };
 
 module.chunks = async (id) => {
-  // Updated API path to /comics
-  const json = await fetchJson(`/comics/${id}/chapters?limit=500`);
+  const json = await fetchJson(`/series/${id}/chapters?limit=500`);
   if (!json) return [];
   
   const list = json.data || json.chapters || [];
