@@ -1,95 +1,105 @@
+const API = "https://api.asurascans.com/api";
 const SITE = "https://asurascans.com";
 const USER_AGENT = "Mozilla/5.0 (Linux; Android 13; SM-S918B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Mobile Safari/537.36";
 
-function cleanText(str) {
-  return (str || "")
-    .replace(/<[^>]*>/g, "")
-    .replace(/&amp;/g, "&")
-    .replace(/&lt;/g, "<")
-    .replace(/&gt;/g, ">")
-    .replace(/&#039;/g, "'")
-    .replace(/&quot;/g, '"')
-    .trim();
+async function fetchJson(endpoint) {
+  try {
+    const res = await httpGet(`${API}${endpoint}`, {
+      "Accept": "application/json, text/plain, */*",
+      "User-Agent": USER_AGENT,
+      "Referer": `${SITE}/`
+    });
+    return JSON.parse(res);
+  } catch (e) { return null; }
 }
 
 async function fetchHtml(url) {
   try {
-    return await httpGet(url, { 
-      "User-Agent": USER_AGENT, 
-      "Referer": `${SITE}/` 
-    });
-  } catch (e) {
-    return ""; 
-  }
+    return await httpGet(url, { "User-Agent": USER_AGENT, "Referer": `${SITE}/` });
+  } catch (e) { return ""; }
 }
 
-function parseMangaCards(html) {
-  const results = [];
-  const cardRegex = /<a[^>]+href="(?:\/series\/|https?:\/\/[^\/]+\/series\/)([^"\/]+)"[^>]*>([\s\S]*?)<\/a>/gi;
-  let match;
+function cleanText(str) {
+  return (str || "").replace(/<[^>]*>/g, "").replace(/&[^;]+;/g, "").trim();
+}
 
-  while ((match = cardRegex.exec(html)) !== null) {
-    const slug = match[1];
-    const inner = match[2];
+function extractCover(data) {
+  if (!data) return "";
+  const url = data.image_url || data.cover_url || data.thumbnail_url || data.poster_url || data.thumbnail || data.image || data.cover || "";
+  if (url && !url.startsWith("http")) return SITE + (url.startsWith("/") ? "" : "/") + url;
+  return url;
+}
 
-    const titleMatch = inner.match(/<span[^>]*class="[^"]*font-bold[^"]*"[^>]*>([\s\S]*?)<\/span>/i) 
-                    || inner.match(/<h5[^>]*>([\s\S]*?)<\/h5>/i)
-                    || inner.match(/title="([^"]+)"/i)
-                    || inner.match(/<div[^>]*class="[^"]*font-bold[^"]*"[^>]*>([\s\S]*?)<\/div>/i);
-    
-    const imgMatch = inner.match(/<img[^>]+src="([^">]+)"/i);
+function toEntry(item) {
+  const data = item.attributes || item || {};
+  const slug = data.slug || data.id?.toString() || "";
+  return {
+    id: slug,
+    title: data.name || data.title || "Untitled",
+    cover: extractCover(data),
+    description: data.synopsis || data.description || "",
+    genres: [],
+    author: null,
+    status: "unknown",
+    url: `${SITE}/series/${slug}`,
+  };
+}
 
-    if (slug && titleMatch) {
-      let coverUrl = imgMatch ? imgMatch[1] : "";
-      if (coverUrl && !coverUrl.startsWith("http")) {
-        coverUrl = SITE + (coverUrl.startsWith("/") ? "" : "/") + coverUrl;
-      }
-
-      results.push({
-        id: slug,
-        title: cleanText(titleMatch[1]),
-        cover: coverUrl,
-        description: "",
-        genres: [],
-        author: null,
-        status: "unknown",
-        url: `${SITE}/series/${slug}`,
-      });
-    }
-  }
-  return Array.from(new Map(results.map(item => [item.id, item])).values());
+async function fallbackBlocker() {
+  return [{
+    id: "cloudflare-bypass",
+    title: "⚠️ Tap here to bypass Cloudflare",
+    cover: "",
+    description: "Cloudflare is blocking the connection.",
+    url: SITE
+  }];
 }
 
 module.popular = async (page, genre) => {
-  const html = await fetchHtml(`${SITE}/series?page=${page || 1}&order=popular${genre ? `&genre=${genre}` : ""}`);
-  return parseMangaCards(html);
+  let ep = `/series?order=popular&page=${page || 1}&limit=20`;
+  if (genre) ep += `&genre=${encodeURIComponent(genre)}`;
+  const json = await fetchJson(ep);
+  if (!json || (!json.data && !json.series && !json.results)) return fallbackBlocker();
+  return (json.data || json.series || json.results || []).map(toEntry);
 };
 
 module.latest = async (page, genre) => {
-  const html = await fetchHtml(`${SITE}/series?page=${page || 1}&order=update${genre ? `&genre=${genre}` : ""}`);
-  return parseMangaCards(html);
+  let ep = `/series?order=latest&page=${page || 1}&limit=20`;
+  if (genre) ep += `&genre=${encodeURIComponent(genre)}`;
+  const json = await fetchJson(ep);
+  if (!json || (!json.data && !json.series && !json.results)) return fallbackBlocker();
+  return (json.data || json.series || json.results || []).map(toEntry);
 };
 
 module.search = async (query, page, genre) => {
-  const html = await fetchHtml(`${SITE}/series?page=${page || 1}&name=${encodeURIComponent(query || "")}${genre ? `&genre=${genre}` : ""}`);
-  return parseMangaCards(html);
+  let ep = `/series?name=${encodeURIComponent(query || "")}&page=${page || 1}&limit=20`;
+  if (genre) ep += `&genre=${encodeURIComponent(genre)}`;
+  const json = await fetchJson(ep);
+  if (!json || (!json.data && !json.series && !json.results)) return fallbackBlocker();
+  return (json.data || json.series || json.results || []).map(toEntry);
 };
 
 module.details = async (id) => {
+  if (id === "cloudflare-bypass") {
+     return { 
+       id, 
+       title: "Cloudflare Blocked", 
+       cover: "", 
+       description: "Please tap the 'WebView' button above, verify you are human, let the site load, and then go back and refresh the main page.", 
+       genres: [], author: null, status: "unknown", url: SITE 
+     };
+  }
+  
   const url = `${SITE}/series/${id}`;
   const html = await fetchHtml(url);
 
-  // If Cloudflare blocks the request, trigger the WebView failsafe
   if (!html || html.includes("Just a moment...") || html.includes("Cloudflare")) {
     return {
       id: id,
       title: "Cloudflare Block",
       cover: "",
-      description: "Asura Scans blocked the request. Please tap 'WebView', verify you are human, and refresh this page.",
-      genres: [],
-      author: null,
-      status: "unknown",
-      url: url
+      description: "Asura Scans blocked the request. Please tap 'WebView', wait for the page to load, and then pull down to refresh.",
+      genres: [], author: null, status: "unknown", url: url
     };
   }
 
@@ -110,6 +120,7 @@ module.details = async (id) => {
 };
 
 module.chunks = async (id) => {
+  if (id === "cloudflare-bypass") return [];
   const html = await fetchHtml(`${SITE}/series/${id}`);
   if (!html) return [];
 
@@ -154,5 +165,5 @@ module.pages = async (chunkId) => {
   return pages;
 };
 
-module.streams = async (chunkId) => [];
+module.streams = async () => [];
 module.genres = async () => [];
