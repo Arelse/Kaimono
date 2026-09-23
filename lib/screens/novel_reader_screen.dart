@@ -3,10 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/entry.dart';
 import '../services/extension_manager.dart';
 
-/// Text reader for novel chunks. Per the [Source] contract, `getPages()`
-/// on a novel source returns ordered text blocks (paragraphs/sections)
-/// rather than image URLs — same method, different payload shape,
-/// which is why novel sources don't need a separate interface method.
 class NovelReaderScreen extends ConsumerStatefulWidget {
   final String sourceId;
   final EntryChunk chunk;
@@ -23,21 +19,40 @@ class _NovelReaderScreenState extends ConsumerState<NovelReaderScreen> {
   List<String> _paragraphs = [];
   bool _loading = true;
   double _fontSize = 16;
+  double _progress = 0;
+  final ScrollController _scrollController = ScrollController();
 
   @override
   void initState() {
     super.initState();
     _chunk = widget.chunk;
+    _scrollController.addListener(_onScroll);
     _load();
   }
 
+  void _onScroll() {
+    if (!_scrollController.hasClients) return;
+    final max = _scrollController.position.maxScrollExtent;
+    if (max <= 0) {
+      setState(() => _progress = 1);
+      return;
+    }
+    setState(() => _progress = (_scrollController.offset / max).clamp(0.0, 1.0));
+  }
+
   Future<void> _load() async {
-    setState(() => _loading = true);
+    setState(() {
+      _loading = true;
+      _progress = 0;
+    });
     final source = ref.read(extensionManagerProvider)[widget.sourceId]!;
     final paragraphs = await source.getPages(_chunk.id);
     setState(() {
       _paragraphs = paragraphs;
       _loading = false;
+    });
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_scrollController.hasClients) _scrollController.jumpTo(0);
     });
   }
 
@@ -54,6 +69,10 @@ class _NovelReaderScreenState extends ConsumerState<NovelReaderScreen> {
     return Scaffold(
       appBar: AppBar(
         title: Text(_chunk.title),
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(3),
+          child: LinearProgressIndicator(value: _progress, minHeight: 3),
+        ),
         actions: [
           IconButton(icon: const Icon(Icons.text_decrease), onPressed: () => setState(() => _fontSize = (_fontSize - 1).clamp(12, 28))),
           IconButton(icon: const Icon(Icons.text_increase), onPressed: () => setState(() => _fontSize = (_fontSize + 1).clamp(12, 28))),
@@ -62,6 +81,7 @@ class _NovelReaderScreenState extends ConsumerState<NovelReaderScreen> {
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : ListView(
+              controller: _scrollController,
               padding: const EdgeInsets.all(20),
               children: [
                 for (final p in _paragraphs) ...[
@@ -79,5 +99,11 @@ class _NovelReaderScreenState extends ConsumerState<NovelReaderScreen> {
               ],
             ),
     );
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
   }
 }
