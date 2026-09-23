@@ -1,10 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../services/extension_manager.dart';
+import 'categories_screen.dart';
 
-/// App-wide settings: source repo management for now, appearance/backup
-/// later. Its own tab rather than a buried menu, since repo setup is
-/// something people reach for early and often.
 class SettingsScreen extends ConsumerStatefulWidget {
   const SettingsScreen({super.key});
   @override
@@ -20,6 +18,14 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       appBar: AppBar(title: const Text('Settings')),
       body: ListView(
         children: [
+          _sectionHeader('Library'),
+          ListTile(
+            leading: const Icon(Icons.label_outline),
+            title: const Text('Categories'),
+            subtitle: const Text('Organize your library into custom groups'),
+            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const CategoriesScreen())),
+          ),
+          const Divider(),
           _sectionHeader('Source repositories'),
           ...manager.repos.map((r) => ListTile(
                 leading: const Icon(Icons.link),
@@ -56,7 +62,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     showDialog(
       context: context,
       builder: (_) => AlertDialog(
-        title: const Text('Add repository'),
+        title: const Text('Add extension repo'),
         content: TextField(
           controller: controller,
           decoration: const InputDecoration(hintText: 'https://.../index.json'),
@@ -65,9 +71,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
           FilledButton(
             onPressed: () {
-              if (controller.text.trim().isNotEmpty) {
-                setState(() => ref.read(extensionManagerProvider.notifier).addRepo(controller.text.trim()));
-              }
+              ref.read(extensionManagerProvider.notifier).addRepo(controller.text.trim());
               Navigator.pop(context);
             },
             child: const Text('Add'),
