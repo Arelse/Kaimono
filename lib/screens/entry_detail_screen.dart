@@ -17,6 +17,9 @@ const _accent = Color(0xFFFF7B7B);
 const _accentDim = Color(0xFF2A1416);
 const _libraryFg = Color(0xFF7C7CFF);
 const _libraryBg = Color(0xFF26224A);
+const _trackerBg = Color(0xFF3A1A1E);
+const _statsBg = Color(0xFF141A28);
+const _gold = Color(0xFFFFC83D);
 const _btnBg = Color(0xFF211A1B);
 const _muted = Color(0xFF9A9092);
 
@@ -24,6 +27,21 @@ String _fmtNum(double n) => n == n.roundToDouble() ? n.toInt().toString() : n.to
 
 String _fmtDate(DateTime d) =>
     '${d.day.toString().padLeft(2, '0')}/${d.month.toString().padLeft(2, '0')}/${d.year}';
+
+String _stripHtml(String s) {
+  var t = s
+      .replaceAll(RegExp(r'<br\s*/?>', caseSensitive: false), '\n')
+      .replaceAll(RegExp(r'</p>', caseSensitive: false), '\n\n')
+      .replaceAll(RegExp(r'<[^>]*>'), '')
+      .replaceAll('&nbsp;', ' ')
+      .replaceAll('&amp;', '&')
+      .replaceAll('&lt;', '<')
+      .replaceAll('&gt;', '>')
+      .replaceAll('&quot;', '"')
+      .replaceAll('&#39;', "'")
+      .replaceAll('&#8217;', "'");
+  return t.trim();
+}
 
 class EntryDetailScreen extends ConsumerStatefulWidget {
   final String sourceId;
@@ -56,6 +74,12 @@ class _EntryDetailScreenState extends ConsumerState<EntryDetailScreen> {
       _chunks = chunks;
       _loading = false;
     });
+  }
+
+  void _comingSoon(String what) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('$what is coming soon.')),
+    );
   }
 
   void _openChunk(EntryChunk chunk) {
@@ -180,6 +204,8 @@ class _EntryDetailScreenState extends ConsumerState<EntryDetailScreen> {
     }
     final e = _details!;
     final chunkWord = e.type == ContentType.anime ? 'Episode' : 'Chapter';
+    final desc = (e.description == null) ? '' : _stripHtml(e.description!);
+    final hasStats = e.rank != null || e.rating != null || e.saves != null;
 
     return Scaffold(
       backgroundColor: _bg,
@@ -188,6 +214,14 @@ class _EntryDetailScreenState extends ConsumerState<EntryDetailScreen> {
         surfaceTintColor: Colors.transparent,
         elevation: 0,
         actions: [
+          IconButton(
+            icon: const Icon(Icons.cloud_download_outlined),
+            onPressed: () => _comingSoon('Downloads'),
+          ),
+          IconButton(
+            icon: const Icon(Icons.filter_list),
+            onPressed: () => _openChapterList(e),
+          ),
           PopupMenuButton<String>(
             icon: const Icon(Icons.more_horiz),
             onSelected: (value) {
@@ -211,8 +245,8 @@ class _EntryDetailScreenState extends ConsumerState<EntryDetailScreen> {
               ClipRRect(
                 borderRadius: BorderRadius.circular(16),
                 child: SizedBox(
-                  width: 120,
-                  height: 170,
+                  width: 112,
+                  height: 156,
                   child: e.coverUrl != null
                       ? CachedNetworkImage(imageUrl: e.coverUrl!, fit: BoxFit.cover)
                       : Container(color: _card),
@@ -230,6 +264,8 @@ class _EntryDetailScreenState extends ConsumerState<EntryDetailScreen> {
                     const SizedBox(height: 12),
                     if (e.author != null && e.author!.isNotEmpty)
                       _metaRow(Icons.person_outline, e.author!),
+                    if (e.artist != null && e.artist!.isNotEmpty)
+                      _metaRow(Icons.edit_outlined, e.artist!),
                     _metaRow(Icons.schedule, _statusLine(e)),
                   ],
                 ),
@@ -237,6 +273,11 @@ class _EntryDetailScreenState extends ConsumerState<EntryDetailScreen> {
             ],
           ),
           const SizedBox(height: 20),
+          // Stats card (only when the source provides data)
+          if (hasStats) ...[
+            _statsCard(e),
+            const SizedBox(height: 20),
+          ],
           // Action row
           Consumer(
             builder: (context, ref, _) {
@@ -244,7 +285,6 @@ class _EntryDetailScreenState extends ConsumerState<EntryDetailScreen> {
               ref.watch(libraryManagerProvider);
               final fav = library.isFavorite(widget.sourceId, widget.entry.id);
               return Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: [
                   _actionButton(
                     icon: fav ? Icons.menu_book : Icons.menu_book_outlined,
@@ -254,11 +294,18 @@ class _EntryDetailScreenState extends ConsumerState<EntryDetailScreen> {
                     onTap: () => library.toggle(e),
                   ),
                   _actionButton(
-                    icon: Icons.folder_outlined,
-                    label: 'Categories',
+                    icon: Icons.event_note_outlined,
+                    label: 'Soon',
                     fg: _muted,
                     bg: _btnBg,
-                    onTap: _openCategoryPicker,
+                    onTap: () => _comingSoon('This'),
+                  ),
+                  _actionButton(
+                    icon: Icons.check_circle_outline,
+                    label: 'Trackers',
+                    fg: _accent,
+                    bg: _trackerBg,
+                    onTap: () => _comingSoon('Trackers'),
                   ),
                   _actionButton(
                     icon: Icons.explore_outlined,
@@ -267,13 +314,20 @@ class _EntryDetailScreenState extends ConsumerState<EntryDetailScreen> {
                     bg: _btnBg,
                     onTap: () => _openWebView(e),
                   ),
+                  _actionButton(
+                    icon: Icons.call_split,
+                    label: 'Merge',
+                    fg: _muted,
+                    bg: _btnBg,
+                    onTap: () => _comingSoon('Merge'),
+                  ),
                 ],
               );
             },
           ),
           const SizedBox(height: 20),
-          // Description (expandable)
-          if (e.description != null && e.description!.isNotEmpty)
+          // Description (expandable, HTML stripped)
+          if (desc.isNotEmpty)
             InkWell(
               onTap: () => setState(() => _descExpanded = !_descExpanded),
               child: Column(
@@ -281,7 +335,7 @@ class _EntryDetailScreenState extends ConsumerState<EntryDetailScreen> {
                   Align(
                     alignment: Alignment.centerLeft,
                     child: Text(
-                      e.description!,
+                      desc,
                       maxLines: _descExpanded ? null : 2,
                       overflow: _descExpanded ? TextOverflow.visible : TextOverflow.ellipsis,
                       style: const TextStyle(fontSize: 16, height: 1.5, color: _muted),
@@ -295,7 +349,7 @@ class _EntryDetailScreenState extends ConsumerState<EntryDetailScreen> {
           // Genre chips (horizontal scroll)
           if (e.genres.isNotEmpty)
             SizedBox(
-              height: 44,
+              height: 42,
               child: ListView.separated(
                 scrollDirection: Axis.horizontal,
                 itemCount: e.genres.length,
@@ -334,6 +388,55 @@ class _EntryDetailScreenState extends ConsumerState<EntryDetailScreen> {
     );
   }
 
+  Widget _statsCard(Entry e) {
+    String rankText = '—';
+    if (e.rank != null && e.rank!.isNotEmpty) {
+      rankText = e.rank!.startsWith('#') ? e.rank! : '#${e.rank}';
+    }
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 18),
+      decoration: BoxDecoration(color: _statsBg, borderRadius: BorderRadius.circular(24)),
+      child: Row(
+        children: [
+          _stat('RANK', Text(rankText, style: _statValueStyle)),
+          _statDivider(),
+          _stat(
+            'RATING',
+            e.rating == null
+                ? const Text('—', style: _statValueStyle)
+                : Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.star, color: _gold, size: 20),
+                      const SizedBox(width: 6),
+                      Text(e.rating!.toStringAsFixed(2),
+                          style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w800, color: _gold)),
+                    ],
+                  ),
+          ),
+          _statDivider(),
+          _stat('SAVES', Text(e.saves ?? '—', style: _statValueStyle)),
+        ],
+      ),
+    );
+  }
+
+  static const _statValueStyle = TextStyle(fontSize: 24, fontWeight: FontWeight.w800);
+
+  Widget _stat(String label, Widget value) {
+    return Expanded(
+      child: Column(
+        children: [
+          Text(label, style: const TextStyle(fontSize: 13, letterSpacing: 1.5, fontWeight: FontWeight.w600, color: _muted)),
+          const SizedBox(height: 8),
+          value,
+        ],
+      ),
+    );
+  }
+
+  Widget _statDivider() => Container(width: 1, height: 44, color: Colors.white12);
+
   Widget _metaRow(IconData icon, String text) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 10),
@@ -356,21 +459,26 @@ class _EntryDetailScreenState extends ConsumerState<EntryDetailScreen> {
     required Color bg,
     required VoidCallback onTap,
   }) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(20),
-      child: SizedBox(
-        width: 84,
+    return Expanded(
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(18),
         child: Column(
           children: [
             Container(
-              width: 68,
-              height: 68,
-              decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(20)),
-              child: Icon(icon, color: fg, size: 28),
+              width: 56,
+              height: 56,
+              decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(18)),
+              child: Icon(icon, color: fg, size: 26),
             ),
             const SizedBox(height: 8),
-            Text(label, style: TextStyle(fontSize: 13, color: fg), textAlign: TextAlign.center),
+            Text(
+              label,
+              style: TextStyle(fontSize: 12, color: fg),
+              textAlign: TextAlign.center,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
           ],
         ),
       ),
@@ -474,7 +582,7 @@ class _ChapterListScreenState extends State<_ChapterListScreen> {
                     alignment: Alignment.center,
                     decoration: BoxDecoration(color: _btnBg, borderRadius: BorderRadius.circular(10)),
                     child: Text(
-                      '${widget.chunks.length} TOTAL',
+                    '${widget.chunks.length} TOTAL',
                       style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: _muted),
                     ),
                   ),
@@ -564,4 +672,4 @@ class _ChapterListScreenState extends State<_ChapterListScreen> {
     );
   }
 }
-        
+               
