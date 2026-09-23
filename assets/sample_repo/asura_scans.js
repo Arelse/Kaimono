@@ -2,7 +2,6 @@ const API = "https://api.asurascans.com/api";
 const SITE = "https://asurascans.com";
 const USER_AGENT = "Mozilla/5.0 (Linux; Android 13; SM-S918B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Mobile Safari/537.36";
 
-// Cache details fetched during directory list so we don't need a separate details API call
 const cache = new Map();
 
 async function fetchJson(endpoint) {
@@ -42,7 +41,7 @@ function toEntry(item) {
   };
 
   if (slug) {
-    cache.set(slug, entry);
+    cache.set(slug, { entry, raw: item });
   }
   return entry;
 }
@@ -72,18 +71,13 @@ module.search = async (query, page, genre) => {
 };
 
 module.details = async (id) => {
-  // If we already have the details from browsing the directory, use them immediately
   if (cache.has(id)) {
-    return cache.get(id);
+    return cache.get(id).entry;
   }
 
-  // Fallback: try different paths Asura uses for individual series
   let json = await fetchJson(`/series/${id}`);
   if (!json || (!json.data && !json.id && !json.name)) {
     json = await fetchJson(`/comics/${id}`);
-  }
-  if (!json || (!json.data && !json.id && !json.name)) {
-    json = await fetchJson(`/series?slug=${encodeURIComponent(id)}`);
   }
 
   if (json) {
@@ -104,28 +98,61 @@ module.details = async (id) => {
 };
 
 module.chunks = async (id) => {
-  // Try chapters via /series, then /comics
+  // Check if chapters are embedded in cache first
+  if (cache.has(id)) {
+    const raw = cache.get(id).raw;
+    const embedded = raw.chapters || raw.chapterList || (raw.attributes && raw.attributes.chapters);
+    if (Array.isArray(embedded) && embedded.length > 0) {
+      return parseChapterList(embedded, id);
+    }
+  }
+
+  // Try multiple chapter endpoints sequentially
   let json = await fetchJson(`/series/${id}/chapters?limit=500`);
-  if (!json || (!json.data && !json.chapters)) {
+  if (!json || (!json.data && !json.chapters && !Array.isArray(json))) {
     json = await fetchJson(`/comics/${id}/chapters?limit=500`);
   }
+  if (!json || (!json.data && !json.chapters && !Array.isArray(json))) {
+    json = await fetchJson(`/series/${id}`);
+  }
+  if (!json || (!json.data && !json.chapters && !Array.isArray(json))) {
+    json = await fetchJson(`/comics/${id}`);
+  }
+
   if (!json) return [];
 
-  const list = json.data || json.chapters || [];
-  return list.map(ch => ({
-    id: ch.slug || ch.id?.toString() || `${id}-chapter-${ch.number || ch.name}`,
-    title: ch.title || (ch.name ? `Chapter ${ch.name}` : `Chapter ${ch.number || "?"}`),
-    number: parseFloat(ch.number || ch.name) || 0,
-    uploadDate: ch.created_at || ch.release_date || null,
-  }));
+  const list = json.chapters || json.data?.chapters || json.chapterList || (Array.isArray(json) ? json : json.data || json.results || []);
+  
+  if (!Array.isArray(list)) return [];
+
+  return parseChapterList(list, id);
 };
 
+function parseChapterList(list, id) {
+  return list.map(ch => {
+    const chData = ch.attributes || ch;
+    const chSlug = chData.slug || chData.id?.toString() || chData.chapter_slug || `${id}-chapter-${chData.number || chData.name}`;
+    const chNum = parseFloat(chData.number || chData.chapter || chData.name) || 0;
+    const chTitle = chData.title || (chData.name ? `Chapter ${chData.name}` : `Chapter ${chData.number || chData.chapter || "?"}`);
+    
+    return {
+      id: chSlug,
+      title: chTitle,
+      number: chNum,
+      uploadDate: chData.created_at || chData.release_date || chData.updated_at || null,
+    };
+  });
+}
+
 module.pages = async (chunkId) => {
-  const json = await fetchJson(`/chapters/${chunkId}`);
+  let json = await fetchJson(`/chapters/${chunkId}`);
+  if (!json) {
+    json = await fetchJson(`/chapter/${chunkId}`);
+  }
   if (!json) return [];
   
   const data = json.data || json.chapter || json;
-  const pages = data.pages || data.images || [];
+  const pages = data.pages || data.images || data.chapter_images || [];
   return pages.map(img => (typeof img === "string" ? img : img.url || img.src || ""));
 };
 
