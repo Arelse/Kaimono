@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../models/content_type.dart';
 import '../models/entry.dart';
+import '../services/category_manager.dart';
 import '../services/extension_manager.dart';
 import '../services/library_manager.dart';
 import 'manga_reader_screen.dart';
@@ -85,6 +86,53 @@ class _EntryDetailScreenState extends ConsumerState<EntryDetailScreen> {
     );
   }
 
+  void _openCategoryPicker() {
+    final catState = ref.read(categoryManagerProvider);
+    final catManager = ref.read(categoryManagerProvider.notifier);
+    if (catState.categories.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('No categories yet — create one from Settings → Categories.')),
+      );
+      return;
+    }
+    final current = catManager.getAssignments(widget.sourceId, widget.entry.id).toSet();
+    showDialog(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          title: const Text('Set categories'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: catState.categories
+                  .map((c) => CheckboxListTile(
+                        title: Text(c.name),
+                        value: current.contains(c.id),
+                        onChanged: (checked) => setDialogState(() {
+                          if (checked == true) {
+                            current.add(c.id);
+                          } else {
+                            current.remove(c.id);
+                          }
+                        }),
+                      ))
+                  .toList(),
+            ),
+          ),
+          actions: [
+            FilledButton(
+              onPressed: () {
+                catManager.setAssignments(widget.sourceId, widget.entry.id, current.toList());
+                Navigator.pop(context);
+              },
+              child: const Text('Done'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     if (_loading) {
@@ -105,6 +153,7 @@ class _EntryDetailScreenState extends ConsumerState<EntryDetailScreen> {
                 onSelected: (value) {
                   if (value == 'refresh') _load();
                   if (value == 'sort') setState(() => _descending = !_descending);
+                  if (value == 'categories') _openCategoryPicker();
                 },
                 itemBuilder: (context) => [
                   const PopupMenuItem(value: 'refresh', child: Text('Refresh')),
@@ -112,6 +161,7 @@ class _EntryDetailScreenState extends ConsumerState<EntryDetailScreen> {
                     value: 'sort',
                     child: Text(_descending ? 'Sort: newest first ✓' : 'Sort: oldest first ✓'),
                   ),
+                  const PopupMenuItem(value: 'categories', child: Text('Set categories')),
                 ],
               ),
             ],
