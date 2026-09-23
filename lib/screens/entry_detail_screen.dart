@@ -11,6 +11,20 @@ import 'novel_reader_screen.dart';
 import 'player_screen.dart';
 import 'webview_screen.dart';
 
+const _bg = Color(0xFF0D0809);
+const _card = Color(0xFF1A0F11);
+const _accent = Color(0xFFFF7B7B);
+const _accentDim = Color(0xFF2A1416);
+const _libraryFg = Color(0xFF7C7CFF);
+const _libraryBg = Color(0xFF26224A);
+const _btnBg = Color(0xFF211A1B);
+const _muted = Color(0xFF9A9092);
+
+String _fmtNum(double n) => n == n.roundToDouble() ? n.toInt().toString() : n.toString();
+
+String _fmtDate(DateTime d) =>
+    '${d.day.toString().padLeft(2, '0')}/${d.month.toString().padLeft(2, '0')}/${d.year}';
+
 class EntryDetailScreen extends ConsumerStatefulWidget {
   final String sourceId;
   final Entry entry;
@@ -24,7 +38,7 @@ class _EntryDetailScreenState extends ConsumerState<EntryDetailScreen> {
   Entry? _details;
   List<EntryChunk> _chunks = [];
   bool _loading = true;
-  bool _descending = false;
+  bool _descExpanded = false;
 
   @override
   void initState() {
@@ -43,8 +57,6 @@ class _EntryDetailScreenState extends ConsumerState<EntryDetailScreen> {
       _loading = false;
     });
   }
-
-  List<EntryChunk> get _displayedChunks => _descending ? _chunks.reversed.toList() : _chunks;
 
   void _openChunk(EntryChunk chunk) {
     final type = widget.entry.type;
@@ -83,6 +95,21 @@ class _EntryDetailScreenState extends ConsumerState<EntryDetailScreen> {
     Navigator.push(
       context,
       MaterialPageRoute(builder: (_) => SourceWebViewScreen(url: url, title: e.title)),
+    );
+  }
+
+  void _openChapterList(Entry e) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => _ChapterListScreen(
+          title: e.title,
+          isAnime: e.type == ContentType.anime,
+          chunks: _chunks,
+          onOpen: _openChunk,
+          onRefresh: _load,
+        ),
+      ),
     );
   }
 
@@ -133,117 +160,173 @@ class _EntryDetailScreenState extends ConsumerState<EntryDetailScreen> {
     );
   }
 
+  String _statusLine(Entry e) {
+    final parts = <String>[];
+    if (e.status != EntryStatus.unknown) {
+      final n = e.status.name;
+      parts.add(n[0].toUpperCase() + n.substring(1));
+    }
+    parts.add(widget.sourceId);
+    return parts.join(' • ');
+  }
+
   @override
   Widget build(BuildContext context) {
     if (_loading) {
-      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+      return const Scaffold(
+        backgroundColor: _bg,
+        body: Center(child: CircularProgressIndicator(color: _accent)),
+      );
     }
     final e = _details!;
     final chunkWord = e.type == ContentType.anime ? 'Episode' : 'Chapter';
 
     return Scaffold(
-      body: CustomScrollView(
-        slivers: [
-          SliverAppBar(
-            expandedHeight: 220,
-            pinned: true,
-            actions: [
-              PopupMenuButton<String>(
-                icon: const Icon(Icons.more_vert),
-                onSelected: (value) {
-                  if (value == 'refresh') _load();
-                  if (value == 'sort') setState(() => _descending = !_descending);
-                  if (value == 'categories') _openCategoryPicker();
-                },
-                itemBuilder: (context) => [
-                  const PopupMenuItem(value: 'refresh', child: Text('Refresh')),
-                  PopupMenuItem(
-                    value: 'sort',
-                    child: Text(_descending ? 'Sort: newest first ✓' : 'Sort: oldest first ✓'),
-                  ),
-                  const PopupMenuItem(value: 'categories', child: Text('Set categories')),
-                ],
+      backgroundColor: _bg,
+      appBar: AppBar(
+        backgroundColor: _bg,
+        surfaceTintColor: Colors.transparent,
+        elevation: 0,
+        actions: [
+          PopupMenuButton<String>(
+            icon: const Icon(Icons.more_horiz),
+            onSelected: (value) {
+              if (value == 'refresh') _load();
+              if (value == 'categories') _openCategoryPicker();
+            },
+            itemBuilder: (context) => const [
+              PopupMenuItem(value: 'refresh', child: Text('Refresh')),
+              PopupMenuItem(value: 'categories', child: Text('Set categories')),
+            ],
+          ),
+        ],
+      ),
+      body: ListView(
+        padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
+        children: [
+          // Header: cover + title/meta
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              ClipRRect(
+                borderRadius: BorderRadius.circular(16),
+                child: SizedBox(
+                  width: 120,
+                  height: 170,
+                  child: e.coverUrl != null
+                      ? CachedNetworkImage(imageUrl: e.coverUrl!, fit: BoxFit.cover)
+                      : Container(color: _card),
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      e.title,
+                      style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w800, height: 1.15),
+                    ),
+                    const SizedBox(height: 12),
+                    if (e.author != null && e.author!.isNotEmpty)
+                      _metaRow(Icons.person_outline, e.author!),
+                    _metaRow(Icons.schedule, _statusLine(e)),
+                  ],
+                ),
               ),
             ],
-            flexibleSpace: FlexibleSpaceBar(
-              background: e.coverUrl != null
-                  ? Stack(
-                      fit: StackFit.expand,
-                      children: [
-                        CachedNetworkImage(imageUrl: e.coverUrl!, fit: BoxFit.cover),
-                        Container(
-                          decoration: BoxDecoration(
-                            gradient: LinearGradient(
-                              begin: Alignment.topCenter,
-                              end: Alignment.bottomCenter,
-                              colors: [Colors.transparent, Theme.of(context).colorScheme.surface],
-                            ),
-                          ),
-                        ),
-                      ],
-                    )
-                  : Container(color: Theme.of(context).colorScheme.surfaceContainerHighest),
-            ),
           ),
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+          const SizedBox(height: 20),
+          // Action row
+          Consumer(
+            builder: (context, ref, _) {
+              final library = ref.watch(libraryManagerProvider.notifier);
+              ref.watch(libraryManagerProvider);
+              final fav = library.isFavorite(widget.sourceId, widget.entry.id);
+              return Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: [
-                  Text(e.title, style: Theme.of(context).textTheme.headlineSmall),
-                  if (e.author != null) Text(e.author!, style: Theme.of(context).textTheme.bodyMedium),
-                  const SizedBox(height: 16),
-                  Consumer(
-                    builder: (context, ref, _) {
-                      final library = ref.watch(libraryManagerProvider.notifier);
-                      ref.watch(libraryManagerProvider);
-                      final fav = library.isFavorite(widget.sourceId, widget.entry.id);
-                      return Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                        children: [
-                          _actionButton(
-                            icon: fav ? Icons.favorite : Icons.favorite_border,
-                            label: fav ? 'In library' : 'Add to library',
-                            active: fav,
-                            onTap: () => library.toggle(e),
-                          ),
-                          _actionButton(
-                            icon: Icons.public,
-                            label: 'WebView',
-                            active: false,
-                            onTap: () => _openWebView(e),
-                          ),
-                        ],
-                      );
-                    },
+                  _actionButton(
+                    icon: fav ? Icons.menu_book : Icons.menu_book_outlined,
+                    label: fav ? 'In Library' : 'Add to Library',
+                    fg: fav ? _libraryFg : _muted,
+                    bg: fav ? _libraryBg : _btnBg,
+                    onTap: () => library.toggle(e),
                   ),
-                  const Divider(height: 32),
-                  Wrap(
-                    spacing: 6,
-                    children: e.genres.map((g) => Chip(label: Text(g), visualDensity: VisualDensity.compact)).toList(),
+                  _actionButton(
+                    icon: Icons.folder_outlined,
+                    label: 'Categories',
+                    fg: _muted,
+                    bg: _btnBg,
+                    onTap: _openCategoryPicker,
                   ),
-                  const SizedBox(height: 12),
-                  if (e.description != null) Text(e.description!),
-                  const SizedBox(height: 20),
-                  Text('${_chunks.length} $chunkWord${_chunks.length == 1 ? '' : 's'}',
-                      style: Theme.of(context).textTheme.titleMedium),
+                  _actionButton(
+                    icon: Icons.explore_outlined,
+                    label: 'WebView',
+                    fg: _muted,
+                    bg: _btnBg,
+                    onTap: () => _openWebView(e),
+                  ),
+                ],
+              );
+            },
+          ),
+          const SizedBox(height: 20),
+          // Description (expandable)
+          if (e.description != null && e.description!.isNotEmpty)
+            InkWell(
+              onTap: () => setState(() => _descExpanded = !_descExpanded),
+              child: Column(
+                children: [
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      e.description!,
+                      maxLines: _descExpanded ? null : 2,
+                      overflow: _descExpanded ? TextOverflow.visible : TextOverflow.ellipsis,
+                      style: const TextStyle(fontSize: 16, height: 1.5, color: _muted),
+                    ),
+                  ),
+                  Icon(_descExpanded ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down, color: _muted),
                 ],
               ),
             ),
-          ),
-          SliverList(
-            delegate: SliverChildBuilderDelegate(
-              (context, i) {
-                final c = _displayedChunks[i];
-                return ListTile(
-                  leading: c.read ? const Icon(Icons.check_circle, size: 18) : null,
-                  title: Text(c.title),
-                  subtitle: c.uploadDate != null ? Text(c.uploadDate.toString().split(' ').first) : null,
-                  onTap: () => _openChunk(c),
-                );
-              },
-              childCount: _displayedChunks.length,
+          const SizedBox(height: 12),
+          // Genre chips (horizontal scroll)
+          if (e.genres.isNotEmpty)
+            SizedBox(
+              height: 44,
+              child: ListView.separated(
+                scrollDirection: Axis.horizontal,
+                itemCount: e.genres.length,
+                separatorBuilder: (_, __) => const SizedBox(width: 10),
+                itemBuilder: (context, i) => Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 18),
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(color: _accentDim, borderRadius: BorderRadius.circular(14)),
+                  child: Text(e.genres[i], style: const TextStyle(color: _accent, fontSize: 15)),
+                ),
+              ),
+            ),
+          const SizedBox(height: 20),
+          // Chapters entry point
+          InkWell(
+            onTap: () => _openChapterList(e),
+            borderRadius: BorderRadius.circular(18),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 18),
+              decoration: BoxDecoration(color: _card, borderRadius: BorderRadius.circular(18)),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      '${_chunks.length} $chunkWord${_chunks.length == 1 ? '' : 's'}',
+                      style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
+                    ),
+                  ),
+                  const Icon(Icons.arrow_forward, color: _muted),
+                ],
+              ),
             ),
           ),
         ],
@@ -251,21 +334,234 @@ class _EntryDetailScreenState extends ConsumerState<EntryDetailScreen> {
     );
   }
 
-  Widget _actionButton({required IconData icon, required String label, required bool active, required VoidCallback onTap}) {
-    final color = active ? Theme.of(context).colorScheme.primary : null;
+  Widget _metaRow(IconData icon, String text) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: Row(
+        children: [
+          Icon(icon, size: 20, color: _muted),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(text, style: const TextStyle(fontSize: 16, color: _muted), maxLines: 2, overflow: TextOverflow.ellipsis),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _actionButton({
+    required IconData icon,
+    required String label,
+    required Color fg,
+    required Color bg,
+    required VoidCallback onTap,
+  }) {
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(12),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      borderRadius: BorderRadius.circular(20),
+      child: SizedBox(
+        width: 84,
         child: Column(
           children: [
-            Icon(icon, color: color),
-            const SizedBox(height: 4),
-            Text(label, style: TextStyle(fontSize: 12, color: color)),
+            Container(
+              width: 68,
+              height: 68,
+              decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(20)),
+              child: Icon(icon, color: fg, size: 28),
+            ),
+            const SizedBox(height: 8),
+            Text(label, style: TextStyle(fontSize: 13, color: fg), textAlign: TextAlign.center),
           ],
         ),
       ),
     );
   }
 }
+
+/// Full chapter list: quick-jump search, unread dots, "New" tag, dimmed read
+/// chapters, download button (placeholder), and a resume/start FAB.
+class _ChapterListScreen extends StatefulWidget {
+  final String title;
+  final bool isAnime;
+  final List<EntryChunk> chunks;
+  final void Function(EntryChunk) onOpen;
+  final Future<void> Function() onRefresh;
+
+  const _ChapterListScreen({
+    required this.title,
+    required this.isAnime,
+    required this.chunks,
+    required this.onOpen,
+    required this.onRefresh,
+  });
+
+  @override
+  State<_ChapterListScreen> createState() => _ChapterListScreenState();
+}
+
+class _ChapterListScreenState extends State<_ChapterListScreen> {
+  bool _newestFirst = true;
+  String _query = '';
+
+  List<EntryChunk> get _sortedAsc {
+    final list = List<EntryChunk>.from(widget.chunks);
+    list.sort((a, b) => a.number.compareTo(b.number));
+    return list;
+  }
+
+  List<EntryChunk> get _visible {
+    var list = _sortedAsc;
+    if (_newestFirst) list = list.reversed.toList();
+    final q = _query.trim();
+    if (q.isNotEmpty) {
+      list = list.where((c) => _fmtNum(c.number).contains(q) || c.title.toLowerCase().contains(q.toLowerCase())).toList();
+    }
+    return list;
+  }
+
+  bool _isNew(EntryChunk c, int index) {
+    if (c.read || c.uploadDate == null) return false;
+    if (!_newestFirst || index != 0 || _query.isNotEmpty) return false;
+    return DateTime.now().difference(c.uploadDate!).inDays <= 7;
+  }
+
+  void _resume() {
+    final asc = _sortedAsc;
+    if (asc.isEmpty) return;
+    final unread = asc.where((c) => !c.read);
+    widget.onOpen(unread.isNotEmpty ? unread.first : asc.last);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final items = _visible;
+    return Scaffold(
+      backgroundColor: _bg,
+      appBar: AppBar(
+        backgroundColor: _bg,
+        surfaceTintColor: Colors.transparent,
+        title: Text(widget.title, style: const TextStyle(fontWeight: FontWeight.w800), overflow: TextOverflow.ellipsis),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.filter_list),
+            tooltip: _newestFirst ? 'Newest first' : 'Oldest first',
+            onPressed: () => setState(() => _newestFirst = !_newestFirst),
+          ),
+          IconButton(icon: const Icon(Icons.refresh), onPressed: widget.onRefresh),
+        ],
+      ),
+      floatingActionButton: FloatingActionButton(
+        backgroundColor: _accent,
+        foregroundColor: Colors.black,
+        onPressed: widget.chunks.isEmpty ? null : _resume,
+        child: const Icon(Icons.play_arrow_rounded, size: 32),
+      ),
+      body: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+            child: TextField(
+              keyboardType: TextInputType.text,
+              onChanged: (v) => setState(() => _query = v),
+              decoration: InputDecoration(
+                hintText: 'Quick jump to ${widget.isAnime ? 'episode' : 'chapter'} (e.g. 110)...',
+                hintStyle: const TextStyle(color: _muted),
+                prefixIcon: const Icon(Icons.search, color: _muted),
+                suffixIcon: Padding(
+                  padding: const EdgeInsets.all(10),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10),
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(color: _btnBg, borderRadius: BorderRadius.circular(10)),
+                    child: Text(
+                      '${widget.chunks.length} TOTAL',
+                      style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: _muted),
+                    ),
+                  ),
+                ),
+                filled: true,
+                fillColor: _card,
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(18), borderSide: BorderSide.none),
+              ),
+            ),
+          ),
+          Expanded(
+            child: ListView.builder(
+              padding: const EdgeInsets.fromLTRB(16, 4, 16, 100),
+              itemCount: items.length,
+              itemBuilder: (context, i) {
+                final c = items[i];
+                final isNew = _isNew(c, i);
+                final dimmed = c.read;
+                final textColor = dimmed ? _muted.withOpacity(0.6) : Colors.white;
+                final subParts = <String>[];
+                if (c.uploadDate != null) subParts.add(_fmtDate(c.uploadDate!));
+                if (isNew) subParts.add('New');
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 10),
+                  child: Material(
+                    color: dimmed ? _card.withOpacity(0.5) : _card,
+                    borderRadius: BorderRadius.circular(20),
+                    child: InkWell(
+                      borderRadius: BorderRadius.circular(20),
+                      onTap: () => widget.onOpen(c),
+                      child: Padding(
+                        padding: const EdgeInsets.fromLTRB(20, 16, 12, 16),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    children: [
+                                      if (!c.read) ...[
+                                        Container(
+                                          width: 8,
+                                          height: 8,
+                                          decoration: const BoxDecoration(color: _accent, shape: BoxShape.circle),
+                                        ),
+                                        const SizedBox(width: 10),
+                                      ],
+                                      Expanded(
+                                        child: Text(
+                                          c.title,
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                          style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: textColor),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  if (subParts.isNotEmpty) ...[
+                                    const SizedBox(height: 6),
+                                    Text(
+                                      subParts.join(' • '),
+                                      style: TextStyle(fontSize: 15, color: _muted.withOpacity(dimmed ? 0.5 : 1)),
+                                    ),
+                                  ],
+                                ],
+                              ),
+                            ),
+                            IconButton(
+                              style: IconButton.styleFrom(backgroundColor: _btnBg),
+                              icon: Icon(Icons.file_download_outlined, color: textColor),
+                              onPressed: () => ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(content: Text('Downloads are not available yet.')),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+        
