@@ -1,226 +1,123 @@
-const API_BASE = 'https://api.asurascans.com/api';
-const SITE_BASE = 'https://asurascans.com';
-const PAGE_SIZE = 20;
+const API = "https://api.asurascans.com/api";
+const SITE = "https://asurascans.com";
 
-const UA =
-  'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15';
-
-function qs(params) {
-  return Object.keys(params)
-    .filter((k) => params[k] !== undefined && params[k] !== null && params[k] !== '')
-    .map((k) => `${encodeURIComponent(k)}=${encodeURIComponent(String(params[k]))}`)
-    .join('&');
-}
-
-class Source {
-  getSourceFeeds() {
-    return [
-      { id: 'trending', name: 'Trending' },
-      { id: 'popular', name: 'Popular' },
-      { id: 'latest', name: 'Latest' },
-      { id: 'rating', name: 'Top Rated' },
-      { id: 'title', name: 'A–Z' },
-    ];
-  }
-
-  async getSearchTags() {
-    try {
-      const json = await this.requestJSON(`${API_BASE}/genres`);
-      return (json.data || [])
-        .map((g) => ({ id: g.slug, label: g.name }))
-        .sort((a, b) => a.label.localeCompare(b.label));
-    } catch (e) {
-      console.error('AsuraScans getSearchTags failed:', e);
-      return [];
-    }
-  }
-
-  async getSearchResults(request, metadata) {
-    const query = (request && request.title) || '';
-    const feed = (request && request.feed) || null;
-    const tagIds = ((request && request.includedTags) || [])
-      .map((t) => t.id)
-      .filter(Boolean);
-    const page = (metadata && metadata.page) || 1;
-
-    const offset = (page - 1) * PAGE_SIZE;
-    const params = { limit: PAGE_SIZE, offset };
-    if (tagIds.length) params.genres = tagIds.join(',');
-
-    let url;
-    if (query) {
-      params.q = query;
-      url = `${API_BASE}/search?${qs(params)}`;
-    } else {
-      params.sort = feed || 'trending';
-      url = `${API_BASE}/series?${qs(params)}`;
-    }
-
-    const json = await this.requestJSON(url);
-    const data = json.data || [];
-    const results = data.map((s) => this.toPartialManga(s));
-    const total = json.meta && typeof json.meta.total === 'number' ? json.meta.total : 0;
-    const hasMore = data.length > 0 && offset + data.length < total;
-    return { results, metadata: hasMore ? { page: page + 1 } : undefined };
-  }
-
-  async getMangaDetails(mangaId) {
-    const json = await this.requestJSON(`${API_BASE}/series/${encodeURIComponent(mangaId)}`);
-    if (!json.series) throw new Error('series not found');
-    return this.toMangaInfo(json.series);
-  }
-
-  async getChapters(mangaId) {
-    try {
-      const json = await this.requestJSON(
-        `${API_BASE}/series/${encodeURIComponent(mangaId)}/chapters`
-      );
-      return (json.data || []).map((c) => {
-        const baseName = c.title || `Chapter ${c.number}`;
-        const unlockAt = c.early_access_until ? Date.parse(c.early_access_until) : NaN;
-        const locked = c.is_premium === true && Number.isFinite(unlockAt) && unlockAt > Date.now();
-        return {
-          id: String(c.number),
-          chapterId: String(c.number),
-          name: locked ? `${baseName} (Locked, unlocks in ${formatUnlockIn(unlockAt)})` : baseName,
-          number: Number(c.number),
-          time: c.published_at ? Date.parse(c.published_at) : undefined,
-        };
-      });
-    } catch (e) {
-      console.error('AsuraScans getChapters failed:', e);
-      throw e;
-    }
-  }
-
-  async getChapterDetails(mangaId, chapterId) {
-    const json = await this.requestJSON(
-      `${API_BASE}/series/${encodeURIComponent(mangaId)}/chapters/${encodeURIComponent(chapterId)}`
-    );
-    const chapter = json.data && json.data.chapter;
-    const pages = (chapter && chapter.pages) || [];
-    return {
-      id: chapterId,
-      mangaId,
-      pages: pages.map((p) => (typeof p === 'string' ? p : p.url)).filter(Boolean),
-    };
-  }
-
-  async requestJSON(url) {
-    const manager = App.createRequestManager({});
-    const request = App.createRequest({
-      url,
-      method: 'GET',
-      headers: { 'User-Agent': UA, Accept: 'application/json' },
+async function fetchJson(endpoint) {
+  try {
+    const res = await httpGet(`${API}${endpoint}`, {
+      "Accept": "application/json",
+      "User-Agent": "Mozilla/5.0",
+      "Referer": `${SITE}/`
     });
-    const response = await manager.schedule(request);
-    if (response.status < 200 || response.status >= 300) {
-      throw new Error(`AsuraScans API HTTP ${response.status}`);
-    }
-    return JSON.parse(response.data);
+    return JSON.parse(res);
+  } catch (e) {
+    return null; 
   }
+}
 
-  toPartialManga(s) {
+function extractCover(data) {
+  if (!data) return "";
+  // Check every known key Asura uses for images
+  const url = data.image_url || data.cover_url || data.thumbnail_url || data.poster_url || data.thumbnail || data.image || data.cover || "";
+  if (url && !url.startsWith("http")) {
+    return SITE + (url.startsWith("/") ? "" : "/") + url;
+  }
+  return url;
+}
+
+function toEntry(item) {
+  const data = item.attributes || item || {};
+  return {
+    id: data.slug || data.id?.toString() || "",
+    title: data.name || data.title || "Untitled",
+    cover: extractCover(data),
+    description: data.synopsis || data.description || "",
+    genres: (data.genres || []).map(g => (typeof g === "string" ? g : g.name || "")).filter(Boolean),
+    author: data.author || data.artist || null,
+    status: (data.status || "unknown").toLowerCase(),
+    url: `${SITE}/series/${data.slug || data.id}`,
+  };
+}
+
+module.popular = async (page, genre) => {
+  let endpoint = `/series?order=popular&page=${page || 1}&limit=20`;
+  if (genre) endpoint += `&genre=${encodeURIComponent(genre)}`;
+  const json = await fetchJson(endpoint);
+  if (!json) return [];
+  return (json.data || json.series || json.results || []).map(toEntry);
+};
+
+module.latest = async (page, genre) => {
+  let endpoint = `/series?order=latest&page=${page || 1}&limit=20`;
+  if (genre) endpoint += `&genre=${encodeURIComponent(genre)}`;
+  const json = await fetchJson(endpoint);
+  if (!json) return [];
+  return (json.data || json.series || json.results || []).map(toEntry);
+};
+
+module.search = async (query, page, genre) => {
+  let endpoint = `/series?name=${encodeURIComponent(query || "")}&page=${page || 1}&limit=20`;
+  if (genre) endpoint += `&genre=${encodeURIComponent(genre)}`;
+  const json = await fetchJson(endpoint);
+  if (!json) return [];
+  return (json.data || json.series || json.results || []).map(toEntry);
+};
+
+module.details = async (id) => {
+  const json = await fetchJson(`/series/${id}`);
+  
+  // Failsafe to prevent infinite loading if the API rejects the request
+  if (!json || (!json.data && !json.id && !json.name)) {
     return {
-      mangaId: s.slug,
-      title: s.title,
-      image: s.cover,
-      author: [s.author, s.artist].filter(Boolean).join(' / ') || undefined,
-      summary: htmlToText(s.description),
-      tags: (s.genres || []).map((g) => g.name),
-      webURL: s.public_url ? `${SITE_BASE}${s.public_url}` : undefined,
-      medium: 'comics',
-      rating: typeof s.rating === 'number' ? s.rating : undefined,
-      chapters: typeof s.chapter_count === 'number' ? s.chapter_count : undefined,
-      completed: isCompletedStatus(s.status),
-      releaseDate: s.release_year ? String(s.release_year) : undefined,
+      id: id,
+      title: "Load Error",
+      cover: "",
+      description: "Failed to load details. The Asura API may have blocked this request.",
+      genres: [],
+      author: null,
+      status: "unknown",
+      url: `${SITE}/series/${id}`
     };
   }
+  
+  const item = json.data || json;
+  return toEntry(item);
+};
 
-  toMangaInfo(s) {
-    return {
-      mangaInfo: {
-        title: s.title,
-        image: s.cover,
-        author: [s.author, s.artist].filter(Boolean).join(' / ') || undefined,
-        desc: htmlToText(s.description),
-        status: mapStatus(s.status),
-        tags: (s.genres || []).map((g) => g.name),
-        webURL: s.public_url ? `${SITE_BASE}${s.public_url}` : undefined,
-        medium: 'comics',
-        rating: typeof s.rating === 'number' ? s.rating : undefined,
-        chapters: typeof s.chapter_count === 'number' ? s.chapter_count : undefined,
-        completed: isCompletedStatus(s.status),
-        releaseDate: s.release_year ? String(s.release_year) : undefined,
-      },
-    };
-  }
-}
+module.chunks = async (id) => {
+  const json = await fetchJson(`/series/${id}/chapters?limit=500`);
+  if (!json) return [];
+  
+  const list = json.data || json.chapters || [];
+  return list.map(ch => ({
+    id: ch.slug || ch.id?.toString() || `${id}-chapter-${ch.number || ch.name}`,
+    title: ch.title || (ch.name ? `Chapter ${ch.name}` : `Chapter ${ch.number || "?"}`),
+    number: parseFloat(ch.number || ch.name) || 0,
+    uploadDate: ch.created_at || ch.release_date || null,
+  }));
+};
 
-function mapStatus(status) {
-  switch (String(status || '').toLowerCase()) {
-    case 'ongoing':
-      return 'ONGOING';
-    case 'completed':
-    case 'ended':
-      return 'COMPLETED';
-    case 'hiatus':
-      return 'HIATUS';
-    case 'cancelled':
-    case 'dropped':
-      return 'CANCELLED';
-    default:
-      return 'UNKNOWN';
-  }
-}
+module.pages = async (chunkId) => {
+  const json = await fetchJson(`/chapters/${chunkId}`);
+  if (!json) return [];
+  
+  const data = json.data || json.chapter || json;
+  const pages = data.pages || data.images || [];
+  return pages.map(img => (typeof img === "string" ? img : img.url || img.src || ""));
+};
 
-function isCompletedStatus(status) {
-  const s = String(status || '').toLowerCase();
-  return s === 'completed' || s === 'ended';
-}
+module.streams = async (chunkId) => {
+  return [];
+};
 
-function formatUnlockIn(unlockAtMs) {
-  const totalMinutes = Math.ceil((unlockAtMs - Date.now()) / 60000);
-  if (totalMinutes <= 0) return 'moments';
-  const hours = Math.floor(totalMinutes / 60);
-  const minutes = totalMinutes % 60;
-  if (hours > 0 && minutes > 0) return `${hours}h ${minutes}m`;
-  if (hours > 0) return `${hours}h`;
-  return `${minutes}m`;
-}
+module.genres = async () => {
+  return [
+    { id: "action", name: "Action" },
+    { id: "adventure", name: "Adventure" },
+    { id: "comedy", name: "Comedy" },
+    { id: "fantasy", name: "Fantasy" },
+    { id: "martial-arts", name: "Martial Arts" },
+    { id: "reincarnation", name: "Reincarnation" },
+    { id: "sci-fi", name: "Sci-fi" }
+  ];
+};
 
-const KNOWN_TAG_RE =
-  /^<\/?(p|br|strong|em|b|i|u|s|span|div|li|ul|ol|a|h[1-6]|blockquote|sup|sub|hr|img)(?:[\s/>]|$)/i;
-
-function escapeStrayAngleBrackets(html) {
-  let out = '';
-  for (let i = 0; i < html.length; i++) {
-    if (html[i] === '<' && !KNOWN_TAG_RE.test(html.slice(i))) {
-      out += '&lt;';
-    } else {
-      out += html[i];
-    }
-  }
-  return out;
-}
-
-function htmlToText(html) {
-  if (!html) return '';
-  const $ = cheerio.load(escapeStrayAngleBrackets(String(html)));
-  $('br').each((_, el) => {
-    $(el).replaceWith('\n');
-  });
-  $('p, div, li').each((_, el) => {
-    const isParagraph = el.tagName && el.tagName.toLowerCase() === 'p';
-    $(el).append(isParagraph ? '\n\n' : '\n');
-  });
-  return $.root()
-    .text()
-    .split('\n')
-    .map((line) => line.trim())
-    .join('\n')
-    .replace(/\n{3,}/g, '\n\n')
-    .trim();
-}
-
-module.exports = { Source };
