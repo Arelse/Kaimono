@@ -13,8 +13,12 @@ class Entry {
   final String? description;
   final List<String> genres;
   final String? author;
+  final String? artist;
   final EntryStatus status;
   final String? sourceUrl; // the entry's page on the source's own website, if the source provides one
+  final String? rank; // optional, e.g. "21" or "#21"
+  final double? rating; // optional, e.g. 9.81
+  final String? saves; // optional, e.g. "76.4K"
 
   Entry({
     required this.id,
@@ -25,8 +29,12 @@ class Entry {
     this.description,
     this.genres = const [],
     this.author,
+    this.artist,
     this.status = EntryStatus.unknown,
     this.sourceUrl,
+    this.rank,
+    this.rating,
+    this.saves,
   });
 
   factory Entry.fromJson(Map<String, dynamic> json, String sourceId, ContentType type) {
@@ -39,11 +47,15 @@ class Entry {
       description: json['description']?.toString(),
       genres: (json['genres'] as List?)?.map((g) => g.toString()).toList() ?? const [],
       author: json['author']?.toString(),
+      artist: json['artist']?.toString(),
       status: EntryStatus.values.firstWhere(
         (s) => s.name == (json['status']?.toString() ?? 'unknown'),
         orElse: () => EntryStatus.unknown,
       ),
       sourceUrl: json['url']?.toString(),
+      rank: json['rank']?.toString(),
+      rating: double.tryParse(json['rating']?.toString() ?? ''),
+      saves: json['saves']?.toString(),
     );
   }
 }
