@@ -10,23 +10,17 @@ async function fetchJson(endpoint) {
       "Referer": `${SITE}/`
     });
     return JSON.parse(res);
-  } catch (e) { return null; }
-}
-
-async function fetchHtml(url) {
-  try {
-    return await httpGet(url, { "User-Agent": USER_AGENT, "Referer": `${SITE}/` });
-  } catch (e) { return ""; }
-}
-
-function cleanText(str) {
-  return (str || "").replace(/<[^>]*>/g, "").replace(/&[^;]+;/g, "").trim();
+  } catch (e) { 
+    return null; 
+  }
 }
 
 function extractCover(data) {
   if (!data) return "";
   const url = data.image_url || data.cover_url || data.thumbnail_url || data.poster_url || data.thumbnail || data.image || data.cover || "";
-  if (url && !url.startsWith("http")) return SITE + (url.startsWith("/") ? "" : "/") + url;
+  if (url && !url.startsWith("http")) {
+    return SITE + (url.startsWith("/") ? "" : "/") + url;
+  }
   return url;
 }
 
@@ -38,132 +32,117 @@ function toEntry(item) {
     title: data.name || data.title || "Untitled",
     cover: extractCover(data),
     description: data.synopsis || data.description || "",
-    genres: [],
-    author: null,
-    status: "unknown",
+    genres: (data.genres || []).map(g => (typeof g === "string" ? g : g.name || "")).filter(Boolean),
+    author: data.author || data.artist || null,
+    status: (data.status || "unknown").toLowerCase(),
     url: `${SITE}/series/${slug}`,
   };
 }
 
-async function fallbackBlocker() {
+// Fallback to allow WebView Cloudflare clearance without 404ing
+function fallbackBlocker() {
   return [{
     id: "cloudflare-bypass",
     title: "⚠️ Tap here to bypass Cloudflare",
     cover: "",
-    description: "Cloudflare is blocking the connection.",
-    url: SITE
+    description: "Cloudflare is blocking the connection. Tap WebView to verify.",
+    url: SITE 
   }];
 }
 
 module.popular = async (page, genre) => {
-  let ep = `/series?order=popular&page=${page || 1}&limit=20`;
-  if (genre) ep += `&genre=${encodeURIComponent(genre)}`;
-  const json = await fetchJson(ep);
+  let endpoint = `/series?order=popular&page=${page || 1}&limit=20`;
+  if (genre) endpoint += `&genre=${encodeURIComponent(genre)}`;
+  const json = await fetchJson(endpoint);
   if (!json || (!json.data && !json.series && !json.results)) return fallbackBlocker();
   return (json.data || json.series || json.results || []).map(toEntry);
 };
 
 module.latest = async (page, genre) => {
-  let ep = `/series?order=latest&page=${page || 1}&limit=20`;
-  if (genre) ep += `&genre=${encodeURIComponent(genre)}`;
-  const json = await fetchJson(ep);
+  let endpoint = `/series?order=latest&page=${page || 1}&limit=20`;
+  if (genre) endpoint += `&genre=${encodeURIComponent(genre)}`;
+  const json = await fetchJson(endpoint);
   if (!json || (!json.data && !json.series && !json.results)) return fallbackBlocker();
   return (json.data || json.series || json.results || []).map(toEntry);
 };
 
 module.search = async (query, page, genre) => {
-  let ep = `/series?name=${encodeURIComponent(query || "")}&page=${page || 1}&limit=20`;
-  if (genre) ep += `&genre=${encodeURIComponent(genre)}`;
-  const json = await fetchJson(ep);
+  let endpoint = `/series?name=${encodeURIComponent(query || "")}&page=${page || 1}&limit=20`;
+  if (genre) endpoint += `&genre=${encodeURIComponent(genre)}`;
+  const json = await fetchJson(endpoint);
   if (!json || (!json.data && !json.series && !json.results)) return fallbackBlocker();
   return (json.data || json.series || json.results || []).map(toEntry);
 };
 
 module.details = async (id) => {
   if (id === "cloudflare-bypass") {
-     return { 
-       id, 
-       title: "Cloudflare Blocked", 
-       cover: "", 
-       description: "Please tap the 'WebView' button above, verify you are human, let the site load, and then go back and refresh the main page.", 
-       genres: [], author: null, status: "unknown", url: SITE 
-     };
-  }
-  
-  const url = `${SITE}/series/${id}`;
-  const html = await fetchHtml(url);
-
-  if (!html || html.includes("Just a moment...") || html.includes("Cloudflare")) {
     return {
       id: id,
-      title: "Cloudflare Block",
+      title: "Cloudflare Blocked",
       cover: "",
-      description: "Asura Scans blocked the request. Please tap 'WebView', wait for the page to load, and then pull down to refresh.",
-      genres: [], author: null, status: "unknown", url: url
+      description: "Tap the 'WebView' button above, verify you are human on the homepage, then go back and refresh.",
+      genres: [],
+      author: null,
+      status: "unknown",
+      url: SITE // Sending to main site prevents the 404 error
     };
   }
 
-  const titleMatch = html.match(/<span class="text-xl font-bold[^"]*">([\s\S]*?)<\/span>/i) || html.match(/<h1[^>]*>([\s\S]*?)<\/h1>/i) || ["", id];
-  const coverMatch = html.match(/<img[^>]+alt="poster"[^>]+src="([^">]+)"/i) || html.match(/<img[^>]+class="[^"]*rounded-md[^"]*"[^>]+src="([^">]+)"/i);
-  const descMatch = html.match(/<span class="font-medium text-sm text-[#a2a2a2][^"]*">([\s\S]*?)<\/span>/i) || html.match(/<p[^>]*>([\s\S]*?)<\/p>/i);
+  const json = await fetchJson(`/series/${id}`);
   
-  return {
-    id: id,
-    title: cleanText(titleMatch[1]),
-    cover: coverMatch ? coverMatch[1] : "",
-    description: descMatch ? cleanText(descMatch[1]) : "",
-    genres: [],
-    author: null,
-    status: "unknown",
-    url: url,
-  };
+  if (!json || (!json.data && !json.id && !json.name)) {
+    return {
+      id: id,
+      title: "Load Error",
+      cover: "",
+      description: "Failed to load via API. Cloudflare may be blocking this request. Tap WebView to verify.",
+      genres: [],
+      author: null,
+      status: "unknown",
+      url: SITE
+    };
+  }
+  
+  const item = json.data || json;
+  return toEntry(item);
 };
 
 module.chunks = async (id) => {
   if (id === "cloudflare-bypass") return [];
-  const html = await fetchHtml(`${SITE}/series/${id}`);
-  if (!html) return [];
-
-  const chapters = [];
-  const chRegex = /<a[^>]+href="(?:\/series\/[^\/]+\/chapter\/|https?:\/\/[^\/]+\/series\/[^\/]+\/chapter\/|https?:\/\/[^\/]+\/chapter\/|\/chapter\/)([^"\/]+)"[^>]*>([\s\S]*?)<\/a>/gi;
-  let match;
-
-  while ((match = chRegex.exec(html)) !== null) {
-    const chSlug = match[1];
-    const inner = match[2];
-
-    const titleMatch = inner.match(/<h3[^>]*>([\s\S]*?)<\/h3>/i) || inner.match(/Chapter\s*[\d.]+/i);
-    const num = parseFloat(chSlug.replace(/[^0-9.]/g, "")) || 0;
-
-    chapters.push({
-      id: chSlug,
-      title: titleMatch ? cleanText(titleMatch[0] || titleMatch[1]) : `Chapter ${num}`,
-      number: num,
-      uploadDate: null,
-    });
-  }
-  return chapters.reverse();
+  
+  const json = await fetchJson(`/series/${id}/chapters?limit=500`);
+  if (!json) return [];
+  
+  const list = json.data || json.chapters || [];
+  return list.map(ch => ({
+    id: ch.slug || ch.id?.toString() || `${id}-chapter-${ch.number || ch.name}`,
+    title: ch.title || (ch.name ? `Chapter ${ch.name}` : `Chapter ${ch.number || "?"}`),
+    number: parseFloat(ch.number || ch.name) || 0,
+    uploadDate: ch.created_at || ch.release_date || null,
+  }));
 };
 
 module.pages = async (chunkId) => {
-  const html = await fetchHtml(`${SITE}/chapter/${chunkId}`);
-  const pages = [];
+  if (chunkId === "cloudflare-bypass") return [];
+
+  const json = await fetchJson(`/chapters/${chunkId}`);
+  if (!json) return [];
   
-  const imgRegex = /<img[^>]+src="(https?:\/\/[^">]+)"[^>]+alt="chapter-[^"]*"[^>]*>/gi;
-  let match;
-
-  while ((match = imgRegex.exec(html)) !== null) {
-    pages.push(match[1]);
-  }
-
-  if (pages.length === 0) {
-    const altRegex = /<img[^>]+src="(https?:\/\/[^">]+(?:ggpht|asura|storage)[^">]+)"/gi;
-    while ((match = altRegex.exec(html)) !== null) {
-      pages.push(match[1]);
-    }
-  }
-  return pages;
+  const data = json.data || json.chapter || json;
+  const pages = data.pages || data.images || [];
+  return pages.map(img => (typeof img === "string" ? img : img.url || img.src || ""));
 };
 
-module.streams = async () => [];
-module.genres = async () => [];
+module.streams = async (chunkId) => [];
+
+module.genres = async () => {
+  return [
+    { id: "action", name: "Action" },
+    { id: "adventure", name: "Adventure" },
+    { id: "comedy", name: "Comedy" },
+    { id: "fantasy", name: "Fantasy" },
+    { id: "martial-arts", name: "Martial Arts" },
+    { id: "reincarnation", name: "Reincarnation" },
+    { id: "sci-fi", name: "Sci-fi" }
+  ];
+};
