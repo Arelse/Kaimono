@@ -35,13 +35,13 @@ function toEntry(item) {
     genres: (data.genres || []).map(g => (typeof g === "string" ? g : g.name || "")).filter(Boolean),
     author: data.author || data.artist || null,
     status: (data.status || "unknown").toLowerCase(),
-    // Keep the frontend UI paths mapped to the new /comics/ structure
+    // Updated WebView path
     url: `${SITE}/comics/${slug}`,
   };
 }
 
 module.popular = async (page, genre) => {
-  // Reverted backend fetch to /series
+  // Directory stays /series as this successfully returns the grid data
   let endpoint = `/series?order=popular&page=${page || 1}&limit=20`;
   if (genre) endpoint += `&genre=${encodeURIComponent(genre)}`;
   const json = await fetchJson(endpoint);
@@ -66,14 +66,15 @@ module.search = async (query, page, genre) => {
 };
 
 module.details = async (id) => {
-  const json = await fetchJson(`/series/${id}`);
+  // Fetch details using the new /comics API path
+  const json = await fetchJson(`/comics/${id}`);
   
   if (!json || (!json.data && !json.id && !json.name)) {
     return {
       id: id,
       title: "Load Error",
       cover: "",
-      description: "Failed to load details. The API request may have failed.",
+      description: "Failed to load details from /comics. The API request may have failed.",
       genres: [],
       author: null,
       status: "unknown",
@@ -86,7 +87,8 @@ module.details = async (id) => {
 };
 
 module.chunks = async (id) => {
-  const json = await fetchJson(`/series/${id}/chapters?limit=500`);
+  // Fetch chapters using the new /comics API path
+  const json = await fetchJson(`/comics/${id}/chapters?limit=500`);
   if (!json) return [];
   
   const list = json.data || json.chapters || [];
@@ -120,3 +122,4 @@ module.genres = async () => {
     { id: "sci-fi", name: "Sci-fi" }
   ];
 };
+
