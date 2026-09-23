@@ -76,10 +76,15 @@ class SourceBrowseScreen extends ConsumerStatefulWidget {
 
 class _SourceBrowseScreenState extends ConsumerState<SourceBrowseScreen> {
   bool _loading = true;
+  bool _loadingMore = false;
+  bool _hasMore = true;
+  int _page = 1;
   bool _searching = false;
   List _entries = [];
   String? _error;
+  String? _activeQuery; // null = browsing popular/latest, non-null = searching
   final TextEditingController _searchController = TextEditingController();
+  final ScrollController _scrollController = ScrollController();
 
   List<Map<String, String>>? _genres;
   String? _selectedGenreId;
@@ -89,53 +94,67 @@ class _SourceBrowseScreenState extends ConsumerState<SourceBrowseScreen> {
   @override
   void initState() {
     super.initState();
-    _loadList();
+    _scrollController.addListener(_onScroll);
+    _resetAndLoad();
   }
 
-  Future<void> _loadList() async {
+  void _onScroll() {
+    if (!_scrollController.hasClients || _loadingMore || !_hasMore || _loading) return;
+    final threshold = _scrollController.position.maxScrollExtent - 400;
+    if (_scrollController.position.pixels >= threshold) {
+      _loadMore();
+    }
+  }
+
+  Future<void> _resetAndLoad() async {
     setState(() {
+      _page = 1;
+      _hasMore = true;
+      _entries = [];
       _loading = true;
       _error = null;
     });
+    await _fetchPage(1, append: false);
+  }
+
+  Future<void> _loadMore() async {
+    setState(() => _loadingMore = true);
+    await _fetchPage(_page + 1, append: true);
+  }
+
+  Future<void> _fetchPage(int page, {required bool append}) async {
     try {
       final source = ref.read(extensionManagerProvider)[widget.sourceId]!;
-      final result = _mode == _ListMode.popular
-          ? await source.popular(genre: _selectedGenreId).timeout(const Duration(seconds: 20))
-          : await source.latest(genre: _selectedGenreId).timeout(const Duration(seconds: 20));
+      final result = _activeQuery != null
+          ? await source.search(_activeQuery!, page: page, genre: _selectedGenreId).timeout(const Duration(seconds: 20))
+          : _mode == _ListMode.popular
+              ? await source.popular(page: page, genre: _selectedGenreId).timeout(const Duration(seconds: 20))
+              : await source.latest(page: page, genre: _selectedGenreId).timeout(const Duration(seconds: 20));
+
       setState(() {
-        _entries = result;
+        if (append) {
+          _entries = [..._entries, ...result];
+        } else {
+          _entries = result;
+        }
+        _page = page;
+        _hasMore = result.length >= 15; // heuristic: a short page means we hit the end
         _loading = false;
+        _loadingMore = false;
       });
     } catch (e) {
       setState(() {
-        _error = e.toString();
+        _error = append ? _error : e.toString();
         _loading = false;
+        _loadingMore = false;
+        if (append) _hasMore = false; // stop retrying on a failed "load more"
       });
     }
   }
 
   Future<void> _runSearch(String query) async {
-    if (query.trim().isEmpty) {
-      _loadList();
-      return;
-    }
-    setState(() {
-      _loading = true;
-      _error = null;
-    });
-    try {
-      final source = ref.read(extensionManagerProvider)[widget.sourceId]!;
-      final result = await source.search(query.trim(), genre: _selectedGenreId).timeout(const Duration(seconds: 20));
-      setState(() {
-        _entries = result;
-        _loading = false;
-      });
-    } catch (e) {
-      setState(() {
-        _error = e.toString();
-        _loading = false;
-      });
-    }
+    setState(() => _activeQuery = query.trim().isEmpty ? null : query.trim());
+    _resetAndLoad();
   }
 
   Future<void> _openGenreFilter() async {
@@ -165,7 +184,7 @@ class _SourceBrowseScreenState extends ConsumerState<SourceBrowseScreen> {
       ),
     );
     setState(() => _selectedGenreId = chosen);
-    _loadList();
+    _resetAndLoad();
   }
 
   @override
@@ -198,42 +217,45 @@ class _SourceBrowseScreenState extends ConsumerState<SourceBrowseScreen> {
               setState(() {
                 if (_searching) {
                   _searchController.clear();
-                  _loadList();
+                  _activeQuery = null;
+                  _resetAndLoad();
                 }
                 _searching = !_searching;
               });
             },
           ),
         ],
-        bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(44),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-            child: Row(
-              children: [
-                ChoiceChip(
-                  label: const Text('Popular'),
-                  avatar: const Icon(Icons.local_fire_department, size: 16),
-                  selected: _mode == _ListMode.popular,
-                  onSelected: (_) {
-                    setState(() => _mode = _ListMode.popular);
-                    _loadList();
-                  },
+        bottom: _activeQuery != null
+            ? null
+            : PreferredSize(
+                preferredSize: const Size.fromHeight(44),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  child: Row(
+                    children: [
+                      ChoiceChip(
+                        label: const Text('Popular'),
+                        avatar: const Icon(Icons.local_fire_department, size: 16),
+                        selected: _mode == _ListMode.popular,
+                        onSelected: (_) {
+                          setState(() => _mode = _ListMode.popular);
+                          _resetAndLoad();
+                        },
+                      ),
+                      const SizedBox(width: 8),
+                      ChoiceChip(
+                        label: const Text('Latest'),
+                        avatar: const Icon(Icons.bolt, size: 16),
+                        selected: _mode == _ListMode.latest,
+                        onSelected: (_) {
+                          setState(() => _mode = _ListMode.latest);
+                          _resetAndLoad();
+                        },
+                      ),
+                    ],
+                  ),
                 ),
-                const SizedBox(width: 8),
-                ChoiceChip(
-                  label: const Text('Latest'),
-                  avatar: const Icon(Icons.bolt, size: 16),
-                  selected: _mode == _ListMode.latest,
-                  onSelected: (_) {
-                    setState(() => _mode = _ListMode.latest);
-                    _loadList();
-                  },
-                ),
-              ],
-            ),
-          ),
-        ),
+              ),
       ),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
@@ -242,14 +264,26 @@ class _SourceBrowseScreenState extends ConsumerState<SourceBrowseScreen> {
                   padding: const EdgeInsets.all(24),
                   child: Center(child: Text('Error loading this source:\n\n$_error', textAlign: TextAlign.center)),
                 )
-              : EntryGrid(
-                  entries: _entries.cast(),
-                  emptyLabel: 'No results',
-                  columns: _columns,
-                  onTap: (entry) => Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (_) => EntryDetailScreen(sourceId: widget.sourceId, entry: entry)),
-                  ),
+              : Stack(
+                  children: [
+                    EntryGrid(
+                      entries: _entries.cast(),
+                      emptyLabel: 'No results',
+                      columns: _columns,
+                      controller: _scrollController,
+                      onTap: (entry) => Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => EntryDetailScreen(sourceId: widget.sourceId, entry: entry)),
+                      ),
+                    ),
+                    if (_loadingMore)
+                      const Positioned(
+                        bottom: 12,
+                        left: 0,
+                        right: 0,
+                        child: Center(child: CircularProgressIndicator()),
+                      ),
+                  ],
                 ),
     );
   }
@@ -257,6 +291,7 @@ class _SourceBrowseScreenState extends ConsumerState<SourceBrowseScreen> {
   @override
   void dispose() {
     _searchController.dispose();
+    _scrollController.dispose();
     super.dispose();
   }
 }
