@@ -9,6 +9,7 @@ class EntryGrid extends ConsumerWidget {
   final String emptyLabel;
   final void Function(Entry)? onTap;
   final int columns;
+  final ScrollController? controller;
 
   const EntryGrid({
     super.key,
@@ -16,6 +17,7 @@ class EntryGrid extends ConsumerWidget {
     this.emptyLabel = 'Nothing here',
     this.onTap,
     this.columns = 3,
+    this.controller,
   });
 
   @override
@@ -26,9 +28,10 @@ class EntryGrid extends ConsumerWidget {
       );
     }
     final library = ref.watch(libraryManagerProvider.notifier);
-    ref.watch(libraryManagerProvider); // rebuild when favorites change
+    ref.watch(libraryManagerProvider);
 
     return GridView.builder(
+      controller: controller,
       padding: const EdgeInsets.all(12),
       gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: columns,
