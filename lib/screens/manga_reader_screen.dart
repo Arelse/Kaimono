@@ -6,10 +6,6 @@ import '../services/extension_manager.dart';
 
 enum _ReadMode { paged, webtoon }
 
-/// Manga page reader. Supports paged (swipe, one page at a time) and
-/// webtoon (continuous vertical scroll) modes, and auto-advances to the
-/// next chunk in [allChunks] when the reader runs out of pages — the
-/// same "keep reading" flow Komikku/Mihon-style readers use.
 class MangaReaderScreen extends ConsumerStatefulWidget {
   final String sourceId;
   final EntryChunk chunk;
@@ -26,6 +22,8 @@ class _MangaReaderScreenState extends ConsumerState<MangaReaderScreen> {
   List<String> _pages = [];
   bool _loading = true;
   _ReadMode _mode = _ReadMode.paged;
+  bool _controlsVisible = true;
+  int _currentPage = 0;
   final PageController _pageController = PageController();
 
   @override
@@ -36,7 +34,10 @@ class _MangaReaderScreenState extends ConsumerState<MangaReaderScreen> {
   }
 
   Future<void> _load() async {
-    setState(() => _loading = true);
+    setState(() {
+      _loading = true;
+      _currentPage = 0;
+    });
     final source = ref.read(extensionManagerProvider)[widget.sourceId]!;
     final pages = await source.getPages(_chunk.id);
     setState(() {
@@ -57,16 +58,33 @@ class _MangaReaderScreenState extends ConsumerState<MangaReaderScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.black,
-      appBar: AppBar(
-        backgroundColor: Colors.black.withValues(alpha: 0.6),
-        title: Text(_chunk.title, style: const TextStyle(fontSize: 14)),
-        actions: [
-          IconButton(
-            icon: Icon(_mode == _ReadMode.paged ? Icons.view_agenda_outlined : Icons.view_carousel_outlined),
-            tooltip: _mode == _ReadMode.paged ? 'Switch to webtoon' : 'Switch to paged',
-            onPressed: () => setState(() => _mode = _mode == _ReadMode.paged ? _ReadMode.webtoon : _ReadMode.paged),
+      appBar: PreferredSize(
+        preferredSize: const Size.fromHeight(kToolbarHeight),
+        child: AnimatedOpacity(
+          opacity: _controlsVisible ? 1 : 0,
+          duration: const Duration(milliseconds: 200),
+          child: IgnorePointer(
+            ignoring: !_controlsVisible,
+            child: AppBar(
+              backgroundColor: Colors.black.withValues(alpha: 0.6),
+              title: Text(_chunk.title, style: const TextStyle(fontSize: 14)),
+              actions: [
+                if (_mode == _ReadMode.paged && _pages.isNotEmpty)
+                  Center(
+                    child: Padding(
+                      padding: const EdgeInsets.only(right: 12),
+                      child: Text('${_currentPage + 1} / ${_pages.length}', style: const TextStyle(fontSize: 13)),
+                    ),
+                  ),
+                IconButton(
+                  icon: Icon(_mode == _ReadMode.paged ? Icons.view_agenda_outlined : Icons.view_carousel_outlined),
+                  tooltip: _mode == _ReadMode.paged ? 'Switch to webtoon' : 'Switch to paged',
+                  onPressed: () => setState(() => _mode = _mode == _ReadMode.paged ? _ReadMode.webtoon : _ReadMode.paged),
+                ),
+              ],
+            ),
           ),
-        ],
+        ),
       ),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
@@ -75,53 +93,81 @@ class _MangaReaderScreenState extends ConsumerState<MangaReaderScreen> {
               : _mode == _ReadMode.paged
                   ? _pagedView()
                   : _webtoonView(),
-      bottomNavigationBar: SafeArea(
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            TextButton.icon(
-              onPressed: () => _goToChunk(-1),
-              icon: const Icon(Icons.skip_previous),
-              label: const Text('Prev'),
+      bottomNavigationBar: AnimatedOpacity(
+        opacity: _controlsVisible ? 1 : 0,
+        duration: const Duration(milliseconds: 200),
+        child: IgnorePointer(
+          ignoring: !_controlsVisible,
+          child: SafeArea(
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                TextButton.icon(
+                  onPressed: () => _goToChunk(-1),
+                  icon: const Icon(Icons.skip_previous),
+                  label: const Text('Prev'),
+                ),
+                TextButton.icon(
+                  onPressed: () => _goToChunk(1),
+                  icon: const Icon(Icons.skip_next),
+                  label: const Text('Next'),
+                  iconAlignment: IconAlignment.end,
+                ),
+              ],
             ),
-            TextButton.icon(
-              onPressed: () => _goToChunk(1),
-              icon: const Icon(Icons.skip_next),
-              label: const Text('Next'),
-              iconAlignment: IconAlignment.end,
-            ),
-          ],
+          ),
         ),
       ),
     );
   }
 
   Widget _pagedView() {
-    return PageView.builder(
-      controller: _pageController,
-      itemCount: _pages.length,
-      itemBuilder: (context, i) => InteractiveViewer(
-        maxScale: 4,
-        child: CachedNetworkImage(
-          imageUrl: _pages[i],
-          fit: BoxFit.contain,
-          width: double.infinity,
-          placeholder: (_, __) => const Center(child: CircularProgressIndicator()),
-          errorWidget: (_, __, ___) => const Center(child: Icon(Icons.broken_image, color: Colors.white38)),
+    return GestureDetector(
+      onTapUp: (details) {
+        final width = MediaQuery.of(context).size.width;
+        final dx = details.globalPosition.dx;
+        if (dx < width / 3) {
+          if (_pageController.hasClients) {
+            _pageController.previousPage(duration: const Duration(milliseconds: 200), curve: Curves.easeOut);
+          }
+        } else if (dx > width * 2 / 3) {
+          if (_pageController.hasClients) {
+            _pageController.nextPage(duration: const Duration(milliseconds: 200), curve: Curves.easeOut);
+          }
+        } else {
+          setState(() => _controlsVisible = !_controlsVisible);
+        }
+      },
+      child: PageView.builder(
+        controller: _pageController,
+        itemCount: _pages.length,
+        onPageChanged: (i) => setState(() => _currentPage = i),
+        itemBuilder: (context, i) => InteractiveViewer(
+          maxScale: 4,
+          child: CachedNetworkImage(
+            imageUrl: _pages[i],
+            fit: BoxFit.contain,
+            width: double.infinity,
+            placeholder: (_, __) => const Center(child: CircularProgressIndicator()),
+            errorWidget: (_, __, ___) => const Center(child: Icon(Icons.broken_image, color: Colors.white38)),
+          ),
         ),
       ),
     );
   }
 
   Widget _webtoonView() {
-    return ListView.builder(
-      itemCount: _pages.length,
-      itemBuilder: (context, i) => CachedNetworkImage(
-        imageUrl: _pages[i],
-        fit: BoxFit.fitWidth,
-        width: double.infinity,
-        placeholder: (_, __) => const SizedBox(height: 300, child: Center(child: CircularProgressIndicator())),
-        errorWidget: (_, __, ___) => const SizedBox(height: 100, child: Icon(Icons.broken_image, color: Colors.white38)),
+    return GestureDetector(
+      onTap: () => setState(() => _controlsVisible = !_controlsVisible),
+      child: ListView.builder(
+        itemCount: _pages.length,
+        itemBuilder: (context, i) => CachedNetworkImage(
+          imageUrl: _pages[i],
+          fit: BoxFit.fitWidth,
+          width: double.infinity,
+          placeholder: (_, __) => const SizedBox(height: 300, child: Center(child: CircularProgressIndicator())),
+          errorWidget: (_, __, ___) => const SizedBox(height: 100, child: Icon(Icons.broken_image, color: Colors.white38)),
+        ),
       ),
     );
   }
