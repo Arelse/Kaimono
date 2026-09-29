@@ -62,6 +62,7 @@
 
         <activity
             android:name=".kaimono.KaimonoActivity"
+            android:enabled="false"
             android:exported="true"
             android:launchMode="singleTop"
             android:theme="@style/Theme.Kaimono.Launch"
@@ -78,7 +79,6 @@
         </activity>  
         <activity
             android:name=".ui.main.MainActivity"
-            android:enabled="false"
             android:exported="true"
             android:launchMode="singleTop"
             android:theme="@style/Theme.Tachiyomi.SplashScreen">
