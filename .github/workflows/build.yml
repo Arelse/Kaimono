@@ -100,6 +100,9 @@ jobs:
           EOF
           flutter build aar --no-profile --build-number=1.0
 
+      - name: Make gradlew executable
+        run: chmod +x ./gradlew
+
       - name: Build release APK(s) (unsigned)
         run: ./gradlew assembleNightly -Penable-updater
 
