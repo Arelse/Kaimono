@@ -236,6 +236,13 @@ dependencies {
     implementation(projects.presentationWidget)
     implementation(projects.telemetry)
 
+    // Kaimono Flutter UI (built from kaimono_ui with `flutter build aar --build-number=1.0`)
+    debugImplementation("com.kaimono.ui:flutter_debug:1.0")
+    releaseImplementation("com.kaimono.ui:flutter_release:1.0")
+    listOf("foss", "preview", "nightly", "benchmark").forEach {
+        add("${it}Implementation", "com.kaimono.ui:flutter_release:1.0")
+    }
+
     // Compose
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.compose.foundation)
