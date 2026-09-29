@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "451311517129",
+    "project_id": "kaimono-9f660",
+    "storage_bucket": "kaimono-9f660.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:451311517129:android:bb8965e98a567ddf44fc18",
+        "android_client_info": {
+          "package_name": "com.arelse.kaimono.nightly"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAp5xqomuMxiqfsOSEnla-rcg9y_1D5YfE"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
