@@ -15,7 +15,7 @@ plugins {
     alias(libs.plugins.aboutLibraries)
     alias(libs.plugins.androidx.baselineProfile)
     alias(libs.plugins.kotlin.serialization)
-    // alias(libs.plugins.google.services)
+    alias(libs.plugins.google.services)
 }
 
 if (Config.includeTelemetry) {
