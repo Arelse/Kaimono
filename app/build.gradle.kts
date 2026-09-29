@@ -30,7 +30,7 @@ android {
     namespace = "eu.kanade.tachiyomi"
 
     defaultConfig {
-        applicationId = "com.notch.wammy"
+        applicationId = "com.arelse.kaimono"
 
         versionCode = 8
         versionName = "0.0.8"
