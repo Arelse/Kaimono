@@ -67,6 +67,13 @@ jobs:
         with:
           channel: stable
 
+      - name: Sync latest Kaimono UI code
+        run: |
+          rm -rf kaimono_ui/lib kaimono_ui/assets
+          git clone --depth 1 https://github.com/Arelse/KaimonoAr.git /tmp/kaimono-src
+          cp -r /tmp/kaimono-src/lib kaimono_ui/lib
+          cp -r /tmp/kaimono-src/assets kaimono_ui/assets
+
       - name: Build Kaimono UI (AAR)
         run: |
           cd kaimono_ui
