@@ -78,6 +78,26 @@ jobs:
         run: |
           cd kaimono_ui
           flutter pub get
+          cat >> .android/build.gradle << 'EOF'
+
+          subprojects {
+              afterEvaluate { project ->
+                  if (project.hasProperty('android')) {
+                      project.android {
+                          compileOptions {
+                              sourceCompatibility JavaVersion.VERSION_11
+                              targetCompatibility JavaVersion.VERSION_11
+                          }
+                      }
+                  }
+                  tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).configureEach {
+                      kotlinOptions {
+                          jvmTarget = "11"
+                      }
+                  }
+              }
+          }
+          EOF
           flutter build aar --no-profile --build-number=1.0
 
       - name: Build release APK(s) (unsigned)
