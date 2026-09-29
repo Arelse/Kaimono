@@ -106,6 +106,12 @@ jobs:
       - name: Build release APK(s) (unsigned)
         run: ./gradlew assembleNightly -Penable-updater
 
+      - name: Upload unsigned APK(s)
+        uses: actions/upload-artifact@v5
+        with:
+          name: kaimono-nightly-unsigned-${{ github.sha }}
+          path: app/build/outputs/apk/nightly/*.apk
+
       - name: Run unit tests
         id: unit_tests
         run: ./gradlew testDebugUnitTest
