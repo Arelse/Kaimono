@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Same background as Kaimono's purple theme (bg 0xFF0D0B14) so there is no flash of Wammy branding. -->
+    <color name="kaimono_bg">#FF0D0B14</color>
+
+    <style name="Theme.Kaimono.Launch" parent="@android:style/Theme.Black.NoTitleBar">
+        <item name="android:windowBackground">@color/kaimono_bg</item>
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@color/kaimono_bg</item>
+    </style>
+
+    <style name="Theme.Kaimono.Normal" parent="@android:style/Theme.Black.NoTitleBar">
+        <item name="android:windowBackground">@color/kaimono_bg</item>
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@color/kaimono_bg</item>
+    </style>
+</resources>
