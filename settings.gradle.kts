@@ -23,6 +23,9 @@ dependencyResolutionManagement {
         google()
         mavenCentral()
         maven(url = "https://www.jitpack.io")
+        // Kaimono Flutter module (produced by `flutter build aar`)
+        maven(url = File(rootDir, "kaimono_ui/build/host/outputs/repo").toURI())
+        maven(url = "https://storage.googleapis.com/download.flutter.io")
     }
 }
 
