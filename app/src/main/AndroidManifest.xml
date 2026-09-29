@@ -61,7 +61,25 @@
         android:theme="@style/Theme.Tachiyomi">
 
         <activity
+            android:name=".kaimono.KaimonoActivity"
+            android:exported="true"
+            android:launchMode="singleTop"
+            android:theme="@style/Theme.Kaimono.Launch"
+            android:configChanges="orientation|keyboardHidden|keyboard|screenSize|smallestScreenSize|locale|layoutDirection|fontScale|screenLayout|density|uiMode"
+            android:hardwareAccelerated="true"
+            android:windowSoftInputMode="adjustResize">
+            <meta-data
+                android:name="io.flutter.embedding.android.NormalTheme"
+                android:resource="@style/Theme.Kaimono.Normal" />
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+            
+        <activity
             android:name=".ui.main.MainActivity"
+            android:enabled="false"
             android:exported="true"
             android:launchMode="singleTop"
             android:theme="@style/Theme.Tachiyomi.SplashScreen">
@@ -198,6 +216,7 @@
 
         <activity
             android:name=".ui.deeplink.DeepLinkActivity"
+            android:enabled="false"
             android:exported="true"
             android:label="@string/action_search"
             android:launchMode="singleTask"
@@ -229,6 +248,7 @@
 
         <activity
             android:name=".ui.reader.ReaderActivity"
+            android:enabled="false"
             android:exported="false"
             android:configChanges="orientation|screenSize|smallestScreenSize|screenLayout|keyboardHidden"
             android:launchMode="singleTask">
