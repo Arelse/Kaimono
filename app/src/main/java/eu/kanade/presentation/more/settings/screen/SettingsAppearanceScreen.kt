@@ -1,3 +1,4 @@
+
 package eu.kanade.presentation.more.settings.screen
 
 import android.app.Activity
@@ -77,6 +78,9 @@ object SettingsAppearanceScreen : SearchableSettings {
         val themeCoverBasedPref = uiPreferences.themeCoverBased
         val themeCoverBased by themeCoverBasedPref.collectAsState()
 
+        val bloomPref = uiPreferences.bloomEnabled
+        val grainPref = uiPreferences.grainOverlayEnabled
+
         return Preference.PreferenceGroup(
             title = stringResource(MR.strings.pref_category_theme),
             preferenceItems = listOf(
@@ -119,6 +123,16 @@ object SettingsAppearanceScreen : SearchableSettings {
                         .associateWith { it.name },
                     title = "Cover based theme style",
                     enabled = themeCoverBased,
+                ),
+                Preference.PreferenceItem.SwitchPreference(
+                    preference = bloomPref,
+                    title = "Bloom",
+                    subtitle = "Enables a soft, glowing gradient effect",
+                ),
+                Preference.PreferenceItem.SwitchPreference(
+                    preference = grainPref,
+                    title = "Grain texture overlay",
+                    subtitle = "Apply a subtle film grain texture over the interface",
                 ),
             ),
         )
