@@ -225,6 +225,10 @@ object SettingsAppearanceScreen : SearchableSettings {
         val retainOriginalColorPref = uiPreferences.settingsBackgroundRetainOriginalColor
         val retainOriginalColor by retainOriginalColorPref.collectAsState()
 
+        // Same preference as "Theme based on cover" in the Theme group above - one
+        // switch, shown in both places, so the two stay in sync rather than drifting.
+        val usePosterColorPref = uiPreferences.themeCoverBased
+
         val pickImage = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
             if (uri == null) return@rememberLauncherForActivityResult
             scope.launch {
@@ -286,6 +290,13 @@ object SettingsAppearanceScreen : SearchableSettings {
                             title = "Retain original color",
                             subtitle = "Off tints the background with your app theme's color instead",
                             enabled = hasBackground,
+                        ),
+                    )
+                    add(
+                        Preference.PreferenceItem.SwitchPreference(
+                            preference = usePosterColorPref,
+                            title = "Use poster color",
+                            subtitle = "Applies the manga cover's color on the details page",
                         ),
                     )
                     add(
