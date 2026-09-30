@@ -38,6 +38,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusDirection
+import tachiyomi.presentation.core.components.material.LocalLiquidBackgroundActive
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
@@ -150,9 +151,13 @@ fun AppBar(
             title = titleContent,
             actions = actions,
             colors = TopAppBarDefaults.topAppBarColors(
-                containerColor = backgroundColor ?: MaterialTheme.colorScheme.surfaceColorAtElevation(
-                    elevation = if (isActionMode) 3.dp else 0.dp,
-                ),
+                containerColor = backgroundColor ?: if (LocalLiquidBackgroundActive.current) {
+                    Color.Transparent
+                } else {
+                    MaterialTheme.colorScheme.surfaceColorAtElevation(
+                        elevation = if (isActionMode) 3.dp else 0.dp,
+                    )
+                },
             ),
             scrollBehavior = scrollBehavior,
         )
