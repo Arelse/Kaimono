@@ -84,6 +84,8 @@ object SettingsReaderScreen : SearchableSettings {
     @Composable
     private fun getDisplayGroup(readerPreferences: ReaderPreferences): Preference.PreferenceGroup {
         val fullscreen by readerPreferences.fullscreen.collectAsState()
+        val uiPreferences = remember { Injekt.get<eu.kanade.domain.ui.UiPreferences>() }
+        
         return Preference.PreferenceGroup(
             title = stringResource(MR.strings.pref_category_display),
             preferenceItems = listOf(
@@ -119,6 +121,10 @@ object SettingsReaderScreen : SearchableSettings {
                 Preference.PreferenceItem.SwitchPreference(
                     preference = readerPreferences.showPageNumber,
                     title = stringResource(MR.strings.pref_show_page_number),
+                ),  Preference.PreferenceItem.SwitchPreference(
+                    preference = uiPreferences.readerUseLiquidBackground,
+                    title = "Use liquid background in reader",
+                    subtitle = "Show your liquid mode background in the margins around pages",
                 ),
             ),
         )
