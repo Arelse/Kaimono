@@ -196,9 +196,10 @@ object AboutScreen : Screen() {
                             url = "https://discord.gg/tTTFrqHM8"
                         )
                     }
-               }
-          }
-     }
+                }
+            }
+        }
+    }
 
     /**
      * Checks version and shows a user prompt if an update is available.
@@ -330,4 +331,3 @@ fun DynamicInstagramProfileRow(username: String, name: String, fallbackUrl: Stri
         onClick = onClick
     )
 }
-
