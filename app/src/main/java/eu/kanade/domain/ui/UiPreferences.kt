@@ -1,5 +1,6 @@
 ﻿package eu.kanade.domain.ui
 
+import com.materialkolor.PaletteStyle
 import eu.kanade.domain.ui.model.AppTheme
 import eu.kanade.domain.ui.model.TabletUiMode
 import eu.kanade.domain.ui.model.ThemeMode
@@ -38,6 +39,14 @@ class UiPreferences(
     val tabletUiMode: Preference<TabletUiMode> = preferenceStore.getEnum("tablet_ui_mode", TabletUiMode.AUTOMATIC)
 
     val imagesInDescription: Preference<Boolean> = preferenceStore.getBoolean("pref_render_images_description", true)
+
+    val themeCoverBased: Preference<Boolean> = preferenceStore.getBoolean("pref_theme_cover_based_key", true)
+
+    val themeCoverBasedStyle: Preference<PaletteStyle> = preferenceStore.getEnum("pref_theme_cover_based_style_key", PaletteStyle.Vibrant)
+
+    val usePanoramaCoverMangaInfo: Preference<Boolean> = preferenceStore.getBoolean("pref_panorama_cover_manga_info", false)
+
+    val topAlignCover: Preference<Boolean> = preferenceStore.getBoolean("pref_top_align_cover", false)
 
     companion object {
         fun dateFormat(format: String): DateTimeFormatter = when (format) {
