@@ -48,6 +48,12 @@ class UiPreferences(
 
     val topAlignCover: Preference<Boolean> = preferenceStore.getBoolean("pref_top_align_cover", false)
 
+    val settingsBackgroundPath: Preference<String> = preferenceStore.getString("pref_settings_background_path", "")
+
+    val settingsBackgroundBlur: Preference<Int> = preferenceStore.getInt("pref_settings_background_blur", 12)
+
+    val settingsBackgroundLight: Preference<Int> = preferenceStore.getInt("pref_settings_background_light", 65)
+
     companion object {
         fun dateFormat(format: String): DateTimeFormatter = when (format) {
             "" -> DateTimeFormatter.ofLocalizedDate(FormatStyle.SHORT)
