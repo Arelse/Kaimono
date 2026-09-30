@@ -356,6 +356,9 @@ fun MangaListItem(
     }
     Row(
         modifier = Modifier
+            .padding(horizontal = 12.dp, vertical = 3.dp)
+            .clip(RoundedCornerShape(16.dp))
+            .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.55f))
             .selectedBackground(isSelected)
             .height(height)
             .combinedClickable(
