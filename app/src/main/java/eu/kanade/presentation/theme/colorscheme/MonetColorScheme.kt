@@ -63,17 +63,17 @@ private class MonetSystemColorScheme(context: Context) : BaseColorScheme() {
     override val darkScheme = dynamicDarkColorScheme(context)
 }
 
-internal class MonetCompatColorScheme(seed: Color) : BaseColorScheme() {
-    override val lightScheme = generateColorSchemeFromSeed(seed = seed, dark = false)
-    override val darkScheme = generateColorSchemeFromSeed(seed = seed, dark = true)
+internal class MonetCompatColorScheme(seed: Color, style: PaletteStyle = PaletteStyle.TonalSpot) : BaseColorScheme() {
+    override val lightScheme = generateColorSchemeFromSeed(seed = seed, dark = false, style = style)
+    override val darkScheme = generateColorSchemeFromSeed(seed = seed, dark = true, style = style)
 
     companion object {
-        fun generateColorSchemeFromSeed(seed: Color, dark: Boolean): ColorScheme {
+        fun generateColorSchemeFromSeed(seed: Color, dark: Boolean, style: PaletteStyle = PaletteStyle.TonalSpot): ColorScheme {
             return DynamicScheme(
                 seedColor = seed,
                 isDark = dark,
                 specVersion = ColorSpec.SpecVersion.SPEC_2025,
-                style = PaletteStyle.TonalSpot,
+                style = style,
             )
                 .toColorScheme(isAmoled = false)
         }
