@@ -209,6 +209,9 @@ object SettingsAppearanceScreen : SearchableSettings {
         val context = LocalContext.current
         val scope = rememberCoroutineScope()
 
+        val liquidModePref = uiPreferences.settingsLiquidMode
+        val liquidMode by liquidModePref.collectAsState()
+
         val backgroundPathPref = uiPreferences.settingsBackgroundPath
         val backgroundPath by backgroundPathPref.collectAsState()
         val hasBackground = backgroundPath.isNotBlank()
@@ -218,6 +221,9 @@ object SettingsAppearanceScreen : SearchableSettings {
 
         val backgroundLightPref = uiPreferences.settingsBackgroundLight
         val backgroundLight by backgroundLightPref.collectAsState()
+
+        val retainOriginalColorPref = uiPreferences.settingsBackgroundRetainOriginalColor
+        val retainOriginalColor by retainOriginalColorPref.collectAsState()
 
         val pickImage = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
             if (uri == null) return@rememberLauncherForActivityResult
@@ -238,34 +244,60 @@ object SettingsAppearanceScreen : SearchableSettings {
         }
 
         return Preference.PreferenceGroup(
-            title = "Settings background",
-            preferenceItems = listOf(
-                Preference.PreferenceItem.TextPreference(
-                    title = if (hasBackground) "Change background image" else "Choose background image",
-                    subtitle = if (hasBackground) "Tap to pick a different image" else "Show an image behind every settings screen",
-                    onClick = { pickImage.launch("image/*") },
-                ),
-                Preference.PreferenceItem.TextPreference(
-                    title = "Remove background image",
-                    enabled = hasBackground,
-                    onClick = { backgroundPathPref.set("") },
-                ),
-                Preference.PreferenceItem.SliderPreference(
-                    value = backgroundBlur,
-                    valueRange = 0..25,
-                    title = "Blur intensity",
-                    enabled = hasBackground,
-                    onValueChanged = { backgroundBlurPref.set(it) },
-                ),
-                Preference.PreferenceItem.SliderPreference(
-                    value = backgroundLight,
-                    valueRange = 0..100,
-                    title = "Light intensity",
-                    subtitle = "How bright the background shows through",
-                    enabled = hasBackground,
-                    onValueChanged = { backgroundLightPref.set(it) },
-                ),
-            ),
+            title = "Liquid mode",
+            preferenceItems = buildList {
+                add(
+                    Preference.PreferenceItem.SwitchPreference(
+                        preference = liquidModePref,
+                        title = "Liquid mode",
+                        subtitle = if (liquidMode) "Settings screens show a blurred background" else "Solid background",
+                    ),
+                )
+                if (liquidMode) {
+                    add(
+                        Preference.PreferenceItem.TextPreference(
+                            title = if (hasBackground) "Change liquid background" else "Liquid background",
+                            subtitle = if (hasBackground) "Tap to pick a different image" else "Choose an image to show behind every settings screen",
+                            onClick = { pickImage.launch("image/*") },
+                        ),
+                    )
+                    add(
+                        Preference.PreferenceItem.SliderPreference(
+                            value = backgroundBlur,
+                            valueRange = 0..25,
+                            title = "Blur intensity",
+                            enabled = hasBackground,
+                            onValueChanged = { backgroundBlurPref.set(it) },
+                        ),
+                    )
+                    add(
+                        Preference.PreferenceItem.SliderPreference(
+                            value = backgroundLight,
+                            valueRange = 0..100,
+                            title = "Light intensity",
+                            subtitle = "How bright the background shows through",
+                            enabled = hasBackground,
+                            onValueChanged = { backgroundLightPref.set(it) },
+                        ),
+                    )
+                    add(
+                        Preference.PreferenceItem.SwitchPreference(
+                            preference = retainOriginalColorPref,
+                            title = "Retain original color",
+                            subtitle = "Off tints the background with your app theme's color instead",
+                            enabled = hasBackground,
+                        ),
+                    )
+                    add(
+                        Preference.PreferenceItem.TextPreference(
+                            title = "Reset to default picture",
+                            subtitle = "Remove the liquid background",
+                            enabled = hasBackground,
+                            onClick = { backgroundPathPref.set("") },
+                        ),
+                    )
+                }
+            },
         )
     }
 
