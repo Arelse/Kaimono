@@ -170,27 +170,18 @@ object AboutScreen : Screen() {
                 item {
                     TextPreferenceWidget(
                         title = "Developer GitHub",
-                        subtitle = "kainotch",
+                        subtitle = "Arelse",
                         icon = CustomIcons.Github,
-                        onPreferenceClick = { uriHandler.openUri("https://github.com/kainotch") },
+                        onPreferenceClick = { uriHandler.openUri("https://github.com/Arelse") },
                     )
                 }
 
                 item {
                     DynamicInstagramProfileRow(
-                        username = "kainotch",
+                        username = "arelseey",
                         name = "Developer",
                         fallbackUrl = "",
-                        onClick = { uriHandler.openUri("https://instagram.com/kainotch") }
-                    )
-                }
-
-                item {
-                    DynamicInstagramProfileRow(
-                        username = "xo._kiwikaffine",
-                        name = "Partner",
-                        fallbackUrl = "",
-                        onClick = { uriHandler.openUri("https://instagram.com/xo._kiwikaffine") }
+                        onClick = { uriHandler.openUri("https://www.instagram.com/arelseey?stkn=MTN4YmRweG4yNG1xaA==") }
                     )
                 }
 
@@ -202,19 +193,12 @@ object AboutScreen : Screen() {
                         LinkIcon(
                             label = "Discord",
                             icon = CustomIcons.Discord,
-                            url = "https://discord.gg/qybFSATs7Q"
-                        )
-                        androidx.compose.foundation.layout.Spacer(modifier = Modifier.size(16.dp))
-                        LinkIcon(
-                            label = "Website",
-                            icon = Icons.Outlined.Public,
-                            url = "https://kainotch.github.io/WammyWeb/"
+                            url = "https://discord.gg/tTTFrqHM8"
                         )
                     }
-                }
-            }
-        }
-    }
+               }
+          }
+     }
 
     /**
      * Checks version and shows a user prompt if an update is available.
