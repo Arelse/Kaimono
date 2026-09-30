@@ -142,12 +142,12 @@ android {
 
     splits {
         abi {
-            isEnable = true
+            isEnable = false
             isUniversalApk = true
             reset()
             include("armeabi-v7a", "arm64-v8a", "x86", "x86_64")
         }
-    }
+     }
 
     packaging {
         jniLibs {
