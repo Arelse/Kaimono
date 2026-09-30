@@ -32,10 +32,12 @@ fun PreferenceScaffold(
     itemsProvider: @Composable () -> List<Preference>,
 ) {
     val uiPreferences = Injekt.get<UiPreferences>()
+    val liquidMode by uiPreferences.settingsLiquidMode.collectAsState()
     val backgroundPath by uiPreferences.settingsBackgroundPath.collectAsState()
     val backgroundBlur by uiPreferences.settingsBackgroundBlur.collectAsState()
     val backgroundLight by uiPreferences.settingsBackgroundLight.collectAsState()
-    val hasBackground = backgroundPath.isNotBlank()
+    val retainOriginalColor by uiPreferences.settingsBackgroundRetainOriginalColor.collectAsState()
+    val hasBackground = liquidMode && backgroundPath.isNotBlank()
 
     Box {
         if (hasBackground) {
@@ -51,9 +53,10 @@ fun PreferenceScaffold(
                     .matchParentSize()
                     .blur(backgroundBlur.dp),
             )
+            val scrimColor = if (retainOriginalColor) Color.Black else MaterialTheme.colorScheme.primary
             Image(
                 painter = androidx.compose.ui.graphics.painter.ColorPainter(
-                    Color.Black.copy(alpha = (100 - backgroundLight).coerceIn(0, 100) / 100f * 0.85f),
+                    scrimColor.copy(alpha = (100 - backgroundLight).coerceIn(0, 100) / 100f * 0.85f),
                 ),
                 contentDescription = null,
                 modifier = Modifier.matchParentSize(),
