@@ -14,12 +14,15 @@ import tachiyomi.presentation.core.util.collectAsState
 import androidx.compose.runtime.getValue
 import eu.kanade.presentation.theme.colorscheme.BaseColorScheme
 import eu.kanade.presentation.theme.colorscheme.CatppuccinColorScheme
+import eu.kanade.presentation.theme.colorscheme.DraculaColorScheme
 import eu.kanade.presentation.theme.colorscheme.GreenAppleColorScheme
+import eu.kanade.presentation.theme.colorscheme.GruvboxColorScheme
 import eu.kanade.presentation.theme.colorscheme.LavenderColorScheme
 import eu.kanade.presentation.theme.colorscheme.MidnightDuskColorScheme
 import eu.kanade.presentation.theme.colorscheme.MonetColorScheme
 import eu.kanade.presentation.theme.colorscheme.MonochromeColorScheme
 import eu.kanade.presentation.theme.colorscheme.NordColorScheme
+import eu.kanade.presentation.theme.colorscheme.RosePineColorScheme
 import eu.kanade.presentation.theme.colorscheme.StrawberryColorScheme
 import eu.kanade.presentation.theme.colorscheme.TachiyomiColorScheme
 import eu.kanade.presentation.theme.colorscheme.TakoColorScheme
@@ -43,10 +46,12 @@ fun TachiyomiTheme(
     val uiPreferences = Injekt.get<UiPreferences>()
     val prefAppTheme by uiPreferences.appTheme.collectAsState()
     val prefIsAmoled by uiPreferences.themeDarkAmoled.collectAsState()
+    val prefCoverStyle by uiPreferences.themeCoverBasedStyle.collectAsState()
     BaseTachiyomiTheme(
         appTheme = appTheme ?: prefAppTheme,
         isAmoled = amoled ?: prefIsAmoled,
         seedColor = seedColor,
+        coverStyle = prefCoverStyle,
         content = content,
     )
 }
@@ -63,14 +68,15 @@ private fun BaseTachiyomiTheme(
     appTheme: AppTheme,
     isAmoled: Boolean,
     seedColor: Int? = null,
+    coverStyle: com.materialkolor.PaletteStyle = com.materialkolor.PaletteStyle.Vibrant,
     content: @Composable () -> Unit,
 ) {
     val context = LocalContext.current
     val isDark = isSystemInDarkTheme()
     MaterialExpressiveTheme(
-        colorScheme = remember(appTheme, isDark, isAmoled, seedColor) {
+        colorScheme = remember(appTheme, isDark, isAmoled, seedColor, coverStyle) {
             if (seedColor != null) {
-                val scheme = MonetCompatColorScheme(Color(seedColor))
+                val scheme = MonetCompatColorScheme(Color(seedColor), coverStyle)
                 scheme.getColorScheme(isDark, isAmoled, overrideDarkSurfaceContainers = false)
             } else {
                 getThemeColorScheme(
@@ -118,6 +124,9 @@ private val colorSchemes: Map<AppTheme, BaseColorScheme> = mapOf(
     AppTheme.TIDAL_WAVE to TidalWaveColorScheme,
     AppTheme.YINYANG to YinYangColorScheme,
     AppTheme.YOTSUBA to YotsubaColorScheme,
+    AppTheme.DRACULA to DraculaColorScheme,
+    AppTheme.GRUVBOX to GruvboxColorScheme,
+    AppTheme.ROSEPINE to RosePineColorScheme,
 )
 
 
