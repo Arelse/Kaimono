@@ -48,6 +48,10 @@ class UiPreferences(
 
     val topAlignCover: Preference<Boolean> = preferenceStore.getBoolean("pref_top_align_cover", false)
 
+    val bloomEnabled: Preference<Boolean> = preferenceStore.getBoolean("pref_bloom_enabled", true)
+
+    val grainOverlayEnabled: Preference<Boolean> = preferenceStore.getBoolean("pref_grain_overlay_enabled", false)
+
     val settingsLiquidMode: Preference<Boolean> = preferenceStore.getBoolean("pref_settings_liquid_mode", true)
 
     val settingsBackgroundRetainOriginalColor: Preference<Boolean> = preferenceStore.getBoolean("pref_settings_background_retain_color", true)
