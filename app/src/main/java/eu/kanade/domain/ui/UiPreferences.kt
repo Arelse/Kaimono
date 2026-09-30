@@ -48,6 +48,10 @@ class UiPreferences(
 
     val topAlignCover: Preference<Boolean> = preferenceStore.getBoolean("pref_top_align_cover", false)
 
+    val settingsLiquidMode: Preference<Boolean> = preferenceStore.getBoolean("pref_settings_liquid_mode", true)
+
+    val settingsBackgroundRetainOriginalColor: Preference<Boolean> = preferenceStore.getBoolean("pref_settings_background_retain_color", true)
+
     val settingsBackgroundPath: Preference<String> = preferenceStore.getString("pref_settings_background_path", "")
 
     val settingsBackgroundBlur: Preference<Int> = preferenceStore.getInt("pref_settings_background_blur", 12)
