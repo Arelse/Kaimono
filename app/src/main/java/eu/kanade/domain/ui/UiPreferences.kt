@@ -54,6 +54,8 @@ class UiPreferences(
 
     val settingsLiquidMode: Preference<Boolean> = preferenceStore.getBoolean("pref_settings_liquid_mode", true)
 
+    val readerUseLiquidBackground: Preference<Boolean> = preferenceStore.getBoolean("pref_reader_use_liquid_background", false)
+
     val settingsBackgroundRetainOriginalColor: Preference<Boolean> = preferenceStore.getBoolean("pref_settings_background_retain_color", true)
 
     val settingsBackgroundPath: Preference<String> = preferenceStore.getString("pref_settings_background_path", "")
