@@ -10,6 +10,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
+import tachiyomi.presentation.core.util.collectAsState as collectPreferenceAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -146,10 +147,16 @@ class MangaScreen(
         // was displayed on any previous screen (library, browse, etc.).
         // This LaunchedEffect only runs as a fallback for the rare case where the color
         // wasn't extracted yet (e.g., deep link directly to manga details).
-        var seedColor by remember { mutableStateOf(tachiyomi.domain.manga.model.MangaCover.vibrantCoverColorMap[successState.manga.id]) }
-        LaunchedEffect(successState.manga.id) {
+        val themeCoverBasedEnabled by Injekt.get<eu.kanade.domain.ui.UiPreferences>().themeCoverBased
+            .collectPreferenceAsState()
+        var seedColor by remember {
+            mutableStateOf(
+                tachiyomi.domain.manga.model.MangaCover.vibrantCoverColorMap[successState.manga.id],
+            )
+        }
+        LaunchedEffect(successState.manga.id, themeCoverBasedEnabled) {
             val id = successState.manga.id
-            if (seedColor == null) {
+            if (themeCoverBasedEnabled && seedColor == null) {
                 withContext(Dispatchers.IO) {
                     try {
                         val request = coil3.request.ImageRequest.Builder(context)
@@ -178,7 +185,9 @@ class MangaScreen(
             }
         }
 
-        eu.kanade.presentation.theme.TachiyomiTheme(seedColor = seedColor) {
+        eu.kanade.presentation.theme.TachiyomiTheme(
+            seedColor = if (themeCoverBasedEnabled) seedColor else null,
+        ) {
         MangaScreen(
             state = successState,
             snackbarHostState = viewModel.snackbarHostState,
@@ -397,7 +406,7 @@ class MangaScreen(
                         mangaTitle = successState.manga.title,
                         sourceId = successState.source.id,
                     ),
-                    enableSwipeDismiss = { it.lastItem is TrackInfoDialogHomeScreen },
+                    enableSwipeDismiss = { it.lastIttem is TrackInfoDialogHomeScreen },
                     onDismissRequest = onDismissRequest,
                 )
             }
