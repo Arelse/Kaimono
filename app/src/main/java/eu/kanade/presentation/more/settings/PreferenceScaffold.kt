@@ -1,28 +1,11 @@
 package eu.kanade.presentation.more.settings
 
-import androidx.compose.foundation.Image
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.RowScope
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.blur
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.unit.dp
-import coil3.compose.AsyncImage
-import coil3.request.CachePolicy
-import coil3.request.ImageRequest
 import dev.icerock.moko.resources.StringResource
-import eu.kanade.domain.ui.UiPreferences
 import eu.kanade.presentation.components.AppBar
 import tachiyomi.presentation.core.components.material.Scaffold
 import tachiyomi.presentation.core.i18n.stringResource
-import tachiyomi.presentation.core.util.collectAsState
-import uy.kohesive.injekt.Injekt
-import uy.kohesive.injekt.api.get
 
 @Composable
 fun PreferenceScaffold(
@@ -31,54 +14,24 @@ fun PreferenceScaffold(
     onBackPressed: (() -> Unit)? = null,
     itemsProvider: @Composable () -> List<Preference>,
 ) {
-    val uiPreferences = Injekt.get<UiPreferences>()
-    val liquidMode by uiPreferences.settingsLiquidMode.collectAsState()
-    val backgroundPath by uiPreferences.settingsBackgroundPath.collectAsState()
-    val backgroundBlur by uiPreferences.settingsBackgroundBlur.collectAsState()
-    val backgroundLight by uiPreferences.settingsBackgroundLight.collectAsState()
-    val retainOriginalColor by uiPreferences.settingsBackgroundRetainOriginalColor.collectAsState()
-    val hasBackground = liquidMode && backgroundPath.isNotBlank()
-
-    Box {
-        if (hasBackground) {
-            AsyncImage(
-                model = ImageRequest.Builder(LocalContext.current)
-                    .data(backgroundPath)
-                    .memoryCachePolicy(CachePolicy.DISABLED)
-                    .diskCachePolicy(CachePolicy.DISABLED)
-                    .build(),
-                contentDescription = null,
-                contentScale = ContentScale.Crop,
-                modifier = Modifier
-                    .matchParentSize()
-                    .blur(backgroundBlur.dp),
+    // The app-wide liquid background (if active) is drawn once at the root, in
+    // MainActivity. Scaffold and AppBar pick up on LocalLiquidBackgroundActive on
+    // their own and default to a transparent container so that background shows
+    // through here - no per-screen wiring needed.
+    Scaffold(
+        topBar = {
+            AppBar(
+                title = stringResource(titleRes),
+                navigateUp = onBackPressed,
+                actions = actions,
+                scrollBehavior = it,
             )
-            val scrimColor = if (retainOriginalColor) Color.Black else MaterialTheme.colorScheme.primary
-            Image(
-                painter = androidx.compose.ui.graphics.painter.ColorPainter(
-                    scrimColor.copy(alpha = (100 - backgroundLight).coerceIn(0, 100) / 100f * 0.85f),
-                ),
-                contentDescription = null,
-                modifier = Modifier.matchParentSize(),
+        },
+        content = { contentPadding ->
+            PreferenceScreen(
+                items = itemsProvider(),
+                contentPadding = contentPadding,
             )
-        }
-        Scaffold(
-            containerColor = if (hasBackground) Color.Transparent else MaterialTheme.colorScheme.background,
-            topBar = {
-                AppBar(
-                    title = stringResource(titleRes),
-                    backgroundColor = if (hasBackground) Color.Transparent else null,
-                    navigateUp = onBackPressed,
-                    actions = actions,
-                    scrollBehavior = it,
-                )
-            },
-            content = { contentPadding ->
-                PreferenceScreen(
-                    items = itemsProvider(),
-                    contentPadding = contentPadding,
-                )
-            },
-        )
-    }
+        },
+    )
 }
