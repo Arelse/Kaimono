@@ -13,6 +13,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
+import coil3.request.CachePolicy
 import coil3.request.ImageRequest
 import dev.icerock.moko.resources.StringResource
 import eu.kanade.domain.ui.UiPreferences
@@ -41,6 +42,8 @@ fun PreferenceScaffold(
             AsyncImage(
                 model = ImageRequest.Builder(LocalContext.current)
                     .data(backgroundPath)
+                    .memoryCachePolicy(CachePolicy.DISABLED)
+                    .diskCachePolicy(CachePolicy.DISABLED)
                     .build(),
                 contentDescription = null,
                 contentScale = ContentScale.Crop,
