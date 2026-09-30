@@ -32,12 +32,16 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.blur
 import androidx.compose.ui.graphics.luminance
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.unit.dp
 import androidx.core.animation.doOnEnd
 import androidx.core.net.toUri
 import androidx.core.splashscreen.SplashScreen
@@ -50,8 +54,12 @@ import cafe.adriel.voyager.navigator.LocalNavigator
 import cafe.adriel.voyager.navigator.Navigator
 import cafe.adriel.voyager.navigator.NavigatorDisposeBehavior
 import cafe.adriel.voyager.navigator.currentOrThrow
+import coil3.compose.AsyncImage
+import coil3.request.CachePolicy
+import coil3.request.ImageRequest
 import eu.kanade.domain.base.BasePreferences
 import eu.kanade.domain.source.interactor.GetIncognitoState
+import eu.kanade.domain.ui.UiPreferences
 import eu.kanade.presentation.components.AppStateBanners
 import eu.kanade.presentation.components.DownloadedOnlyBannerBackgroundColor
 import eu.kanade.presentation.components.IncognitoModeBannerBackgroundColor
@@ -104,6 +112,7 @@ import tachiyomi.core.common.util.lang.launchIO
 import tachiyomi.core.common.util.system.logcat
 import tachiyomi.domain.library.service.LibraryPreferences
 import tachiyomi.domain.release.interactor.GetApplicationRelease
+import tachiyomi.presentation.core.components.material.LocalLiquidBackgroundActive
 import tachiyomi.presentation.core.components.material.Scaffold
 import tachiyomi.presentation.core.util.collectAsState
 import uy.kohesive.injekt.injectLazy
@@ -112,6 +121,7 @@ class MainActivity : BaseActivity() {
 
     private val libraryPreferences: LibraryPreferences by injectLazy()
     private val preferences: BasePreferences by injectLazy()
+    private val uiPreferences: UiPreferences by injectLazy()
 
     private val downloadCache: DownloadCache by injectLazy()
     private val chapterCache: ChapterCache by injectLazy()
@@ -195,37 +205,81 @@ class MainActivity : BaseActivity() {
                 }
 
                 val scaffoldInsets = WindowInsets.navigationBars.only(WindowInsetsSides.Horizontal)
-                Scaffold(
-                    topBar = {
-                        AppStateBanners(
-                            downloadedOnlyMode = downloadOnly,
-                            incognitoMode = incognito,
-                            indexing = indexing,
-                            modifier = Modifier.windowInsetsPadding(scaffoldInsets),
-                        )
-                    },
-                    contentWindowInsets = scaffoldInsets,
-                ) { contentPadding ->
-                    // Consume insets already used by app state banners
-                    Box {
-                        // Shows current screen
-                        DefaultNavigatorScreenTransition(
-                            navigator = navigator,
-                            modifier = Modifier
-                                .padding(contentPadding)
-                                .consumeWindowInsets(contentPadding),
-                        )
 
-                        // Draw navigation bar scrim when needed
-                        if (remember { isNavigationBarNeedsScrim() }) {
-                            Spacer(
-                                modifier = Modifier
-                                    .align(Alignment.BottomCenter)
-                                    .fillMaxWidth()
-                                    .windowInsetsBottomHeight(WindowInsets.navigationBars)
-                                    .alpha(0.8f)
-                                    .background(MaterialTheme.colorScheme.surfaceContainer),
-                            )
+                // Liquid mode: an app-wide blurred, dimmed background drawn once here, behind
+                // every screen in the navigation stack. LocalLiquidBackgroundActive tells every
+                // Scaffold and AppBar in the app to stay transparent so this shows through them.
+                val liquidMode by uiPreferences.settingsLiquidMode.collectAsState()
+                val liquidBackgroundPath by uiPreferences.settingsBackgroundPath.collectAsState()
+                val liquidBackgroundBlur by uiPreferences.settingsBackgroundBlur.collectAsState()
+                val liquidBackgroundLight by uiPreferences.settingsBackgroundLight.collectAsState()
+                val liquidRetainOriginalColor by uiPreferences.settingsBackgroundRetainOriginalColor.collectAsState()
+                val hasLiquidBackground = liquidMode && liquidBackgroundPath.isNotBlank()
+
+                Box {
+                    if (hasLiquidBackground) {
+                        AsyncImage(
+                            model = ImageRequest.Builder(context)
+                                .data(liquidBackgroundPath)
+                                .memoryCachePolicy(CachePolicy.DISABLED)
+                                .diskCachePolicy(CachePolicy.DISABLED)
+                                .build(),
+                            contentDescription = null,
+                            contentScale = ContentScale.Crop,
+                            modifier = Modifier
+                                .matchParentSize()
+                                .blur(liquidBackgroundBlur.dp),
+                        )
+                        val liquidScrimColor = if (liquidRetainOriginalColor) {
+                            androidx.compose.ui.graphics.Color.Black
+                        } else {
+                            MaterialTheme.colorScheme.primary
+                        }
+                        Box(
+                            modifier = Modifier
+                                .matchParentSize()
+                                .background(
+                                    liquidScrimColor.copy(
+                                        alpha = (100 - liquidBackgroundLight).coerceIn(0, 100) / 100f * 0.85f,
+                                    ),
+                                ),
+                        )
+                    }
+
+                    CompositionLocalProvider(LocalLiquidBackgroundActive provides hasLiquidBackground) {
+                        Scaffold(
+                            topBar = {
+                                AppStateBanners(
+                                    downloadedOnlyMode = downloadOnly,
+                                    incognitoMode = incognito,
+                                    indexing = indexing,
+                                    modifier = Modifier.windowInsetsPadding(scaffoldInsets),
+                                )
+                            },
+                            contentWindowInsets = scaffoldInsets,
+                        ) { contentPadding ->
+                            // Consume insets already used by app state banners
+                            Box {
+                                // Shows current screen
+                                DefaultNavigatorScreenTransition(
+                                    navigator = navigator,
+                                    modifier = Modifier
+                                        .padding(contentPadding)
+                                        .consumeWindowInsets(contentPadding),
+                                )
+
+                                // Draw navigation bar scrim when needed
+                                if (remember { isNavigationBarNeedsScrim() }) {
+                                    Spacer(
+                                        modifier = Modifier
+                                            .align(Alignment.BottomCenter)
+                                            .fillMaxWidth()
+                                            .windowInsetsBottomHeight(WindowInsets.navigationBars)
+                                            .alpha(0.8f)
+                                            .background(MaterialTheme.colorScheme.surfaceContainer),
+                                    )
+                                }
+                            }
                         }
                     }
                 }
