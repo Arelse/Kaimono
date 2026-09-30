@@ -408,7 +408,44 @@ class ReaderActivity : BaseActivity() {
     // on top of it. Reuses the same liquid background preferences as the rest of the app; gated
     // separately by readerUseLiquidBackground since most readers want a plain black background
     // for the actual reading area even with liquid mode on elsewhere.
-    private fun ReaderActivityBinding.setComposeOverlay(): Unit = composeOverlay.setComposeContent {
+    private fun ReaderActivityBinding.setReaderBackgroundOverlay(): Unit = readerBackgroundOverlay.setComposeContent {
+        val uiPreferences = Injekt.get<UiPreferences>()
+        val readerBackgroundEnabled by uiPreferences.readerUseLiquidBackground.collectAsState()
+        val liquidMode by uiPreferences.settingsLiquidMode.collectAsState()
+        val backgroundPath by uiPreferences.settingsBackgroundPath.collectAsState()
+        val backgroundBlur by uiPreferences.settingsBackgroundBlur.collectAsState()
+        val backgroundLight by uiPreferences.settingsBackgroundLight.collectAsState()
+        val retainOriginalColor by uiPreferences.settingsBackgroundRetainOriginalColor.collectAsState()
+        val hasBackground = readerBackgroundEnabled && liquidMode && backgroundPath.isNotBlank()
+
+        if (hasBackground) {
+            Box(modifier = androidx.compose.ui.Modifier.fillMaxSize()) {
+                AsyncImage(
+                    model = ImageRequest.Builder(this@ReaderActivity)
+                        .data(backgroundPath)
+                        .memoryCachePolicy(CachePolicy.DISABLED)
+                        .diskCachePolicy(CachePolicy.DISABLED)
+                        .build(),
+                    contentDescription = null,
+                    contentScale = ContentScale.Crop,
+                    modifier = androidx.compose.ui.Modifier
+                        .matchParentSize()
+                        .blur(backgroundBlur.dp),
+                )
+                val scrimColor = if (retainOriginalColor) ComposeColor.Black else MaterialTheme.colorScheme.primary
+                Box(
+                    modifier = androidx.compose.ui.Modifier
+                        .matchParentSize()
+                        .background(
+                            scrimColor.copy(
+                                alpha = (100 - backgroundLight).coerceIn(0, 100) / 100f * 0.85f,
+                            ),
+                        ),
+                )
+            }
+        }
+    }
+    private fun ReaderActivityBinding.setComposeOverlay(): Unit = composeOverlay.setComposeContent {    
         val state by viewModel.state.collectAsState()
         val showPageNumber by readerPreferences.showPageNumber.collectAsState()
         val autoTranslateEnabled by readerPreferences.autoTranslate.collectAsState()
