@@ -50,10 +50,13 @@ import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ProvideTextStyle
 import androidx.compose.material3.SuggestionChip
+import androidx.compose.material3.SuggestionChipDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.MutableFloatState
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -106,6 +109,7 @@ import tachiyomi.presentation.core.components.material.padding
 import tachiyomi.presentation.core.i18n.pluralStringResource
 import tachiyomi.presentation.core.i18n.stringResource
 import tachiyomi.presentation.core.util.clickableNoIndication
+import tachiyomi.presentation.core.util.collectAsState
 import tachiyomi.presentation.core.util.secondaryItemAlpha
 import uy.kohesive.injekt.Injekt
 import uy.kohesive.injekt.api.get
@@ -125,6 +129,10 @@ fun MangaInfoBox(
     doSearch: (query: String, global: Boolean) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val usePanoramaCover by Injekt.get<UiPreferences>().usePanoramaCoverMangaInfo.collectAsState()
+    val topAlignCover by Injekt.get<UiPreferences>().topAlignCover.collectAsState()
+    val coverRatio = remember { mutableFloatStateOf(1f) }
+
     Box(modifier = modifier) {
         // Backdrop
         val backdropGradientColors = listOf(
@@ -138,6 +146,10 @@ fun MangaInfoBox(
                 .build(),
             contentDescription = null,
             contentScale = ContentScale.Crop,
+            onSuccess = { result ->
+                val image = result.result.image
+                coverRatio.floatValue = image.height.toFloat() / image.width
+            },
             modifier = Modifier
                 .matchParentSize()
                 .drawWithContent {
@@ -161,6 +173,9 @@ fun MangaInfoBox(
                     categories = categories,
                     onCoverClick = onCoverClick,
                     doSearch = doSearch,
+                    coverRatio = coverRatio,
+                    usePanoramaCover = usePanoramaCover,
+                    topAlignCover = topAlignCover,
                 )
             } else {
                 MangaAndSourceTitlesLarge(
@@ -171,6 +186,8 @@ fun MangaInfoBox(
                     categories = categories,
                     onCoverClick = onCoverClick,
                     doSearch = doSearch,
+                    coverRatio = coverRatio,
+                    usePanoramaCover = usePanoramaCover,
                 )
             }
         }
@@ -356,6 +373,8 @@ private fun MangaAndSourceTitlesLarge(
     categories: List<Category>,
     onCoverClick: () -> Unit,
     doSearch: (query: String, global: Boolean) -> Unit,
+    coverRatio: MutableFloatState = remember { mutableFloatStateOf(1f) },
+    usePanoramaCover: Boolean = false,
 ) {
     Column(
         modifier = Modifier
@@ -363,15 +382,27 @@ private fun MangaAndSourceTitlesLarge(
             .padding(start = 16.dp, top = appBarPadding + 16.dp, end = 16.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        MangaCover.Book(
-            modifier = Modifier.fillMaxWidth(0.65f),
-            data = ImageRequest.Builder(LocalContext.current)
-                .data(manga)
-                .crossfade(true)
-                .build(),
-            contentDescription = stringResource(MR.strings.manga_cover),
-            onClick = onCoverClick,
-        )
+        if (usePanoramaCover && coverRatio.floatValue <= RatioSwitchToPanorama) {
+            MangaCover.Panorama(
+                modifier = Modifier.fillMaxWidth(0.65f),
+                data = ImageRequest.Builder(LocalContext.current)
+                    .data(manga)
+                    .crossfade(true)
+                    .build(),
+                contentDescription = stringResource(MR.strings.manga_cover),
+                onClick = onCoverClick,
+            )
+        } else {
+            MangaCover.Book(
+                modifier = Modifier.fillMaxWidth(0.65f),
+                data = ImageRequest.Builder(LocalContext.current)
+                    .data(manga)
+                    .crossfade(true)
+                    .build(),
+                contentDescription = stringResource(MR.strings.manga_cover),
+                onClick = onCoverClick,
+            )
+        }
         Spacer(modifier = Modifier.height(16.dp))
         MangaContentInfo(
             title = manga.title,
@@ -397,25 +428,42 @@ private fun MangaAndSourceTitlesSmall(
     categories: List<Category>,
     onCoverClick: () -> Unit,
     doSearch: (query: String, global: Boolean) -> Unit,
+    coverRatio: MutableFloatState = remember { mutableFloatStateOf(1f) },
+    usePanoramaCover: Boolean = false,
+    topAlignCover: Boolean = false,
 ) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .padding(start = 16.dp, top = appBarPadding + 16.dp, end = 16.dp),
         horizontalArrangement = Arrangement.spacedBy(16.dp),
-        verticalAlignment = Alignment.CenterVertically,
+        verticalAlignment = if (topAlignCover) Alignment.Top else Alignment.CenterVertically,
     ) {
-        MangaCover.Book(
-            modifier = Modifier
-                .sizeIn(maxWidth = 100.dp)
-                .align(Alignment.Top),
-            data = ImageRequest.Builder(LocalContext.current)
-                .data(manga)
-                .crossfade(true)
-                .build(),
-            contentDescription = stringResource(MR.strings.manga_cover),
-            onClick = onCoverClick,
-        )
+        if (usePanoramaCover && coverRatio.floatValue <= RatioSwitchToPanorama) {
+            MangaCover.Panorama(
+                modifier = Modifier
+                    .sizeIn(maxHeight = 100.dp)
+                    .align(if (topAlignCover) Alignment.Top else Alignment.CenterVertically),
+                data = ImageRequest.Builder(LocalContext.current)
+                    .data(manga)
+                    .crossfade(true)
+                    .build(),
+                contentDescription = stringResource(MR.strings.manga_cover),
+                onClick = onCoverClick,
+            )
+        } else {
+            MangaCover.Book(
+                modifier = Modifier
+                    .sizeIn(maxWidth = 100.dp)
+                    .align(if (topAlignCover) Alignment.Top else Alignment.CenterVertically),
+                data = ImageRequest.Builder(LocalContext.current)
+                    .data(manga)
+                    .crossfade(true)
+                    .build(),
+                contentDescription = stringResource(MR.strings.manga_cover),
+                onClick = onCoverClick,
+            )
+        }
         Column(
             verticalArrangement = Arrangement.spacedBy(2.dp),
         ) {
@@ -789,6 +837,10 @@ private fun TagsChip(
         SuggestionChip(
             modifier = modifier,
             onClick = onClick,
+            colors = SuggestionChipDefaults.suggestionChipColors(
+                containerColor = MaterialTheme.colorScheme.surfaceContainerHighest.copy(alpha = 0.92f),
+                labelColor = MaterialTheme.colorScheme.onSurface,
+            ),
             label = { Text(text = text, style = MaterialTheme.typography.bodySmall) },
         )
     }
