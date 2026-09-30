@@ -1,11 +1,15 @@
 package eu.kanade.presentation.more.settings.screen
 
 import android.app.Activity
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Column
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.platform.LocalContext
 import androidx.core.app.ActivityCompat
 import cafe.adriel.voyager.navigator.LocalNavigator
@@ -19,6 +23,9 @@ import eu.kanade.presentation.more.settings.screen.appearance.AppLanguageScreen
 import eu.kanade.presentation.more.settings.widget.AppThemeModePreferenceWidget
 import eu.kanade.presentation.more.settings.widget.AppThemePreferenceWidget
 import eu.kanade.tachiyomi.util.system.toast
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toJavaLocalDateTime
 import kotlinx.datetime.toLocalDateTime
@@ -46,6 +53,8 @@ object SettingsAppearanceScreen : SearchableSettings {
         return listOf(
             getThemeGroup(uiPreferences = uiPreferences),
             getDisplayGroup(uiPreferences = uiPreferences),
+            getMangaInfoGroup(uiPreferences = uiPreferences),
+            getSettingsBackgroundGroup(uiPreferences = uiPreferences),
             getLibraryLayoutGroup(libraryPreferences = libraryPreferences),
         )
     }
@@ -64,6 +73,9 @@ object SettingsAppearanceScreen : SearchableSettings {
 
         val amoledPref = uiPreferences.themeDarkAmoled
         val amoled by amoledPref.collectAsState()
+
+        val themeCoverBasedPref = uiPreferences.themeCoverBased
+        val themeCoverBased by themeCoverBasedPref.collectAsState()
 
         return Preference.PreferenceGroup(
             title = stringResource(MR.strings.pref_category_theme),
@@ -95,6 +107,18 @@ object SettingsAppearanceScreen : SearchableSettings {
                         (context as? Activity)?.let { ActivityCompat.recreate(it) }
                         true
                     },
+                ),
+                Preference.PreferenceItem.SwitchPreference(
+                    preference = themeCoverBasedPref,
+                    title = "Theme based on cover",
+                    subtitle = "Color the manga details screen using the cover's dominant color",
+                ),
+                Preference.PreferenceItem.ListPreference(
+                    preference = uiPreferences.themeCoverBasedStyle,
+                    entries = com.materialkolor.PaletteStyle.entries
+                        .associateWith { it.name },
+                    title = "Cover based theme style",
+                    enabled = themeCoverBased,
                 ),
             ),
         )
@@ -152,6 +176,94 @@ object SettingsAppearanceScreen : SearchableSettings {
                 Preference.PreferenceItem.SwitchPreference(
                     preference = uiPreferences.imagesInDescription,
                     title = stringResource(MR.strings.pref_display_images_description),
+                ),
+            ),
+        )
+    }
+
+    @Composable
+    private fun getMangaInfoGroup(
+        uiPreferences: UiPreferences,
+    ): Preference.PreferenceGroup {
+        return Preference.PreferenceGroup(
+            title = "Manga info",
+            preferenceItems = listOf(
+                Preference.PreferenceItem.SwitchPreference(
+                    preference = uiPreferences.usePanoramaCoverMangaInfo,
+                    title = "Panorama Cover",
+                    subtitle = "Show cover in landscape mode if it's a wide image",
+                ),
+                Preference.PreferenceItem.SwitchPreference(
+                    preference = uiPreferences.topAlignCover,
+                    title = "Align Cover to Top",
+                    subtitle = "Show the cover aligned to the top alongside manga info",
+                ),
+            ),
+        )
+    }
+
+    @Composable
+    private fun getSettingsBackgroundGroup(
+        uiPreferences: UiPreferences,
+    ): Preference.PreferenceGroup {
+        val context = LocalContext.current
+        val scope = rememberCoroutineScope()
+
+        val backgroundPathPref = uiPreferences.settingsBackgroundPath
+        val backgroundPath by backgroundPathPref.collectAsState()
+        val hasBackground = backgroundPath.isNotBlank()
+
+        val backgroundBlurPref = uiPreferences.settingsBackgroundBlur
+        val backgroundBlur by backgroundBlurPref.collectAsState()
+
+        val backgroundLightPref = uiPreferences.settingsBackgroundLight
+        val backgroundLight by backgroundLightPref.collectAsState()
+
+        val pickImage = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
+            if (uri == null) return@rememberLauncherForActivityResult
+            scope.launch {
+                val savedPath = withContext(Dispatchers.IO) {
+                    runCatching {
+                        val destination = java.io.File(context.filesDir, "settings_background.jpg")
+                        context.contentResolver.openInputStream(uri)?.use { input ->
+                            destination.outputStream().use { output -> input.copyTo(output) }
+                        }
+                        destination.absolutePath
+                    }.getOrNull()
+                }
+                if (savedPath != null) {
+                    backgroundPathPref.set(savedPath)
+                }
+            }
+        }
+
+        return Preference.PreferenceGroup(
+            title = "Settings background",
+            preferenceItems = listOf(
+                Preference.PreferenceItem.TextPreference(
+                    title = if (hasBackground) "Change background image" else "Choose background image",
+                    subtitle = if (hasBackground) "Tap to pick a different image" else "Show an image behind every settings screen",
+                    onClick = { pickImage.launch("image/*") },
+                ),
+                Preference.PreferenceItem.TextPreference(
+                    title = "Remove background image",
+                    enabled = hasBackground,
+                    onClick = { backgroundPathPref.set("") },
+                ),
+                Preference.PreferenceItem.SliderPreference(
+                    value = backgroundBlur,
+                    valueRange = 0..25,
+                    title = "Blur intensity",
+                    enabled = hasBackground,
+                    onValueChanged = { backgroundBlurPref.set(it) },
+                ),
+                Preference.PreferenceItem.SliderPreference(
+                    value = backgroundLight,
+                    valueRange = 0..100,
+                    title = "Light intensity",
+                    subtitle = "How bright the background shows through",
+                    enabled = hasBackground,
+                    onValueChanged = { backgroundLightPref.set(it) },
                 ),
             ),
         )
