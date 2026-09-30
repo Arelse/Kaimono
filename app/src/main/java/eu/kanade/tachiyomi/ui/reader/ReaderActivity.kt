@@ -28,7 +28,15 @@ import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.ui.draw.blur
+import androidx.compose.ui.layout.ContentScale
+import coil3.compose.AsyncImage
+import coil3.request.CachePolicy
+import coil3.request.ImageRequest
+import eu.kanade.domain.ui.UiPreferences
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.navigationBarsPadding
@@ -264,6 +272,7 @@ class ReaderActivity : BaseActivity() {
 
         binding = ReaderActivityBinding.inflate(layoutInflater)
         setContentView(binding.root)
+        binding.setReaderBackgroundOverlay()
         binding.setComposeOverlay()
 
         ContextCompat.registerReceiver(
@@ -393,7 +402,12 @@ class ReaderActivity : BaseActivity() {
             }
             .launchIn(lifecycleScope)
     }
-
+    
+    // Renders behind reader_container (it's the first child in reader_activity.xml), so it only
+    // shows in the margins around a page that doesn't fill the screen - the page itself is drawn
+    // on top of it. Reuses the same liquid background preferences as the rest of the app; gated
+    // separately by readerUseLiquidBackground since most readers want a plain black background
+    // for the actual reading area even with liquid mode on elsewhere.
     private fun ReaderActivityBinding.setComposeOverlay(): Unit = composeOverlay.setComposeContent {
         val state by viewModel.state.collectAsState()
         val showPageNumber by readerPreferences.showPageNumber.collectAsState()
