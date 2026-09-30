@@ -243,6 +243,7 @@ class App : Application(), DefaultLifecycleObserver, SingletonImageLoader.Factor
                     try {
                         val mangaResult = repo.insert("https://raw.githubusercontent.com/kainotch/Extension-source-M/repo/index.pb", isNovel = false)
                         val novelResult = repo.insert("https://raw.githubusercontent.com/kainotch/Extension-source-N/repo/index.pb", isNovel = true)
+                        val keiyoushiResult = repo.insert("https://github.com/keiyoushi/extensions/raw/repo/index.pb", isNovel = false)
                         if (mangaResult.isSuccess || novelResult.isSuccess) {
                             defaultReposAdded.set(true)
                             val extensionManager = Injekt.get<eu.kanade.tachiyomi.extension.ExtensionManager>()
