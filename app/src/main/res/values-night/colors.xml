@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <!-- Translucent "glass" background for download queue row cards (dark mode) -->
-    <color name="download_item_glass">#8A1C1C1C</color>
+    <color name="download_item_glass">#471C1C1C</color>
 </resources>
