@@ -18,6 +18,7 @@ import eu.kanade.tachiyomi.R
 enum class MangaCover(val ratio: Float) {
     Square(1f / 1f),
     Book(2f / 3f),
+    Panorama(3f / 2f),
     ;
 
     @Composable
@@ -51,5 +52,7 @@ enum class MangaCover(val ratio: Float) {
         )
     }
 }
+
+internal const val RatioSwitchToPanorama = 0.75f
 
 private val CoverPlaceholderColor = Color(0x1F888888)
