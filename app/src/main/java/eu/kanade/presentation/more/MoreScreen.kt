@@ -221,7 +221,7 @@ fun SettingsGroup(
         )
         Surface(
             shape = RoundedCornerShape(16.dp),
-            color = MaterialTheme.colorScheme.surface.copy(alpha = 0.55f)
+            color = MaterialTheme.colorScheme.surface.copy(alpha = 0.28f)
         ) {
             Column {
                 content()
