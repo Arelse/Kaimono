@@ -5,4 +5,7 @@
 
     <color name="accent_color">#54759E</color>
     <color name="icon_background">#2E3943</color>
+
+    <!-- Translucent "glass" background for download queue row cards -->
+    <color name="download_item_glass">#8AFFFFFF</color>
 </resources>
