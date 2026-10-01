@@ -1,4 +1,3 @@
-
 package eu.kanade.presentation.more.settings.screen
 
 import android.app.Activity
@@ -16,6 +15,8 @@ import androidx.core.app.ActivityCompat
 import cafe.adriel.voyager.navigator.LocalNavigator
 import cafe.adriel.voyager.navigator.currentOrThrow
 import eu.kanade.domain.ui.UiPreferences
+import eu.kanade.domain.ui.model.AccentColor
+import eu.kanade.domain.ui.model.ParticleEffect
 import eu.kanade.domain.ui.model.TabletUiMode
 import eu.kanade.domain.ui.model.ThemeMode
 import eu.kanade.domain.ui.model.setAppCompatDelegateThemeMode
@@ -55,7 +56,9 @@ object SettingsAppearanceScreen : SearchableSettings {
             getThemeGroup(uiPreferences = uiPreferences),
             getDisplayGroup(uiPreferences = uiPreferences),
             getMangaInfoGroup(uiPreferences = uiPreferences),
+            getFlourishGroup(uiPreferences = uiPreferences),
             getSettingsBackgroundGroup(uiPreferences = uiPreferences),
+            getAccentAndEffectsGroup(uiPreferences = uiPreferences),
             getLibraryLayoutGroup(libraryPreferences = libraryPreferences),
         )
     }
@@ -327,6 +330,106 @@ object SettingsAppearanceScreen : SearchableSettings {
     }
 
     @Composable
+    private fun getAccentAndEffectsGroup(
+        uiPreferences: UiPreferences,
+    ): Preference.PreferenceGroup {
+        val accentGradientEnabledPref = uiPreferences.accentGradientEnabled
+        val accentGradientEnabled by accentGradientEnabledPref.collectAsState()
+
+        return Preference.PreferenceGroup(
+            title = "Accent and effects",
+            preferenceItems = buildList {
+                add(
+                    Preference.PreferenceItem.SwitchPreference(
+                        preference = accentGradientEnabledPref,
+                        title = "Accent gradient background",
+                        subtitle = "A flowing animated gradient, independent of your theme and liquid background",
+                    ),
+                )
+                if (accentGradientEnabled) {
+                    add(
+                        Preference.PreferenceItem.ListPreference(
+                            preference = uiPreferences.accentGradientColor,
+                            entries = mapOf(
+                                "EMBER" to "Ember",
+                                "MINT" to "Mint",
+                                "ROYAL" to "Royal",
+                                "VOID" to "Void",
+                                "WALLPAPER" to "Wallpaper",
+                            ),
+                            title = "Accent color",
+                        ),
+                    )
+                }
+                add(
+                    Preference.PreferenceItem.ListPreference(
+                        preference = uiPreferences.ambientParticleEffect,
+                        entries = mapOf(
+                            "NONE" to "None",
+                            "SNOW" to "Snow",
+                            "RAIN" to "Rain",
+                            "STARS" to "Stars",
+                            "SAKURA" to "Sakura",
+                            "FIREFLIES" to "Fireflies",
+                            "HEARTS" to "Hearts",
+                            "EMBERS" to "Embers",
+                        ),
+                        title = "Ambient particle effect",
+                        subtitle = "Drifts over every screen in the app",
+                    ),
+                )
+            },
+        )
+    }
+
+    @Composable
+    @Composable
+    private fun getFlourishGroup(
+        uiPreferences: UiPreferences,
+    ): Preference.PreferenceGroup {
+        val accentGradientEnabledPref = uiPreferences.accentGradientEnabled
+        val accentGradientEnabled by accentGradientEnabledPref.collectAsState()
+
+        return Preference.PreferenceGroup(
+            title = "Flourish",
+            preferenceItems = listOf(
+                Preference.PreferenceItem.SwitchPreference(
+                    preference = accentGradientEnabledPref,
+                    title = "Accent gradient background",
+                    subtitle = "A slow flowing color gradient, independent of your app theme",
+                ),
+                Preference.PreferenceItem.ListPreference(
+                    preference = uiPreferences.accentColor,
+                    entries = mapOf(
+                        AccentColor.EMBER to "Ember",
+                        AccentColor.MINT to "Mint",
+                        AccentColor.ROYAL to "Royal",
+                        AccentColor.VOID to "Void",
+                        AccentColor.WALLPAPER to "Wallpaper",
+                    ),
+                    title = "Accent color",
+                    enabled = accentGradientEnabled,
+                ),
+                Preference.PreferenceItem.ListPreference(
+                    preference = uiPreferences.particleEffect,
+                    entries = mapOf(
+                        ParticleEffect.NONE to "None",
+                        ParticleEffect.SNOW to "Snow",
+                        ParticleEffect.RAIN to "Rain",
+                        ParticleEffect.STARS to "Stars",
+                        ParticleEffect.SAKURA to "Sakura",
+                        ParticleEffect.FIREFLIES to "Fireflies",
+                        ParticleEffect.HEARTS to "Hearts",
+                        ParticleEffect.EMBERS to "Embers",
+                    ),
+                    title = "Particle effect",
+                    subtitle = "An animated overlay, works on its own or with the gradient above",
+                ),
+            ),
+        )
+    }
+
+    @Composable
     private fun getLibraryLayoutGroup(
         libraryPreferences: tachiyomi.domain.library.service.LibraryPreferences,
     ): Preference.PreferenceGroup {
@@ -339,15 +442,6 @@ object SettingsAppearanceScreen : SearchableSettings {
                     preference = libraryPreferences.joinedLibrary,
                     title = "Combined library",
                     subtitle = "Merge Novels and Manga into a single Library tab",
-                    onValueChanged = {
-                        context.toast(MR.strings.requires_app_restart)
-                        true
-                    },
-                ),
-                Preference.PreferenceItem.SwitchPreference(
-                    preference = basePreferences.hideMangaUi,
-                    title = stringResource(TDMR.strings.pref_hide_manga_ui),
-                    subtitle = stringResource(TDMR.strings.pref_hide_manga_ui_summary),
                     onValueChanged = {
                         context.toast(MR.strings.requires_app_restart)
                         true
@@ -366,3 +460,5 @@ private val DateFormats = listOf(
     "dd MMM yyyy",
     "MMM dd, yyyy",
 )
+
+             
