@@ -235,7 +235,7 @@ object HomeScreen : Screen() {
                 modifier = Modifier
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(32.dp))
-                    .background(MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.55f))
+                    .background(MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.3f))
                     .padding(vertical = 10.dp, horizontal = 8.dp),
                 horizontalArrangement = Arrangement.SpaceAround,
                 verticalAlignment = Alignment.CenterVertically,
@@ -282,7 +282,7 @@ object HomeScreen : Screen() {
                                 scaleY = homeScale.value
                             }
                             .clip(CircleShape)
-                            .background(MaterialTheme.colorScheme.surfaceContainerHighest.copy(alpha = 0.6f))
+                            .background(MaterialTheme.colorScheme.surfaceContainerHighest.copy(alpha = 0.35f))
                             .clickable(
                                 interactionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() },
                                 indication = null,
