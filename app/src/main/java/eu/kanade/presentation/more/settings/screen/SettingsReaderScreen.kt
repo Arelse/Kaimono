@@ -126,10 +126,26 @@ object SettingsReaderScreen : SearchableSettings {
                 Preference.PreferenceItem.SwitchPreference(
                     preference = readerPreferences.showPageNumber,
                     title = stringResource(MR.strings.pref_show_page_number),
-                ),  Preference.PreferenceItem.SwitchPreference(
+               ),     
+                Preference.PreferenceItem.SwitchPreference(
                     preference = uiPreferences.readerUseLiquidBackground,
                     title = "Use liquid background in reader",
-                    subtitle = "Show your liquid mode background in the margins around pages",
+                    subtitle = "Show a soft glow from your liquid background at the screen edges",
+                ),
+                Preference.PreferenceItem.SliderPreference(
+                    value = readerBackgroundBlur,
+                    valueRange = 0..25,
+                    title = "Reader background blur",
+                    enabled = readerBackgroundEnabled,
+                    onValueChanged = { readerBackgroundBlurPref.set(it) },
+                ),
+                Preference.PreferenceItem.SliderPreference(
+                    value = readerBackgroundLight,
+                    valueRange = 0..100,
+                    title = "Reader background light",
+                    subtitle = "How bright the edge glow is",
+                    enabled = readerBackgroundEnabled,
+                    onValueChanged = { readerBackgroundLightPref.set(it) },
                 ),
             ),
         )
