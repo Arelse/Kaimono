@@ -1,58 +1,44 @@
-package eu.kanade.presentation.manga.components
+package tachiyomi.domain.manga.model
 
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.aspectRatio
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.runtime.Composable
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Shape
-import androidx.compose.ui.graphics.painter.ColorPainter
-import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.semantics.Role
-import coil3.compose.AsyncImage
-import eu.kanade.presentation.util.rememberResourceBitmapPainter
-import eu.kanade.tachiyomi.R
+/**
+ * Contains the required data for MangaCoverFetcher
+ */
+data class MangaCover(
+    val mangaId: Long,
+    val sourceId: Long,
+    val isMangaFavorite: Boolean,
+    val url: String?,
+    val lastModified: Long,
+) {
+    // KMK -->
+    /**
+     * [vibrantCoverColor] is used to set the color theme in manga detail page.
+     * It contains color for all mangas, both in library or browsing.
+     *
+     * It reads/saves to a hashmap in [MangaCover.vibrantCoverColorMap] for multiple mangas.
+     */
+    var vibrantCoverColor: Int?
+        get() = vibrantCoverColorMap[mangaId]
+        set(value) {
+            vibrantCoverColorMap[mangaId] = value
+        }
 
-enum class MangaCover(val ratio: Float) {
-    Square(1f / 1f),
-    Book(2f / 3f),
-    Panorama(3f / 2f),
-    ;
-
-    @Composable
-    operator fun invoke(
-        data: Any?,
-        modifier: Modifier = Modifier,
-        contentDescription: String = "",
-        shape: Shape = MaterialTheme.shapes.extraSmall,
-        onClick: (() -> Unit)? = null,
-    ) {
-        AsyncImage(
-            model = data,
-            placeholder = ColorPainter(CoverPlaceholderColor),
-            error = rememberResourceBitmapPainter(id = R.drawable.cover_error),
-            fallback = rememberResourceBitmapPainter(id = R.drawable.cover_default),
-            contentDescription = contentDescription,
-            modifier = modifier
-                .aspectRatio(ratio)
-                .clip(shape)
-                .then(
-                    if (onClick != null) {
-                        Modifier.clickable(
-                            role = Role.Button,
-                            onClick = onClick,
-                        )
-                    } else {
-                        Modifier
-                    },
-                ),
-            contentScale = ContentScale.Crop,
-        )
+    companion object {
+        /**
+         * [vibrantCoverColorMap] store color generated while browsing library.
+         * It always empty at beginning each time app starts, then add more color while browsing.
+         */
+        val vibrantCoverColorMap: HashMap<Long, Int?> = hashMapOf()
     }
+    // KMK <--
 }
 
-internal const val RatioSwitchToPanorama = 0.75f
-
-private val CoverPlaceholderColor = Color(0x1F888888)
+fun Manga.asMangaCover(): MangaCover {
+    return MangaCover(
+        mangaId = id,
+        sourceId = source,
+        isMangaFavorite = favorite,
+        url = thumbnailUrl,
+        lastModified = coverLastModified,
+    )
+}
