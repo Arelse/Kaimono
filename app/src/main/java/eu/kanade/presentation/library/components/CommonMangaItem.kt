@@ -279,7 +279,10 @@ private fun GridItemTitle(
 ) {
     val effectiveMinLines = minOf(minLines, maxLines)
     Text(
-        modifier = modifier,
+        modifier = modifier
+            .clip(RoundedCornerShape(6.dp))
+            .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.28f))
+            .padding(horizontal = 4.dp, vertical = 2.dp),
         text = title,
         fontSize = 12.sp,
         lineHeight = 18.sp,
@@ -358,7 +361,7 @@ fun MangaListItem(
         modifier = Modifier
             .padding(horizontal = 12.dp, vertical = 3.dp)
             .clip(RoundedCornerShape(16.dp))
-            .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.55f))
+            .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.28f))
             .selectedBackground(isSelected)
             .height(height)
             .combinedClickable(
