@@ -527,6 +527,7 @@ object HomeScreen : Screen() {
         }
     }
 
+    @Composable
     private fun navLabelFor(tab: eu.kanade.presentation.util.Tab): String = when {
         tab is LibraryTab || tab is NovelsTab -> "Library"
         tab is HistoryTab -> "History"
