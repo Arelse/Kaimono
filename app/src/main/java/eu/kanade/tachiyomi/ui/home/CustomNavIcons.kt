@@ -58,7 +58,7 @@ val SparkleNavIcon: ImageVector by lazy {
     )
 }
 
-// Browse/Sources tab: 2x2 grid of squares
+// Browse/Sources tab: 2x2 grid of squares (kept for other possible uses)
 val SourcesNavIcon: ImageVector by lazy {
     strokeIcon(
         "SourcesNavIcon",
@@ -67,6 +67,65 @@ val SourcesNavIcon: ImageVector by lazy {
         "M14 14h7v7h-7z",
         "M3 14h7v7h-7z",
     )
+}
+
+// Browse tab: magnifying glass with a compass rose inside and a sparkle at the top-right,
+// matching the provided reference icon. Built from simple primitives (full ring + handle +
+// inner circle, stroked; needle and sparkle, filled) rather than one hand-traced path, since a
+// composite of simple validated shapes is far more reliable than a single complex arc path
+// authored blind.
+val BrowseSearchNavIcon: ImageVector by lazy {
+    ImageVector.Builder(
+        name = "BrowseSearchNavIcon",
+        defaultWidth = 24.dp,
+        defaultHeight = 24.dp,
+        viewportWidth = 24f,
+        viewportHeight = 24f,
+    ).apply {
+        // Magnifying glass ring
+        addPath(
+            pathData = PathParser().parsePathString(
+                "M17 10A7 7 0 1 1 3 10A7 7 0 1 1 17 10z",
+            ).toNodes(),
+            fill = null,
+            stroke = SolidColor(Color.Black),
+            strokeLineWidth = 1.8f,
+            strokeLineCap = StrokeCap.Round,
+            strokeLineJoin = StrokeJoin.Round,
+        )
+        // Handle
+        addPath(
+            pathData = PathParser().parsePathString("M15 15L21 21").toNodes(),
+            fill = null,
+            stroke = SolidColor(Color.Black),
+            strokeLineWidth = 2f,
+            strokeLineCap = StrokeCap.Round,
+            strokeLineJoin = StrokeJoin.Round,
+        )
+        // Compass bezel
+        addPath(
+            pathData = PathParser().parsePathString(
+                "M13.2 10A3.2 3.2 0 1 1 6.8 10A3.2 3.2 0 1 1 13.2 10z",
+            ).toNodes(),
+            fill = null,
+            stroke = SolidColor(Color.Black),
+            strokeLineWidth = 1.3f,
+            strokeLineCap = StrokeCap.Round,
+            strokeLineJoin = StrokeJoin.Round,
+        )
+        // Compass needle
+        addPath(
+            pathData = PathParser().parsePathString("M10 8.1L11.3 10L10 11.9L8.7 10Z").toNodes(),
+            fill = SolidColor(Color.Black),
+        )
+        // Sparkle, top-right of the ring
+        addPath(
+            pathData = PathParser().parsePathString(
+                "M16.5 3.3L17.3 5.6L19.6 6.4L17.3 7.2L16.5 9.5L15.7 7.2L13.4 6.4L15.7 5.6Z",
+            ).toNodes(),
+            fill = SolidColor(Color.Black),
+        )
+    }.build()
 }
 
 // More/Settings tab: gear
