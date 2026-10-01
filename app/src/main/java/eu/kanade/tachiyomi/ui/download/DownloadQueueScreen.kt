@@ -674,7 +674,7 @@ private fun NovelDownloadCard(
             containerColor = if (item.isActive) {
                 MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
             } else {
-                MaterialTheme.colorScheme.surfaceVariant
+                MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.55f)
             },
         ),
     ) {
