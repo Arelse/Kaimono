@@ -1,5 +1,6 @@
 package eu.kanade.presentation.manga.components
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -94,6 +95,7 @@ fun MangaChapterListItem(
     ) {
         Row(
             modifier = modifier
+                .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.4f))
                 .selectedBackground(selected)
                 .combinedClickable(
                     onClick = onClick,
