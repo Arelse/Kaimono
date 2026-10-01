@@ -32,6 +32,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.ui.draw.blur
+import androidx.compose.ui.draw.drawWithCache
 import androidx.compose.ui.layout.ContentScale
 import coil3.compose.AsyncImage
 import coil3.request.CachePolicy
@@ -403,18 +404,17 @@ class ReaderActivity : BaseActivity() {
             .launchIn(lifecycleScope)
     }
     
-    // Renders behind reader_container (it's the first child in reader_activity.xml), so it only
-    // shows in the margins around a page that doesn't fill the screen - the page itself is drawn
-    // on top of it. Reuses the same liquid background preferences as the rest of the app; gated
-    // separately by readerUseLiquidBackground since most readers want a plain black background
-    // for the actual reading area even with liquid mode on elsewhere.
+    // Edge-glow style: the blurred background image is hidden near the center (where the page
+    // sits) and only shows as a soft glow right at the screen edges, via a radial-gradient scrim
+    // that's opaque at center and fades to fully transparent at the edges. Uses its own blur/light
+    // preferences, independent of the main Liquid mode sliders used elsewhere in the app.
     private fun ReaderActivityBinding.setReaderBackgroundOverlay(): Unit = readerBackgroundOverlay.setComposeContent {
         val uiPreferences = Injekt.get<UiPreferences>()
         val readerBackgroundEnabled by uiPreferences.readerUseLiquidBackground.collectAsState()
         val liquidMode by uiPreferences.settingsLiquidMode.collectAsState()
         val backgroundPath by uiPreferences.settingsBackgroundPath.collectAsState()
-        val backgroundBlur by uiPreferences.settingsBackgroundBlur.collectAsState()
-        val backgroundLight by uiPreferences.settingsBackgroundLight.collectAsState()
+        val backgroundBlur by uiPreferences.readerBackgroundBlur.collectAsState()
+        val backgroundLight by uiPreferences.readerBackgroundLight.collectAsState()
         val retainOriginalColor by uiPreferences.settingsBackgroundRetainOriginalColor.collectAsState()
         val hasBackground = readerBackgroundEnabled && liquidMode && backgroundPath.isNotBlank()
 
@@ -433,14 +433,23 @@ class ReaderActivity : BaseActivity() {
                         .blur(backgroundBlur.dp),
                 )
                 val scrimColor = if (retainOriginalColor) ComposeColor.Black else MaterialTheme.colorScheme.primary
+                val centerAlpha = (100 - backgroundLight).coerceIn(0, 100) / 100f
                 Box(
                     modifier = androidx.compose.ui.Modifier
                         .matchParentSize()
-                        .background(
-                            scrimColor.copy(
-                                alpha = (100 - backgroundLight).coerceIn(0, 100) / 100f * 0.85f,
-                            ),
-                        ),
+                        .drawWithCache {
+                            val brush = androidx.compose.ui.graphics.Brush.radialGradient(
+                                colors = listOf(
+                                    scrimColor.copy(alpha = centerAlpha),
+                                    scrimColor.copy(alpha = 0f),
+                                ),
+                                center = androidx.compose.ui.geometry.Offset(size.width / 2f, size.height / 2f),
+                                radius = size.maxDimension * 0.7f,
+                            )
+                            onDrawBehind {
+                                drawRect(brush)
+                            }
+                        },
                 )
             }
         }
