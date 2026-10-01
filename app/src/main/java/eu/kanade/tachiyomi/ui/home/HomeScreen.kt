@@ -46,6 +46,7 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.util.fastForEach
 import cafe.adriel.voyager.navigator.LocalNavigator
 import cafe.adriel.voyager.navigator.currentOrThrow
@@ -257,7 +258,11 @@ object HomeScreen : Screen() {
                     Box(
                         modifier = Modifier
                             .size(72.dp)
-                            .blur(28.dp)
+                            .blur(
+                                radius = 28.dp,
+                                edgeTreatment = androidx.compose.ui.draw.BlurredEdgeTreatment.Unbounded,
+                            )
+                            .clip(CircleShape)
                             .background(
                                 brush = Brush.radialGradient(
                                     colors = listOf(
@@ -302,11 +307,19 @@ object HomeScreen : Screen() {
                     ) {
                         NavigationIconItem(homeTab)
                     }
+                    Text(
+                        text = "Home",
+                        fontSize = 10.sp,
+                        color = if (selected) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier
+                            .align(Alignment.BottomCenter)
+                            .offset(y = 10.dp),
+                    )
                     if (selected) {
                         Box(
                             modifier = Modifier
                                 .align(Alignment.BottomCenter)
-                                .offset(y = 6.dp)
+                                .offset(y = 22.dp)
                                 .size(width = 20.dp, height = 3.dp)
                                 .clip(RoundedCornerShape(2.dp))
                                 .background(
@@ -361,6 +374,12 @@ object HomeScreen : Screen() {
                 .padding(8.dp),
         ) {
             NavigationIconItem(tab)
+            Text(
+                text = navLabelFor(tab),
+                fontSize = 10.sp,
+                color = if (selected) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(top = 3.dp),
+            )
             Box(
                 modifier = Modifier
                     .padding(top = 4.dp)
@@ -508,11 +527,19 @@ object HomeScreen : Screen() {
         }
     }
 
+    private fun navLabelFor(tab: eu.kanade.presentation.util.Tab): String = when {
+        tab is LibraryTab || tab is NovelsTab -> "Library"
+        tab is HistoryTab -> "History"
+        BrowseTab::class.isInstance(tab) -> "Browse"
+        tab is MoreTab -> "Settings"
+        else -> tab.options.title
+    }
+
     private fun customNavIconFor(tab: eu.kanade.presentation.util.Tab): ImageVector? = when {
         tab::class == eu.kanade.tachiyomi.ui.discover.DiscoverTab::class -> SparkleNavIcon
         tab is LibraryTab || tab is NovelsTab -> LibraryNavIcon
         tab is HistoryTab -> UpdatesNavIcon
-        BrowseTab::class.isInstance(tab) -> SourcesNavIcon
+        BrowseTab::class.isInstance(tab) -> BrowseSearchNavIcon
         tab is MoreTab -> SettingsNavIcon
         else -> null
     }
@@ -537,5 +564,3 @@ object HomeScreen : Screen() {
         data class More(val toDownloads: Boolean) : Tab
     }
 }
-
-   
