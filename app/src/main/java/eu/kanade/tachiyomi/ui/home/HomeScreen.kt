@@ -8,7 +8,6 @@ import androidx.compose.animation.shrinkVertically
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -235,7 +234,7 @@ object HomeScreen : Screen() {
                 modifier = Modifier
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(32.dp))
-                    .background(MaterialTheme.colorScheme.surfaceContainerHigh)
+                    .background(MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.55f))
                     .padding(vertical = 10.dp, horizontal = 8.dp),
                 horizontalArrangement = Arrangement.SpaceAround,
                 verticalAlignment = Alignment.CenterVertically,
@@ -269,29 +268,30 @@ object HomeScreen : Screen() {
                                 shape = CircleShape,
                             ),
                     )
-                    val homeInteractionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() }
-                    val homeIsPressed by homeInteractionSource.collectIsPressedAsState()
-                    val homeScale by androidx.compose.animation.core.animateFloatAsState(
-                        targetValue = if (homeIsPressed) 0.85f else 1f,
-                        animationSpec = androidx.compose.animation.core.spring(
-                            dampingRatio = androidx.compose.animation.core.Spring.DampingRatioMediumBouncy,
-                            stiffness = androidx.compose.animation.core.Spring.StiffnessLow,
-                        ),
-                        label = "homeButtonScale",
-                    )
+                    val homeScale = remember { androidx.compose.animation.core.Animatable(1f) }
                     Box(
                         modifier = Modifier
                             .size(52.dp)
                             .graphicsLayer {
-                                scaleX = homeScale
-                                scaleY = homeScale
+                                scaleX = homeScale.value
+                                scaleY = homeScale.value
                             }
                             .clip(CircleShape)
-                            .background(MaterialTheme.colorScheme.surfaceContainerHighest)
+                            .background(MaterialTheme.colorScheme.surfaceContainerHighest.copy(alpha = 0.6f))
                             .clickable(
-                                interactionSource = homeInteractionSource,
+                                interactionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() },
                                 indication = null,
                             ) {
+                                scope.launch {
+                                    homeScale.animateTo(0.8f, animationSpec = androidx.compose.animation.core.tween(80))
+                                    homeScale.animateTo(
+                                        1f,
+                                        animationSpec = androidx.compose.animation.core.spring(
+                                            dampingRatio = androidx.compose.animation.core.Spring.DampingRatioMediumBouncy,
+                                            stiffness = androidx.compose.animation.core.Spring.StiffnessMedium,
+                                        ),
+                                    )
+                                }
                                 if (!selected) {
                                     tabNavigator.current = homeTab
                                 } else {
@@ -330,27 +330,28 @@ object HomeScreen : Screen() {
         val navigator = LocalNavigator.currentOrThrow
         val scope = rememberCoroutineScope()
         val selected = tabNavigator.current::class == tab::class
-        val interactionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() }
-        val isPressed by interactionSource.collectIsPressedAsState()
-        val scale by androidx.compose.animation.core.animateFloatAsState(
-            targetValue = if (isPressed) 0.82f else 1f,
-            animationSpec = androidx.compose.animation.core.spring(
-                dampingRatio = androidx.compose.animation.core.Spring.DampingRatioMediumBouncy,
-                stiffness = androidx.compose.animation.core.Spring.StiffnessLow,
-            ),
-            label = "pillTabScale",
-        )
+        val scale = remember { androidx.compose.animation.core.Animatable(1f) }
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
             modifier = Modifier
                 .graphicsLayer {
-                    scaleX = scale
-                    scaleY = scale
+                    scaleX = scale.value
+                    scaleY = scale.value
                 }
                 .clickable(
-                    interactionSource = interactionSource,
+                    interactionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() },
                     indication = null,
                 ) {
+                    scope.launch {
+                        scale.animateTo(0.78f, animationSpec = androidx.compose.animation.core.tween(80))
+                        scale.animateTo(
+                            1f,
+                            animationSpec = androidx.compose.animation.core.spring(
+                                dampingRatio = androidx.compose.animation.core.Spring.DampingRatioMediumBouncy,
+                                stiffness = androidx.compose.animation.core.Spring.StiffnessMedium,
+                            ),
+                        )
+                    }
                     if (!selected) {
                         tabNavigator.current = tab
                     } else {
@@ -537,4 +538,4 @@ object HomeScreen : Screen() {
     }
 }
 
-                     
+   
