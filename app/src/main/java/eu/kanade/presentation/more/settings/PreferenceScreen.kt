@@ -64,7 +64,7 @@ fun PreferenceScreen(
                                 modifier = Modifier
                                     .padding(horizontal = 12.dp)
                                     .clip(RoundedCornerShape(20.dp))
-                                    .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.55f)),
+                                    .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.28f)),
                             ) {
                                 preference.preferenceItems.fastForEach { item ->
                                     PreferenceItem(
