@@ -95,7 +95,7 @@ fun MangaChapterListItem(
     ) {
         Row(
             modifier = modifier
-                .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.4f))
+                .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.22f))
                 .selectedBackground(selected)
                 .combinedClickable(
                     onClick = onClick,
