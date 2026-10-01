@@ -166,7 +166,7 @@ private fun UpdatesUiItem(
         modifier = modifier
             .padding(horizontal = 12.dp, vertical = 3.dp)
             .clip(RoundedCornerShape(16.dp))
-            .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.55f))
+            .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.28f))
             .selectedBackground(selected)
             .combinedClickable(
                 onClick = onClick,
@@ -283,7 +283,7 @@ private fun UpdatesNovelGroupItem(
         modifier = modifier
             .padding(horizontal = 12.dp, vertical = 3.dp)
             .clip(RoundedCornerShape(16.dp))
-            .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.55f))
+            .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.28f))
             .combinedClickable(onClick = onClick)
             .height(56.dp)
             .padding(horizontal = MaterialTheme.padding.medium),
