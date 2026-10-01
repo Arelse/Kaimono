@@ -6,11 +6,21 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.consumeWindowInsets
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Badge
 import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.Icon
@@ -25,10 +35,15 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.blur
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.util.fastForEach
 import cafe.adriel.voyager.navigator.LocalNavigator
 import cafe.adriel.voyager.navigator.currentOrThrow
@@ -126,11 +141,7 @@ object HomeScreen : Screen() {
                                 enter = expandVertically(),
                                 exit = shrinkVertically(),
                             ) {
-                                NavigationBar {
-                                    tabs.fastForEach {
-                                        NavigationBarItem(it)
-                                    }
-                                }
+                                PillNavigationBar(tabs)
                             }
                         }
                     },
@@ -192,6 +203,149 @@ object HomeScreen : Screen() {
                     }
                 }
             }
+        }
+    }
+
+    // Floating pill bottom bar. Home (DiscoverTab) renders as a raised circular button with a
+    // soft glow halo, centered among the other tabs (which are split evenly left/right of it)
+    // rather than wherever Home happens to fall in the tabs list order. Selected regular tabs
+    // show a small pink-to-blue gradient underline instead of the default filled indicator pill.
+    @Composable
+    private fun PillNavigationBar(tabs: List<eu.kanade.presentation.util.Tab>) {
+        val tabNavigator = LocalTabNavigator.current
+        val navigator = LocalNavigator.currentOrThrow
+        val scope = rememberCoroutineScope()
+
+        val homeTab = tabs.firstOrNull {
+            it::class == eu.kanade.tachiyomi.ui.discover.DiscoverTab::class
+        }
+        val otherTabs = tabs.filter { it::class != eu.kanade.tachiyomi.ui.discover.DiscoverTab::class }
+        val leftTabs = otherTabs.take(otherTabs.size / 2)
+        val rightTabs = otherTabs.drop(otherTabs.size / 2)
+
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 12.dp),
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(32.dp))
+                    .background(MaterialTheme.colorScheme.surfaceContainerHigh)
+                    .padding(vertical = 10.dp, horizontal = 8.dp),
+                horizontalArrangement = Arrangement.SpaceAround,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                leftTabs.fastForEach { PillTabItem(it) }
+                if (homeTab != null) {
+                    Box(modifier = Modifier.size(56.dp))
+                }
+                rightTabs.fastForEach { PillTabItem(it) }
+            }
+
+            if (homeTab != null) {
+                val selected = tabNavigator.current::class == homeTab::class
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.TopCenter)
+                        .offset(y = (-16).dp),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(72.dp)
+                            .blur(28.dp)
+                            .background(
+                                brush = Brush.radialGradient(
+                                    colors = listOf(
+                                        MaterialTheme.colorScheme.primary.copy(alpha = 0.55f),
+                                        androidx.compose.ui.graphics.Color.Transparent,
+                                    ),
+                                ),
+                                shape = CircleShape,
+                            ),
+                    )
+                    Box(
+                        modifier = Modifier
+                            .size(52.dp)
+                            .clip(CircleShape)
+                            .background(MaterialTheme.colorScheme.surfaceContainerHighest)
+                            .clickable {
+                                if (!selected) {
+                                    tabNavigator.current = homeTab
+                                } else {
+                                    scope.launch { homeTab.onReselect(navigator) }
+                                }
+                            },
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        NavigationIconItem(homeTab)
+                    }
+                    if (selected) {
+                        Box(
+                            modifier = Modifier
+                                .align(Alignment.BottomCenter)
+                                .offset(y = 6.dp)
+                                .size(width = 20.dp, height = 3.dp)
+                                .clip(RoundedCornerShape(2.dp))
+                                .background(
+                                    Brush.horizontalGradient(
+                                        colors = listOf(
+                                            androidx.compose.ui.graphics.Color(0xFFE94584),
+                                            androidx.compose.ui.graphics.Color(0xFF3EC6F0),
+                                        ),
+                                    ),
+                                ),
+                        )
+                    }
+                }
+            }
+        }
+    }
+
+    @Composable
+    private fun PillTabItem(tab: eu.kanade.presentation.util.Tab) {
+        val tabNavigator = LocalTabNavigator.current
+        val navigator = LocalNavigator.currentOrThrow
+        val scope = rememberCoroutineScope()
+        val selected = tabNavigator.current::class == tab::class
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            modifier = Modifier
+                .clickable {
+                    if (!selected) {
+                        tabNavigator.current = tab
+                    } else {
+                        scope.launch { tab.onReselect(navigator) }
+                    }
+                }
+                .padding(8.dp),
+        ) {
+            NavigationIconItem(tab)
+            Box(
+                modifier = Modifier
+                    .padding(top = 4.dp)
+                    .size(width = 20.dp, height = 3.dp)
+                    .clip(RoundedCornerShape(2.dp))
+                    .background(
+                        if (selected) {
+                            Brush.horizontalGradient(
+                                colors = listOf(
+                                    androidx.compose.ui.graphics.Color(0xFFE94584),
+                                    androidx.compose.ui.graphics.Color(0xFF3EC6F0),
+                                ),
+                            )
+                        } else {
+                            Brush.horizontalGradient(
+                                colors = listOf(
+                                    androidx.compose.ui.graphics.Color.Transparent,
+                                    androidx.compose.ui.graphics.Color.Transparent,
+                                ),
+                            )
+                        },
+                    ),
+            )
         }
     }
 
