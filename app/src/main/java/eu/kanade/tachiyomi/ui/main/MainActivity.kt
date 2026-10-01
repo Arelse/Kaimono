@@ -60,6 +60,7 @@ import coil3.request.ImageRequest
 import eu.kanade.domain.base.BasePreferences
 import eu.kanade.domain.source.interactor.GetIncognitoState
 import eu.kanade.domain.ui.UiPreferences
+import eu.kanade.presentation.components.AmbientEffectsOverlay
 import eu.kanade.presentation.components.AppStateBanners
 import eu.kanade.presentation.components.DownloadedOnlyBannerBackgroundColor
 import eu.kanade.presentation.components.IncognitoModeBannerBackgroundColor
@@ -216,7 +217,28 @@ class MainActivity : BaseActivity() {
                 val liquidRetainOriginalColor by uiPreferences.settingsBackgroundRetainOriginalColor.collectAsState()
                 val hasLiquidBackground = liquidMode && liquidBackgroundPath.isNotBlank()
 
+                // Accent gradient background and ambient particles: a separate, independent
+                // ambient system from both AppTheme and Liquid mode. Can be used alongside
+                // Liquid mode's image (drawn first, so the image layers on top if both are on)
+                // or entirely on its own.
+                val accentGradientEnabled by uiPreferences.accentGradientEnabled.collectAsState()
+                val accentColor by uiPreferences.accentColor.collectAsState()
+                val particleEffect by uiPreferences.particleEffect.collectAsState()
+                val hasAmbientBackground = hasLiquidBackground || accentGradientEnabled
+
                 Box {
+                    if (accentGradientEnabled) {
+                        eu.kanade.presentation.components.AccentGradientBackground(
+                            accent = accentColor,
+                            modifier = Modifier.matchParentSize(),
+                        )
+                    }
+
+                    eu.kanade.presentation.components.ParticleOverlay(
+                        effect = particleEffect,
+                        modifier = Modifier.matchParentSize(),
+                    )
+
                     if (hasLiquidBackground) {
                         AsyncImage(
                             model = ImageRequest.Builder(context)
@@ -246,7 +268,9 @@ class MainActivity : BaseActivity() {
                         )
                     }
 
-                    CompositionLocalProvider(LocalLiquidBackgroundActive provides hasLiquidBackground) {
+                    AmbientEffectsOverlay(modifier = Modifier.matchParentSize())
+
+                    CompositionLocalProvider(LocalLiquidBackgroundActive provides hasAmbientBackground) {
                         Scaffold(
                             topBar = {
                                 AppStateBanners(
@@ -282,6 +306,11 @@ class MainActivity : BaseActivity() {
                             }
                         }
                     }
+
+                    eu.kanade.presentation.components.AmbientParticlesLayer(
+                        effect = particleEffect,
+                        modifier = Modifier.matchParentSize(),
+                    )
                 }
 
                 // Pop source-related screens when incognito mode is turned off
