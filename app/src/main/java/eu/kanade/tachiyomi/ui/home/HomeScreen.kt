@@ -8,6 +8,7 @@ import androidx.compose.animation.shrinkVertically
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -40,6 +41,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
@@ -266,12 +269,29 @@ object HomeScreen : Screen() {
                                 shape = CircleShape,
                             ),
                     )
+                    val homeInteractionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() }
+                    val homeIsPressed by homeInteractionSource.collectIsPressedAsState()
+                    val homeScale by androidx.compose.animation.core.animateFloatAsState(
+                        targetValue = if (homeIsPressed) 0.85f else 1f,
+                        animationSpec = androidx.compose.animation.core.spring(
+                            dampingRatio = androidx.compose.animation.core.Spring.DampingRatioMediumBouncy,
+                            stiffness = androidx.compose.animation.core.Spring.StiffnessLow,
+                        ),
+                        label = "homeButtonScale",
+                    )
                     Box(
                         modifier = Modifier
                             .size(52.dp)
+                            .graphicsLayer {
+                                scaleX = homeScale
+                                scaleY = homeScale
+                            }
                             .clip(CircleShape)
                             .background(MaterialTheme.colorScheme.surfaceContainerHighest)
-                            .clickable {
+                            .clickable(
+                                interactionSource = homeInteractionSource,
+                                indication = null,
+                            ) {
                                 if (!selected) {
                                     tabNavigator.current = homeTab
                                 } else {
@@ -310,10 +330,27 @@ object HomeScreen : Screen() {
         val navigator = LocalNavigator.currentOrThrow
         val scope = rememberCoroutineScope()
         val selected = tabNavigator.current::class == tab::class
+        val interactionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() }
+        val isPressed by interactionSource.collectIsPressedAsState()
+        val scale by androidx.compose.animation.core.animateFloatAsState(
+            targetValue = if (isPressed) 0.82f else 1f,
+            animationSpec = androidx.compose.animation.core.spring(
+                dampingRatio = androidx.compose.animation.core.Spring.DampingRatioMediumBouncy,
+                stiffness = androidx.compose.animation.core.Spring.StiffnessLow,
+            ),
+            label = "pillTabScale",
+        )
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
             modifier = Modifier
-                .clickable {
+                .graphicsLayer {
+                    scaleX = scale
+                    scaleY = scale
+                }
+                .clickable(
+                    interactionSource = interactionSource,
+                    indication = null,
+                ) {
                     if (!selected) {
                         tabNavigator.current = tab
                     } else {
@@ -455,11 +492,28 @@ object HomeScreen : Screen() {
                 }
             },
         ) {
-            Icon(
-                painter = tab.options.icon!!,
-                contentDescription = tab.options.title,
-            )
+            val customIcon = customNavIconFor(tab)
+            if (customIcon != null) {
+                Icon(
+                    imageVector = customIcon,
+                    contentDescription = tab.options.title,
+                )
+            } else {
+                Icon(
+                    painter = tab.options.icon!!,
+                    contentDescription = tab.options.title,
+                )
+            }
         }
+    }
+
+    private fun customNavIconFor(tab: eu.kanade.presentation.util.Tab): ImageVector? = when {
+        tab::class == eu.kanade.tachiyomi.ui.discover.DiscoverTab::class -> SparkleNavIcon
+        tab is LibraryTab || tab is NovelsTab -> LibraryNavIcon
+        tab is HistoryTab -> UpdatesNavIcon
+        BrowseTab::class.isInstance(tab) -> SourcesNavIcon
+        tab is MoreTab -> SettingsNavIcon
+        else -> null
     }
 
     suspend fun search(query: String) {
@@ -482,3 +536,5 @@ object HomeScreen : Screen() {
         data class More(val toDownloads: Boolean) : Tab
     }
 }
+
+                     
