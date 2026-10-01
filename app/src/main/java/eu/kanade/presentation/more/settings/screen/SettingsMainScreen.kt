@@ -32,6 +32,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import tachiyomi.presentation.core.components.material.LocalLiquidBackgroundActive
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
@@ -85,7 +86,12 @@ object SettingsMainScreen : Screen() {
         val backPress = LocalBackPress.currentOrThrow
         val basePreferences = remember { Injekt.get<BasePreferences>() }
         val hideMangaUi by basePreferences.hideMangaUi.collectAsState()
-        val containerColor = if (twoPane) getPalerSurface() else MaterialTheme.colorScheme.surface
+        val liquidBackgroundActive = LocalLiquidBackgroundActive.current
+        val containerColor = when {
+            liquidBackgroundActive -> Color.Transparent
+            twoPane -> getPalerSurface()
+            else -> MaterialTheme.colorScheme.surface
+        }
         val topBarState = rememberTopAppBarState()
         val visibleItems = remember(hideMangaUi) {
             items.filterNot { hideMangaUi && it.isMangaOnly }
