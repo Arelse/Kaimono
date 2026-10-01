@@ -85,6 +85,11 @@ object SettingsReaderScreen : SearchableSettings {
     private fun getDisplayGroup(readerPreferences: ReaderPreferences): Preference.PreferenceGroup {
         val fullscreen by readerPreferences.fullscreen.collectAsState()
         val uiPreferences = remember { Injekt.get<eu.kanade.domain.ui.UiPreferences>() }
+        val readerBackgroundEnabled by uiPreferences.readerUseLiquidBackground.collectAsState()
+        val readerBackgroundBlurPref = uiPreferences.readerBackgroundBlur
+        val readerBackgroundBlur by readerBackgroundBlurPref.collectAsState()
+        val readerBackgroundLightPref = uiPreferences.readerBackgroundLight
+        val readerBackgroundLight by readerBackgroundLightPref.collectAsState()
         
         return Preference.PreferenceGroup(
             title = stringResource(MR.strings.pref_category_display),
