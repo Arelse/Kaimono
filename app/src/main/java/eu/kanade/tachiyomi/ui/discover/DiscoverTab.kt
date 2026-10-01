@@ -47,7 +47,8 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
+import tachiyomi.presentation.core.components.material.LocalLiquidBackgroundActive
+import tachiyomi.presentation.core.components.material.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -121,10 +122,17 @@ object DiscoverTab : Tab {
 
         Scaffold(
             topBar = {
+                val liquidBackgroundActive = LocalLiquidBackgroundActive.current
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .background(MaterialTheme.colorScheme.background)
+                        .background(
+                            if (liquidBackgroundActive) {
+                                androidx.compose.ui.graphics.Color.Transparent
+                            } else {
+                                MaterialTheme.colorScheme.background
+                            },
+                        )
                         .statusBarsPadding()
                         .padding(horizontal = 16.dp)
                         .padding(top = 16.dp, bottom = 8.dp)
