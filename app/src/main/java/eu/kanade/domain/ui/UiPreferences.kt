@@ -1,7 +1,9 @@
 ﻿package eu.kanade.domain.ui
 
 import com.materialkolor.PaletteStyle
+import eu.kanade.domain.ui.model.AccentColor
 import eu.kanade.domain.ui.model.AppTheme
+import eu.kanade.domain.ui.model.ParticleEffect
 import eu.kanade.domain.ui.model.TabletUiMode
 import eu.kanade.domain.ui.model.ThemeMode
 import eu.kanade.tachiyomi.util.system.DeviceUtil
@@ -48,6 +50,18 @@ class UiPreferences(
 
     val topAlignCover: Preference<Boolean> = preferenceStore.getBoolean("pref_top_align_cover", false)
 
+    val accentGradientEnabled: Preference<Boolean> = preferenceStore.getBoolean("pref_accent_gradient_enabled", false)
+
+    val accentGradientColor: Preference<String> = preferenceStore.getString("pref_accent_gradient_color", "EMBER")
+
+    val ambientParticleEffect: Preference<String> = preferenceStore.getString("pref_ambient_particle_effect", "NONE")
+
+    val accentGradientEnabled: Preference<Boolean> = preferenceStore.getBoolean("pref_accent_gradient_enabled", false)
+
+    val accentColor: Preference<AccentColor> = preferenceStore.getEnum("pref_accent_color", AccentColor.EMBER)
+
+    val particleEffect: Preference<ParticleEffect> = preferenceStore.getEnum("pref_particle_effect", ParticleEffect.NONE)
+
     val bloomEnabled: Preference<Boolean> = preferenceStore.getBoolean("pref_bloom_enabled", true)
 
     val grainOverlayEnabled: Preference<Boolean> = preferenceStore.getBoolean("pref_grain_overlay_enabled", false)
@@ -55,7 +69,7 @@ class UiPreferences(
     val settingsLiquidMode: Preference<Boolean> = preferenceStore.getBoolean("pref_settings_liquid_mode", true)
 
     val readerUseLiquidBackground: Preference<Boolean> = preferenceStore.getBoolean("pref_reader_use_liquid_background", false)
-    
+
     val readerBackgroundBlur: Preference<Int> = preferenceStore.getInt("pref_reader_background_blur", 20)
 
     val readerBackgroundLight: Preference<Int> = preferenceStore.getInt("pref_reader_background_light", 50)
