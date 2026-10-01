@@ -7,5 +7,5 @@
     <color name="icon_background">#2E3943</color>
 
     <!-- Translucent "glass" background for download queue row cards -->
-    <color name="download_item_glass">#8AFFFFFF</color>
+    <color name="download_item_glass">#47FFFFFF</color>
 </resources>
