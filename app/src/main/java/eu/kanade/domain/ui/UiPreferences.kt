@@ -2,6 +2,7 @@
 
 import com.materialkolor.PaletteStyle
 import eu.kanade.domain.ui.model.AccentColor
+import eu.kanade.domain.ui.model.AppFont
 import eu.kanade.domain.ui.model.AppTheme
 import eu.kanade.domain.ui.model.HistoryCardStyle
 import eu.kanade.domain.ui.model.LibraryCardStyle
@@ -58,6 +59,21 @@ class UiPreferences(
     val libraryCardStyle: Preference<LibraryCardStyle> = preferenceStore.getEnum("pref_library_card_style", LibraryCardStyle.DEFAULT)
 
     val historyCardStyle: Preference<HistoryCardStyle> = preferenceStore.getEnum("pref_history_card_style", HistoryCardStyle.REGULAR)
+
+    val translucentNav: Preference<Boolean> = preferenceStore.getBoolean("pref_translucent_nav", true)
+
+    val immersiveMode: Preference<Boolean> = preferenceStore.getBoolean("pref_immersive_mode", false)
+
+    val navBarMargin: Preference<Int> = preferenceStore.getInt("pref_nav_bar_margin", 16)
+
+    // Percentages, 100 = default look.
+    val cardRoundness: Preference<Int> = preferenceStore.getInt("pref_card_roundness", 100)
+
+    val glowMultiplier: Preference<Int> = preferenceStore.getInt("pref_glow_multiplier", 100)
+
+    val cardAnimationMs: Preference<Int> = preferenceStore.getInt("pref_card_animation_ms", 200)
+
+    val appFont: Preference<AppFont> = preferenceStore.getEnum("pref_app_font", AppFont.DEFAULT)
 
     val navBarStyle: Preference<NavBarStyle> = preferenceStore.getEnum("pref_nav_bar_style", NavBarStyle.CLASSIC)
 
