@@ -3,6 +3,8 @@
 import com.materialkolor.PaletteStyle
 import eu.kanade.domain.ui.model.AccentColor
 import eu.kanade.domain.ui.model.AppTheme
+import eu.kanade.domain.ui.model.HistoryCardStyle
+import eu.kanade.domain.ui.model.LibraryCardStyle
 import eu.kanade.domain.ui.model.NavBarStyle
 import eu.kanade.domain.ui.model.ParticleEffect
 import eu.kanade.domain.ui.model.TabletUiMode
@@ -52,6 +54,10 @@ class UiPreferences(
     val topAlignCover: Preference<Boolean> = preferenceStore.getBoolean("pref_top_align_cover", false)
 
     val customThemeColor: Preference<Int> = preferenceStore.getInt("pref_custom_theme_color", 0xFF7F77DD.toInt())
+
+    val libraryCardStyle: Preference<LibraryCardStyle> = preferenceStore.getEnum("pref_library_card_style", LibraryCardStyle.DEFAULT)
+
+    val historyCardStyle: Preference<HistoryCardStyle> = preferenceStore.getEnum("pref_history_card_style", HistoryCardStyle.REGULAR)
 
     val navBarStyle: Preference<NavBarStyle> = preferenceStore.getEnum("pref_nav_bar_style", NavBarStyle.CLASSIC)
 
