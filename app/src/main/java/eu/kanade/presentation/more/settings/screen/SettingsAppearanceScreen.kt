@@ -58,7 +58,6 @@ object SettingsAppearanceScreen : SearchableSettings {
             getMangaInfoGroup(uiPreferences = uiPreferences),
             getFlourishGroup(uiPreferences = uiPreferences),
             getSettingsBackgroundGroup(uiPreferences = uiPreferences),
-            getAccentAndEffectsGroup(uiPreferences = uiPreferences),
             getLibraryLayoutGroup(libraryPreferences = libraryPreferences),
         )
     }
@@ -330,59 +329,6 @@ object SettingsAppearanceScreen : SearchableSettings {
     }
 
     @Composable
-    private fun getAccentAndEffectsGroup(
-        uiPreferences: UiPreferences,
-    ): Preference.PreferenceGroup {
-        val accentGradientEnabledPref = uiPreferences.accentGradientEnabled
-        val accentGradientEnabled by accentGradientEnabledPref.collectAsState()
-
-        return Preference.PreferenceGroup(
-            title = "Accent and effects",
-            preferenceItems = buildList {
-                add(
-                    Preference.PreferenceItem.SwitchPreference(
-                        preference = accentGradientEnabledPref,
-                        title = "Accent gradient background",
-                        subtitle = "A flowing animated gradient, independent of your theme and liquid background",
-                    ),
-                )
-                if (accentGradientEnabled) {
-                    add(
-                        Preference.PreferenceItem.ListPreference(
-                            preference = uiPreferences.accentGradientColor,
-                            entries = mapOf(
-                                "EMBER" to "Ember",
-                                "MINT" to "Mint",
-                                "ROYAL" to "Royal",
-                                "VOID" to "Void",
-                                "WALLPAPER" to "Wallpaper",
-                            ),
-                            title = "Accent color",
-                        ),
-                    )
-                }
-                add(
-                    Preference.PreferenceItem.ListPreference(
-                        preference = uiPreferences.ambientParticleEffect,
-                        entries = mapOf(
-                            "NONE" to "None",
-                            "SNOW" to "Snow",
-                            "RAIN" to "Rain",
-                            "STARS" to "Stars",
-                            "SAKURA" to "Sakura",
-                            "FIREFLIES" to "Fireflies",
-                            "HEARTS" to "Hearts",
-                            "EMBERS" to "Embers",
-                        ),
-                        title = "Ambient particle effect",
-                        subtitle = "Drifts over every screen in the app",
-                    ),
-                )
-            },
-        )
-    }
-
-    @Composable
     private fun getFlourishGroup(
         uiPreferences: UiPreferences,
     ): Preference.PreferenceGroup {
@@ -459,5 +405,6 @@ private val DateFormats = listOf(
     "dd MMM yyyy",
     "MMM dd, yyyy",
 )
+
 
              
