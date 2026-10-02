@@ -22,7 +22,10 @@ import eu.kanade.presentation.theme.colorscheme.MidnightDuskColorScheme
 import eu.kanade.presentation.theme.colorscheme.MonetColorScheme
 import eu.kanade.presentation.theme.colorscheme.MonochromeColorScheme
 import eu.kanade.presentation.theme.colorscheme.NordColorScheme
+import eu.kanade.presentation.theme.colorscheme.EverforestColorScheme
+import eu.kanade.presentation.theme.colorscheme.OneDarkColorScheme
 import eu.kanade.presentation.theme.colorscheme.RosePineColorScheme
+import eu.kanade.presentation.theme.colorscheme.SolarizedColorScheme
 import eu.kanade.presentation.theme.colorscheme.StrawberryColorScheme
 import eu.kanade.presentation.theme.colorscheme.TachiyomiColorScheme
 import eu.kanade.presentation.theme.colorscheme.TakoColorScheme
@@ -73,10 +76,17 @@ private fun BaseTachiyomiTheme(
 ) {
     val context = LocalContext.current
     val isDark = isSystemInDarkTheme()
+    val customThemeColor by Injekt.get<UiPreferences>().customThemeColor.collectAsState()
     MaterialExpressiveTheme(
-        colorScheme = remember(appTheme, isDark, isAmoled, seedColor, coverStyle) {
+        colorScheme = remember(appTheme, isDark, isAmoled, seedColor, coverStyle, customThemeColor) {
             if (seedColor != null) {
                 val scheme = MonetCompatColorScheme(Color(seedColor), coverStyle)
+                scheme.getColorScheme(isDark, isAmoled, overrideDarkSurfaceContainers = false)
+            } else if (appTheme == AppTheme.CUSTOM) {
+                val scheme = MonetCompatColorScheme(
+                    Color(customThemeColor),
+                    com.materialkolor.PaletteStyle.TonalSpot,
+                )
                 scheme.getColorScheme(isDark, isAmoled, overrideDarkSurfaceContainers = false)
             } else {
                 getThemeColorScheme(
@@ -127,6 +137,9 @@ private val colorSchemes: Map<AppTheme, BaseColorScheme> = mapOf(
     AppTheme.DRACULA to DraculaColorScheme,
     AppTheme.GRUVBOX to GruvboxColorScheme,
     AppTheme.ROSEPINE to RosePineColorScheme,
+    AppTheme.ONEDARK to OneDarkColorScheme,
+    AppTheme.SOLARIZED to SolarizedColorScheme,
+    AppTheme.EVERFOREST to EverforestColorScheme,
 )
 
 
