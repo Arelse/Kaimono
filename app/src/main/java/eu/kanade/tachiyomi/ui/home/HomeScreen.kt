@@ -117,7 +117,14 @@ object HomeScreen : Screen() {
         val basePreferences = remember { Injekt.get<BasePreferences>() }
         val isJoined by libraryPreferences.joinedLibrary.collectAsState()
         val hideMangaUi by basePreferences.hideMangaUi.collectAsState()
-        val tabs = if (isJoined || hideMangaUi) JOINED_TABS else TABS
+        val uiPreferences = remember { Injekt.get<eu.kanade.domain.ui.UiPreferences>() }
+        val navTabOrder by uiPreferences.navTabOrder.collectAsState()
+        val navHiddenTabs by uiPreferences.navHiddenTabs.collectAsState()
+        val baseTabs = if (isJoined || hideMangaUi) JOINED_TABS else TABS
+        val orderedKeys = NavTabKeys.ordered(baseTabs.map { navTabKey(it) }, navTabOrder)
+        val tabs = orderedKeys
+            .filterNot { it in navHiddenTabs && it != NavTabKeys.MORE }
+            .mapNotNull { key -> baseTabs.firstOrNull { navTabKey(it) == key } }
         TabNavigator(
             tab = eu.kanade.tachiyomi.ui.discover.DiscoverTab,
             key = TabNavigatorKey,
@@ -215,6 +222,7 @@ object HomeScreen : Screen() {
     // show a small pink-to-blue gradient underline instead of the default filled indicator pill.
     @Composable
     private fun PillNavigationBar(tabs: List<eu.kanade.presentation.util.Tab>) {
+        val navBarStyle by remember { Injekt.get<eu.kanade.domain.ui.UiPreferences>() }.navBarStyle.collectAsState()
         // All tabs render inline in list order. Home (DiscoverTab) is first in TABS, so it
         // sits leftmost and behaves exactly like the other tabs - no raised/floating button.
         Row(
@@ -227,12 +235,12 @@ object HomeScreen : Screen() {
             horizontalArrangement = Arrangement.SpaceAround,
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            tabs.fastForEach { PillTabItem(it) }
+            tabs.fastForEach { PillTabItem(it, dynamicPill = navBarStyle == eu.kanade.domain.ui.model.NavBarStyle.DYNAMIC_PILL) }
         }
     }
 
     @Composable
-    private fun PillTabItem(tab: eu.kanade.presentation.util.Tab) {
+    private fun PillTabItem(tab: eu.kanade.presentation.util.Tab, dynamicPill: Boolean = false) {
         val tabNavigator = LocalTabNavigator.current
         val navigator = LocalNavigator.currentOrThrow
         val scope = rememberCoroutineScope()
@@ -267,36 +275,69 @@ object HomeScreen : Screen() {
                 }
                 .padding(8.dp),
         ) {
-            NavigationIconItem(tab)
-            Text(
-                text = navLabelFor(tab),
-                fontSize = 10.sp,
-                color = if (selected) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(top = 3.dp),
-            )
-            Box(
-                modifier = Modifier
-                    .padding(top = 4.dp)
-                    .size(width = 20.dp, height = 3.dp)
-                    .clip(RoundedCornerShape(2.dp))
-                    .background(
-                        if (selected) {
-                            Brush.horizontalGradient(
-                                colors = listOf(
-                                    androidx.compose.ui.graphics.Color(0xFFE94584),
-                                    androidx.compose.ui.graphics.Color(0xFF3EC6F0),
-                                ),
+            if (dynamicPill) {
+                androidx.compose.animation.AnimatedContent(
+                    targetState = selected,
+                    label = "dynamicPill",
+                ) { isSelected ->
+                    if (isSelected) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(50))
+                                .background(MaterialTheme.colorScheme.primaryContainer)
+                                .padding(horizontal = 14.dp, vertical = 8.dp),
+                        ) {
+                            CompositionLocalProvider(
+                                androidx.compose.material3.LocalContentColor provides MaterialTheme.colorScheme.onPrimaryContainer,
+                            ) {
+                                NavigationIconItem(tab)
+                            }
+                            Text(
+                                text = navLabelFor(tab),
+                                fontSize = 13.sp,
+                                color = MaterialTheme.colorScheme.onPrimaryContainer,
+                                modifier = Modifier.padding(start = 8.dp),
                             )
-                        } else {
-                            Brush.horizontalGradient(
-                                colors = listOf(
-                                    androidx.compose.ui.graphics.Color.Transparent,
-                                    androidx.compose.ui.graphics.Color.Transparent,
-                                ),
-                            )
-                        },
-                    ),
-            )
+                        }
+                    } else {
+                        Box(modifier = Modifier.padding(8.dp)) {
+                            NavigationIconItem(tab)
+                        }
+                    }
+                }
+            } else {
+                NavigationIconItem(tab)
+                Text(
+                    text = navLabelFor(tab),
+                    fontSize = 10.sp,
+                    color = if (selected) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(top = 3.dp),
+                )
+                Box(
+                    modifier = Modifier
+                        .padding(top = 4.dp)
+                        .size(width = 20.dp, height = 3.dp)
+                        .clip(RoundedCornerShape(2.dp))
+                        .background(
+                            if (selected) {
+                                Brush.horizontalGradient(
+                                    colors = listOf(
+                                        androidx.compose.ui.graphics.Color(0xFFE94584),
+                                        androidx.compose.ui.graphics.Color(0xFF3EC6F0),
+                                    ),
+                                )
+                            } else {
+                                Brush.horizontalGradient(
+                                    colors = listOf(
+                                        androidx.compose.ui.graphics.Color.Transparent,
+                                        androidx.compose.ui.graphics.Color.Transparent,
+                                    ),
+                                )
+                            },
+                        ),
+                )
+            }
         }
     }
 
@@ -419,6 +460,16 @@ object HomeScreen : Screen() {
                 )
             }
         }
+    }
+
+    private fun navTabKey(tab: eu.kanade.presentation.util.Tab): String = when {
+        tab::class == eu.kanade.tachiyomi.ui.discover.DiscoverTab::class -> NavTabKeys.HOME
+        tab is NovelsTab -> NavTabKeys.NOVELS
+        tab is LibraryTab -> NavTabKeys.LIBRARY
+        tab is HistoryTab -> NavTabKeys.HISTORY
+        tab is MoreTab -> NavTabKeys.MORE
+        BrowseTab::class.isInstance(tab) -> NavTabKeys.BROWSE
+        else -> tab::class.simpleName.orEmpty()
     }
 
     @Composable
