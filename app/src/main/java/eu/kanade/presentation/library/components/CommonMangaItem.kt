@@ -201,7 +201,10 @@ fun MangaComfortableGridItem(
 ) {
     val cardStyle by remember { Injekt.get<UiPreferences>() }.libraryCardStyle.collectAsState()
     val primary = MaterialTheme.colorScheme.primary
-    val cardShape = RoundedCornerShape(16.dp)
+    val uiPrefs = remember { Injekt.get<UiPreferences>() }
+    val roundness by uiPrefs.cardRoundness.collectAsState()
+    val glow by uiPrefs.glowMultiplier.collectAsState()
+    val cardShape = RoundedCornerShape((16 * roundness / 100f).dp)
 
     GridItemSelectable(
         isSelected = isSelected,
@@ -283,7 +286,7 @@ fun MangaComfortableGridItem(
                 modifier = Modifier
                     .padding(3.dp)
                     .shadow(
-                        elevation = 10.dp,
+                        elevation = (10 * glow / 100f).dp,
                         shape = cardShape,
                         ambientColor = primary,
                         spotColor = primary,
