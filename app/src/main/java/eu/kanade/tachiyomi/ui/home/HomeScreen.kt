@@ -223,14 +223,17 @@ object HomeScreen : Screen() {
     @Composable
     private fun PillNavigationBar(tabs: List<eu.kanade.presentation.util.Tab>) {
         val navBarStyle by remember { Injekt.get<eu.kanade.domain.ui.UiPreferences>() }.navBarStyle.collectAsState()
+        val navPrefs = remember { Injekt.get<eu.kanade.domain.ui.UiPreferences>() }
+        val translucentNav by navPrefs.translucentNav.collectAsState()
+        val navBarMargin by navPrefs.navBarMargin.collectAsState()
         // All tabs render inline in list order. Home (DiscoverTab) is first in TABS, so it
         // sits leftmost and behaves exactly like the other tabs - no raised/floating button.
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 12.dp)
+                .padding(horizontal = navBarMargin.dp, vertical = 12.dp)
                 .clip(RoundedCornerShape(32.dp))
-                .background(MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.3f))
+                .background(MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = if (translucentNav) 0.3f else 1f))
                 .padding(vertical = 6.dp, horizontal = 4.dp),
             horizontalArrangement = Arrangement.SpaceAround,
             verticalAlignment = Alignment.CenterVertically,
@@ -246,6 +249,7 @@ object HomeScreen : Screen() {
         val scope = rememberCoroutineScope()
         val selected = tabNavigator.current::class == tab::class
         val scale = remember { androidx.compose.animation.core.Animatable(1f) }
+        val animationMs by remember { Injekt.get<eu.kanade.domain.ui.UiPreferences>() }.cardAnimationMs.collectAsState()
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
             modifier = Modifier
@@ -258,7 +262,7 @@ object HomeScreen : Screen() {
                     indication = null,
                 ) {
                     scope.launch {
-                        scale.animateTo(0.78f, animationSpec = androidx.compose.animation.core.tween(80))
+                        scale.animateTo(0.78f, animationSpec = androidx.compose.animation.core.tween((animationMs * 0.4f).toInt()))
                         scale.animateTo(
                             1f,
                             animationSpec = androidx.compose.animation.core.spring(
