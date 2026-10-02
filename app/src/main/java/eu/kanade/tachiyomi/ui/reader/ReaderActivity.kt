@@ -33,6 +33,8 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.drawWithCache
+import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import coil3.compose.AsyncImage
 import coil3.request.CachePolicy
@@ -411,15 +413,35 @@ class ReaderActivity : BaseActivity() {
     private fun ReaderActivityBinding.setReaderBackgroundOverlay(): Unit = readerBackgroundOverlay.setComposeContent {
         val uiPreferences = Injekt.get<UiPreferences>()
         val readerBackgroundEnabled by uiPreferences.readerUseLiquidBackground.collectAsState()
-        val liquidMode by uiPreferences.settingsLiquidMode.collectAsState()
         val backgroundPath by uiPreferences.settingsBackgroundPath.collectAsState()
         val backgroundBlur by uiPreferences.readerBackgroundBlur.collectAsState()
         val backgroundLight by uiPreferences.readerBackgroundLight.collectAsState()
-        val retainOriginalColor by uiPreferences.settingsBackgroundRetainOriginalColor.collectAsState()
-        val hasBackground = readerBackgroundEnabled && liquidMode && backgroundPath.isNotBlank()
+        val hasBackground = readerBackgroundEnabled && backgroundPath.isNotBlank()
 
         if (hasBackground) {
-            Box(modifier = androidx.compose.ui.Modifier.fillMaxSize()) {
+            val edgeStrength = backgroundLight.coerceIn(0, 100) / 100f
+            Box(
+                modifier = androidx.compose.ui.Modifier
+                    .fillMaxSize()
+                    .graphicsLayer {
+                        compositingStrategy = androidx.compose.ui.graphics.CompositingStrategy.Offscreen
+                    }
+                    .drawWithContent {
+                        drawContent()
+                        drawRect(
+                            brush = androidx.compose.ui.graphics.Brush.radialGradient(
+                                colorStops = arrayOf(
+                                    0.0f to ComposeColor.Transparent,
+                                    0.55f to ComposeColor.Transparent,
+                                    1.0f to ComposeColor.Black.copy(alpha = edgeStrength),
+                                ),
+                                center = androidx.compose.ui.geometry.Offset(size.width / 2f, size.height / 2f),
+                                radius = size.maxDimension * 0.75f,
+                            ),
+                            blendMode = androidx.compose.ui.graphics.BlendMode.DstIn,
+                        )
+                    },
+            ) {
                 AsyncImage(
                     model = ImageRequest.Builder(this@ReaderActivity)
                         .data(backgroundPath)
@@ -431,25 +453,6 @@ class ReaderActivity : BaseActivity() {
                     modifier = androidx.compose.ui.Modifier
                         .matchParentSize()
                         .blur(backgroundBlur.dp),
-                )
-                val scrimColor = if (retainOriginalColor) ComposeColor.Black else MaterialTheme.colorScheme.primary
-                val centerAlpha = (100 - backgroundLight).coerceIn(0, 100) / 100f
-                Box(
-                    modifier = androidx.compose.ui.Modifier
-                        .matchParentSize()
-                        .drawWithCache {
-                            val brush = androidx.compose.ui.graphics.Brush.radialGradient(
-                                colors = listOf(
-                                    scrimColor.copy(alpha = centerAlpha),
-                                    scrimColor.copy(alpha = 0f),
-                                ),
-                                center = androidx.compose.ui.geometry.Offset(size.width / 2f, size.height / 2f),
-                                radius = size.maxDimension * 0.7f,
-                            )
-                            onDrawBehind {
-                                drawRect(brush)
-                            }
-                        },
                 )
             }
         }
