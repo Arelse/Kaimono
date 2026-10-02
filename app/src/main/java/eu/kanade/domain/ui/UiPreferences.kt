@@ -3,6 +3,7 @@
 import com.materialkolor.PaletteStyle
 import eu.kanade.domain.ui.model.AccentColor
 import eu.kanade.domain.ui.model.AppTheme
+import eu.kanade.domain.ui.model.NavBarStyle
 import eu.kanade.domain.ui.model.ParticleEffect
 import eu.kanade.domain.ui.model.TabletUiMode
 import eu.kanade.domain.ui.model.ThemeMode
@@ -49,6 +50,16 @@ class UiPreferences(
     val usePanoramaCoverMangaInfo: Preference<Boolean> = preferenceStore.getBoolean("pref_panorama_cover_manga_info", false)
 
     val topAlignCover: Preference<Boolean> = preferenceStore.getBoolean("pref_top_align_cover", false)
+
+    val customThemeColor: Preference<Int> = preferenceStore.getInt("pref_custom_theme_color", 0xFF7F77DD.toInt())
+
+    val navBarStyle: Preference<NavBarStyle> = preferenceStore.getEnum("pref_nav_bar_style", NavBarStyle.CLASSIC)
+
+    // Comma-separated tab keys in display order, e.g. "home,library,history,browse,more".
+    // Empty means default order.
+    val navTabOrder: Preference<String> = preferenceStore.getString("pref_nav_tab_order", "")
+
+    val navHiddenTabs: Preference<Set<String>> = preferenceStore.getStringSet("pref_nav_hidden_tabs", emptySet())
 
     val accentGradientEnabled: Preference<Boolean> = preferenceStore.getBoolean("pref_accent_gradient_enabled", false)
 
