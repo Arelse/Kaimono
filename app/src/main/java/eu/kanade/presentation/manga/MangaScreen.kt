@@ -51,6 +51,9 @@ import androidx.compose.ui.util.fastMap
 import eu.kanade.presentation.components.relativeDateText
 import eu.kanade.presentation.manga.components.ChapterDownloadAction
 import eu.kanade.presentation.manga.components.ChapterHeader
+import eu.kanade.presentation.manga.components.MangaStartReadingCard
+import eu.kanade.presentation.manga.components.MangaStatsCard
+import eu.kanade.presentation.manga.components.ChapterQuickJumpField
 import eu.kanade.presentation.manga.components.ExpandableMangaDescription
 import eu.kanade.presentation.manga.components.MangaActionRow
 import eu.kanade.presentation.manga.components.MangaBottomActionMenu
@@ -348,6 +351,20 @@ private fun MangaScreenSmallImpl(
 
     val chapterListState = rememberLazyListState()
     val scrollScope = rememberCoroutineScope()
+    var chapterQuery by remember { mutableStateOf("") }
+    val filteredListItem = remember(listItem, chapterQuery) {
+        val q = chapterQuery.trim()
+        if (q.isEmpty()) {
+            listItem
+        } else {
+            listItem.filter { item ->
+                item is ChapterList.Item && (
+                    item.chapter.name.contains(q, ignoreCase = true) ||
+                        item.chapter.chapterNumber.toString().removeSuffix(".0").startsWith(q)
+                    )
+            }
+        }
+    }
 
     BackHandler(enabled = isAnySelected) {
         onAllChapterSelected(false)
@@ -502,6 +519,33 @@ private fun MangaScreenSmallImpl(
                     }
 
                     item(
+                        key = MangaScreenItem.START_READING,
+                        contentType = MangaScreenItem.START_READING,
+                    ) {
+                        val isReading = remember(state.chapters) {
+                            state.chapters.fastAny { it.chapter.read }
+                        }
+                        val nextChapterName = remember(state.chapters) {
+                            state.chapters
+                                .filterNot { it.chapter.read }
+                                .minByOrNull { it.chapter.chapterNumber }
+                                ?.chapter?.name
+                        }
+                        MangaStartReadingCard(
+                            isReading = isReading,
+                            nextChapterName = nextChapterName,
+                            onClick = onContinueReading,
+                        )
+                    }
+
+                    item(
+                        key = MangaScreenItem.STATS,
+                        contentType = MangaScreenItem.STATS,
+                    ) {
+                        MangaStatsCard(description = state.manga.description)
+                    }
+                    
+                    item(
                         key = MangaScreenItem.ACTION_ROW,
                         contentType = MangaScreenItem.ACTION_ROW,
                     ) {
@@ -578,9 +622,20 @@ private fun MangaScreenSmallImpl(
                         )
                     }
 
+                    item(
+                        key = MangaScreenItem.CHAPTER_SEARCH,
+                        contentType = MangaScreenItem.CHAPTER_SEARCH,
+                    ) {
+                        ChapterQuickJumpField(
+                            query = chapterQuery,
+                            onQueryChange = { chapterQuery = it },
+                            totalChapters = chapters.size,
+                        )
+                    }
+                    
                     sharedChapterItems(
                         manga = state.manga,
-                        chapters = listItem,
+                        chapters = filteredListItem
                         isAnyChapterSelected = chapters.fastAny { it.selected },
                         chapterSwipeStartAction = chapterSwipeStartAction,
                         chapterSwipeEndAction = chapterSwipeEndAction,
