@@ -215,125 +215,19 @@ object HomeScreen : Screen() {
     // show a small pink-to-blue gradient underline instead of the default filled indicator pill.
     @Composable
     private fun PillNavigationBar(tabs: List<eu.kanade.presentation.util.Tab>) {
-        val tabNavigator = LocalTabNavigator.current
-        val navigator = LocalNavigator.currentOrThrow
-        val scope = rememberCoroutineScope()
-
-        val homeTab = tabs.firstOrNull {
-            it::class == eu.kanade.tachiyomi.ui.discover.DiscoverTab::class
-        }
-        val otherTabs = tabs.filter { it::class != eu.kanade.tachiyomi.ui.discover.DiscoverTab::class }
-        val leftTabs = otherTabs.take(otherTabs.size / 2)
-        val rightTabs = otherTabs.drop(otherTabs.size / 2)
-
-        Box(
+        // All tabs render inline in list order. Home (DiscoverTab) is first in TABS, so it
+        // sits leftmost and behaves exactly like the other tabs - no raised/floating button.
+        Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 12.dp),
+                .padding(horizontal = 16.dp, vertical = 12.dp)
+                .clip(RoundedCornerShape(32.dp))
+                .background(MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.3f))
+                .padding(vertical = 6.dp, horizontal = 4.dp),
+            horizontalArrangement = Arrangement.SpaceAround,
+            verticalAlignment = Alignment.CenterVertically,
         ) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(32.dp))
-                    .background(MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.3f))
-                    .padding(vertical = 10.dp, horizontal = 8.dp),
-                horizontalArrangement = Arrangement.SpaceAround,
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                leftTabs.fastForEach { PillTabItem(it) }
-                if (homeTab != null) {
-                    Box(modifier = Modifier.size(56.dp))
-                }
-                rightTabs.fastForEach { PillTabItem(it) }
-            }
-
-            if (homeTab != null) {
-                val selected = tabNavigator.current::class == homeTab::class
-                Box(
-                    modifier = Modifier
-                        .align(Alignment.TopCenter)
-                        .offset(y = (-16).dp),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .size(72.dp)
-                            .blur(
-                                radius = 28.dp,
-                                edgeTreatment = androidx.compose.ui.draw.BlurredEdgeTreatment.Unbounded,
-                            )
-                            .clip(CircleShape)
-                            .background(
-                                brush = Brush.radialGradient(
-                                    colors = listOf(
-                                        MaterialTheme.colorScheme.primary.copy(alpha = 0.55f),
-                                        androidx.compose.ui.graphics.Color.Transparent,
-                                    ),
-                                ),
-                                shape = CircleShape,
-                            ),
-                    )
-                    val homeScale = remember { androidx.compose.animation.core.Animatable(1f) }
-                    Box(
-                        modifier = Modifier
-                            .size(52.dp)
-                            .graphicsLayer {
-                                scaleX = homeScale.value
-                                scaleY = homeScale.value
-                            }
-                            .clip(CircleShape)
-                            .background(MaterialTheme.colorScheme.surfaceContainerHighest.copy(alpha = 0.35f))
-                            .clickable(
-                                interactionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() },
-                                indication = null,
-                            ) {
-                                scope.launch {
-                                    homeScale.animateTo(0.8f, animationSpec = androidx.compose.animation.core.tween(80))
-                                    homeScale.animateTo(
-                                        1f,
-                                        animationSpec = androidx.compose.animation.core.spring(
-                                            dampingRatio = androidx.compose.animation.core.Spring.DampingRatioMediumBouncy,
-                                            stiffness = androidx.compose.animation.core.Spring.StiffnessMedium,
-                                        ),
-                                    )
-                                }
-                                if (!selected) {
-                                    tabNavigator.current = homeTab
-                                } else {
-                                    scope.launch { homeTab.onReselect(navigator) }
-                                }
-                            },
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        NavigationIconItem(homeTab)
-                    }
-                    Text(
-                        text = "Home",
-                        fontSize = 10.sp,
-                        color = if (selected) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier
-                            .align(Alignment.BottomCenter)
-                            .offset(y = 10.dp),
-                    )
-                    if (selected) {
-                        Box(
-                            modifier = Modifier
-                                .align(Alignment.BottomCenter)
-                                .offset(y = 22.dp)
-                                .size(width = 20.dp, height = 3.dp)
-                                .clip(RoundedCornerShape(2.dp))
-                                .background(
-                                    Brush.horizontalGradient(
-                                        colors = listOf(
-                                            androidx.compose.ui.graphics.Color(0xFFE94584),
-                                            androidx.compose.ui.graphics.Color(0xFF3EC6F0),
-                                        ),
-                                    ),
-                                ),
-                        )
-                    }
-                }
-            }
+            tabs.fastForEach { PillTabItem(it) }
         }
     }
 
@@ -529,6 +423,7 @@ object HomeScreen : Screen() {
 
     @Composable
     private fun navLabelFor(tab: eu.kanade.presentation.util.Tab): String = when {
+        tab::class == eu.kanade.tachiyomi.ui.discover.DiscoverTab::class -> "Home"
         tab is LibraryTab || tab is NovelsTab -> "Library"
         tab is HistoryTab -> "History"
         BrowseTab::class.isInstance(tab) -> "Browse"
