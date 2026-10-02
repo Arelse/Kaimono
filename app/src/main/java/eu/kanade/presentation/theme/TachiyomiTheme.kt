@@ -77,7 +77,10 @@ private fun BaseTachiyomiTheme(
     val context = LocalContext.current
     val isDark = isSystemInDarkTheme()
     val customThemeColor by Injekt.get<UiPreferences>().customThemeColor.collectAsState()
+    val appFont by Injekt.get<UiPreferences>().appFont.collectAsState()
+    val typography = remember(appFont) { typographyFor(appFont) }
     MaterialExpressiveTheme(
+        typography = typography,
         colorScheme = remember(appTheme, isDark, isAmoled, seedColor, coverStyle, customThemeColor) {
             if (seedColor != null) {
                 val scheme = MonetCompatColorScheme(Color(seedColor), coverStyle)
@@ -142,4 +145,30 @@ private val colorSchemes: Map<AppTheme, BaseColorScheme> = mapOf(
     AppTheme.EVERFOREST to EverforestColorScheme,
 )
 
-
+private fun typographyFor(font: eu.kanade.domain.ui.model.AppFont): androidx.compose.material3.Typography {
+    val base = androidx.compose.material3.Typography()
+    val family = when (font) {
+        eu.kanade.domain.ui.model.AppFont.DEFAULT -> return base
+        eu.kanade.domain.ui.model.AppFont.SANS_SERIF -> androidx.compose.ui.text.font.FontFamily.SansSerif
+        eu.kanade.domain.ui.model.AppFont.SERIF -> androidx.compose.ui.text.font.FontFamily.Serif
+        eu.kanade.domain.ui.model.AppFont.MONOSPACE -> androidx.compose.ui.text.font.FontFamily.Monospace
+        eu.kanade.domain.ui.model.AppFont.CURSIVE -> androidx.compose.ui.text.font.FontFamily.Cursive
+    }
+    return androidx.compose.material3.Typography(
+        displayLarge = base.displayLarge.copy(fontFamily = family),
+        displayMedium = base.displayMedium.copy(fontFamily = family),
+        displaySmall = base.displaySmall.copy(fontFamily = family),
+        headlineLarge = base.headlineLarge.copy(fontFamily = family),
+        headlineMedium = base.headlineMedium.copy(fontFamily = family),
+        headlineSmall = base.headlineSmall.copy(fontFamily = family),
+        titleLarge = base.titleLarge.copy(fontFamily = family),
+        titleMedium = base.titleMedium.copy(fontFamily = family),
+        titleSmall = base.titleSmall.copy(fontFamily = family),
+        bodyLarge = base.bodyLarge.copy(fontFamily = family),
+        bodyMedium = base.bodyMedium.copy(fontFamily = family),
+        bodySmall = base.bodySmall.copy(fontFamily = family),
+        labelLarge = base.labelLarge.copy(fontFamily = family),
+        labelMedium = base.labelMedium.copy(fontFamily = family),
+        labelSmall = base.labelSmall.copy(fontFamily = family),
+    )
+}
