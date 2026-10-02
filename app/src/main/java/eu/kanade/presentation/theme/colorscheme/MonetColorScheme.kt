@@ -72,7 +72,7 @@ internal class MonetCompatColorScheme(seed: Color, style: PaletteStyle = Palette
             return DynamicScheme(
                 seedColor = seed,
                 isDark = dark,
-                specVersion = ColorSpec.SpecVersion.SPEC_2025,
+                specVersion = ColorSpec.SpecVersion.SPEC_2021,
                 style = style,
             )
                 .toColorScheme(isAmoled = false)
