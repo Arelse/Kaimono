@@ -61,6 +61,8 @@ fun HistoryItem(
     modifier: Modifier = Modifier,
 ) {
     val cardStyle by remember { Injekt.get<UiPreferences>() }.historyCardStyle.collectAsState()
+    val roundness by remember { Injekt.get<UiPreferences>() }.cardRoundness.collectAsState()
+    val r = roundness / 100f
 
     val readAt = remember { history.readAt?.toTimestampString() ?: "" }
     val progress = history.lastPageRead
@@ -87,7 +89,7 @@ fun HistoryItem(
         HistoryCardStyle.REGULAR -> Row(
             modifier = modifier
                 .padding(horizontal = 12.dp, vertical = 3.dp)
-                .clip(RoundedCornerShape(16.dp))
+                .clip(RoundedCornerShape((16 * r).dp))
                 .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.28f))
                 .clickable(onClick = onClickResume)
                 .height(HistoryItemHeight)
@@ -111,8 +113,8 @@ fun HistoryItem(
         HistoryCardStyle.FROSTED_GLASS -> Box(
             modifier = modifier
                 .padding(horizontal = 12.dp, vertical = 4.dp)
-                .clip(RoundedCornerShape(20.dp))
-                .border(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.4f), RoundedCornerShape(20.dp))
+                .clip(RoundedCornerShape((20 * r).dp))
+                .border(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.4f), RoundedCornerShape((20 * r).dp))
                 .clickable(onClick = onClickResume)
                 .height(HistoryItemHeight + 16.dp),
         ) {
@@ -160,8 +162,8 @@ fun HistoryItem(
         HistoryCardStyle.BOOTIFUL -> Column(
             modifier = modifier
                 .padding(horizontal = 12.dp, vertical = 6.dp)
-                .clip(RoundedCornerShape(22.dp))
-                .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(22.dp))
+                .clip(RoundedCornerShape((22 * r).dp))
+                .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape((22 * r).dp))
                 .background(MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.7f))
                 .clickable(onClick = onClickResume),
         ) {
