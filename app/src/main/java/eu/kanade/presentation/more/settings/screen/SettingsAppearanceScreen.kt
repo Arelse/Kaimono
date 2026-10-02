@@ -441,6 +441,26 @@ object SettingsAppearanceScreen : SearchableSettings {
             title = "UI settings",
             preferenceItems = listOf(
                 Preference.PreferenceItem.ListPreference(
+                    preference = uiPreferences.libraryCardStyle,
+                    entries = mapOf(
+                        eu.kanade.domain.ui.model.LibraryCardStyle.DEFAULT to "Default",
+                        eu.kanade.domain.ui.model.LibraryCardStyle.SAIKOU to "Saikou",
+                        eu.kanade.domain.ui.model.LibraryCardStyle.EXOTIC to "Exotic",
+                        eu.kanade.domain.ui.model.LibraryCardStyle.MINIMAL_EXOTIC to "Minimal exotic",
+                    ),
+                    title = "Library card style",
+                    subtitle = "%s (comfortable grid only)",
+                ),
+                Preference.PreferenceItem.ListPreference(
+                    preference = uiPreferences.historyCardStyle,
+                    entries = mapOf(
+                        eu.kanade.domain.ui.model.HistoryCardStyle.REGULAR to "Regular",
+                        eu.kanade.domain.ui.model.HistoryCardStyle.FROSTED_GLASS to "Frosted glass",
+                        eu.kanade.domain.ui.model.HistoryCardStyle.BOOTIFUL to "Bootiful",
+                    ),
+                    title = "History card style",
+                ),
+                Preference.PreferenceItem.ListPreference(
                     preference = uiPreferences.navBarStyle,
                     entries = mapOf(
                         NavBarStyle.CLASSIC to "Classic",
