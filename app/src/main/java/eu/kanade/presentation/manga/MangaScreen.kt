@@ -635,7 +635,7 @@ private fun MangaScreenSmallImpl(
                     
                     sharedChapterItems(
                         manga = state.manga,
-                        chapters = filteredListItem
+                        chapters = filteredListItem,
                         isAnyChapterSelected = chapters.fastAny { it.selected },
                         chapterSwipeStartAction = chapterSwipeStartAction,
                         chapterSwipeEndAction = chapterSwipeEndAction,
