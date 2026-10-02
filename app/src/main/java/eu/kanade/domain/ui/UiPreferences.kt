@@ -52,12 +52,6 @@ class UiPreferences(
 
     val accentGradientEnabled: Preference<Boolean> = preferenceStore.getBoolean("pref_accent_gradient_enabled", false)
 
-    val accentGradientColor: Preference<String> = preferenceStore.getString("pref_accent_gradient_color", "EMBER")
-
-    val ambientParticleEffect: Preference<String> = preferenceStore.getString("pref_ambient_particle_effect", "NONE")
-
-    val accentGradientEnabled: Preference<Boolean> = preferenceStore.getBoolean("pref_accent_gradient_enabled", false)
-
     val accentColor: Preference<AccentColor> = preferenceStore.getEnum("pref_accent_color", AccentColor.EMBER)
 
     val particleEffect: Preference<ParticleEffect> = preferenceStore.getEnum("pref_particle_effect", ParticleEffect.NONE)
