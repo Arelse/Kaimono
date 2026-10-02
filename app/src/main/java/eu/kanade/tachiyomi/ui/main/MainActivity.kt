@@ -221,6 +221,17 @@ class MainActivity : BaseActivity() {
                 // ambient system from both AppTheme and Liquid mode. Can be used alongside
                 // Liquid mode's image (drawn first, so the image layers on top if both are on)
                 // or entirely on its own.
+                val immersiveMode by uiPreferences.immersiveMode.collectAsState()
+                LaunchedEffect(immersiveMode) {
+                    val controller = androidx.core.view.WindowCompat.getInsetsController(window, window.decorView)
+                    if (immersiveMode) {
+                        controller.systemBarsBehavior =
+                            androidx.core.view.WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+                        controller.hide(androidx.core.view.WindowInsetsCompat.Type.systemBars())
+                    } else {
+                        controller.show(androidx.core.view.WindowInsetsCompat.Type.systemBars())
+                    }
+                }
                 val accentGradientEnabled by uiPreferences.accentGradientEnabled.collectAsState()
                 val accentColor by uiPreferences.accentColor.collectAsState()
                 val particleEffect by uiPreferences.particleEffect.collectAsState()
