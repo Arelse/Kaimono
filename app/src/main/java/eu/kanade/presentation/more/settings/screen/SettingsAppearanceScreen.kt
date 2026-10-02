@@ -24,6 +24,13 @@ import eu.kanade.presentation.more.settings.Preference
 import eu.kanade.presentation.more.settings.screen.appearance.AppLanguageScreen
 import eu.kanade.presentation.more.settings.widget.AppThemeModePreferenceWidget
 import eu.kanade.presentation.more.settings.widget.AppThemePreferenceWidget
+import eu.kanade.presentation.more.settings.widget.CustomColorPickerDialog
+import eu.kanade.presentation.more.settings.widget.NavTabReorderDialog
+import eu.kanade.domain.ui.model.AppTheme
+import eu.kanade.domain.ui.model.NavBarStyle
+import eu.kanade.tachiyomi.ui.home.NavTabKeys
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import eu.kanade.tachiyomi.util.system.toast
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -54,6 +61,7 @@ object SettingsAppearanceScreen : SearchableSettings {
 
         return listOf(
             getThemeGroup(uiPreferences = uiPreferences),
+            getUiSettingsGroup(uiPreferences = uiPreferences, libraryPreferences = libraryPreferences),
             getDisplayGroup(uiPreferences = uiPreferences),
             getMangaInfoGroup(uiPreferences = uiPreferences),
             getFlourishGroup(uiPreferences = uiPreferences),
@@ -83,6 +91,21 @@ object SettingsAppearanceScreen : SearchableSettings {
         val bloomPref = uiPreferences.bloomEnabled
         val grainPref = uiPreferences.grainOverlayEnabled
 
+        val customColorPref = uiPreferences.customThemeColor
+        val customColor by customColorPref.collectAsState()
+        var showColorPicker by remember { mutableStateOf(false) }
+        if (showColorPicker) {
+            CustomColorPickerDialog(
+                initialColor = customColor,
+                onDismiss = { showColorPicker = false },
+                onConfirm = {
+                    customColorPref.set(it)
+                    appThemePref.set(AppTheme.CUSTOM)
+                    showColorPicker = false
+                },
+            )
+        }
+
         return Preference.PreferenceGroup(
             title = stringResource(MR.strings.pref_category_theme),
             preferenceItems = listOf(
@@ -105,6 +128,15 @@ object SettingsAppearanceScreen : SearchableSettings {
                         )
                     }
                 },
+                Preference.PreferenceItem.TextPreference(
+                    title = "Custom theme color",
+                    subtitle = if (appTheme == AppTheme.CUSTOM) {
+                        "#%06X".format(customColor and 0xFFFFFF)
+                    } else {
+                        "Pick any color to build a theme from"
+                    },
+                    onClick = { showColorPicker = true },
+                ),
                 Preference.PreferenceItem.SwitchPreference(
                     preference = amoledPref,
                     title = stringResource(MR.strings.pref_dark_theme_pure_black),
@@ -369,6 +401,57 @@ object SettingsAppearanceScreen : SearchableSettings {
                     ),
                     title = "Particle effect",
                     subtitle = "An animated overlay, works on its own or with the gradient above",
+                ),
+            ),
+        )
+    }
+
+    @Composable
+    private fun getUiSettingsGroup(
+        uiPreferences: UiPreferences,
+        libraryPreferences: tachiyomi.domain.library.service.LibraryPreferences,
+    ): Preference.PreferenceGroup {
+        val basePreferences = remember { Injekt.get<eu.kanade.domain.base.BasePreferences>() }
+        val isJoined by libraryPreferences.joinedLibrary.collectAsState()
+        val hideMangaUi by basePreferences.hideMangaUi.collectAsState()
+        val joined = isJoined || hideMangaUi
+
+        val tabOrderPref = uiPreferences.navTabOrder
+        val tabOrder by tabOrderPref.collectAsState()
+        val hiddenTabsPref = uiPreferences.navHiddenTabs
+        val hiddenTabs by hiddenTabsPref.collectAsState()
+        var showReorder by remember { mutableStateOf(false) }
+
+        if (showReorder) {
+            NavTabReorderDialog(
+                initialOrder = NavTabKeys.ordered(NavTabKeys.defaultKeys(joined), tabOrder),
+                initialHidden = hiddenTabs,
+                lockedKey = NavTabKeys.MORE,
+                labelFor = { NavTabKeys.label(it, joined) },
+                onDismiss = { showReorder = false },
+                onSave = { order, hidden ->
+                    tabOrderPref.set(order.joinToString(","))
+                    hiddenTabsPref.set(hidden)
+                    showReorder = false
+                },
+            )
+        }
+
+        return Preference.PreferenceGroup(
+            title = "UI settings",
+            preferenceItems = listOf(
+                Preference.PreferenceItem.ListPreference(
+                    preference = uiPreferences.navBarStyle,
+                    entries = mapOf(
+                        NavBarStyle.CLASSIC to "Classic",
+                        NavBarStyle.DYNAMIC_PILL to "Dynamic pill",
+                    ),
+                    title = "Nav bar style",
+                ),
+                Preference.PreferenceItem.TextPreference(
+                    title = "Reorder navigation tabs",
+                    subtitle = "Change tab order and hide tabs you don't use",
+                    onClick = { showReorder = true },
                 ),
             ),
         )
