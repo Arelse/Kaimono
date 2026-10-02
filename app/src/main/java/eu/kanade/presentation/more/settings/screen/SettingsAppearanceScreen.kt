@@ -421,6 +421,14 @@ object SettingsAppearanceScreen : SearchableSettings {
         val hiddenTabsPref = uiPreferences.navHiddenTabs
         val hiddenTabs by hiddenTabsPref.collectAsState()
         var showReorder by remember { mutableStateOf(false) }
+        val navMarginPref = uiPreferences.navBarMargin
+        val navMargin by navMarginPref.collectAsState()
+        val roundnessPref = uiPreferences.cardRoundness
+        val roundness by roundnessPref.collectAsState()
+        val glowPref = uiPreferences.glowMultiplier
+        val glow by glowPref.collectAsState()
+        val animPref = uiPreferences.cardAnimationMs
+        val anim by animPref.collectAsState()
 
         if (showReorder) {
             NavTabReorderDialog(
@@ -468,6 +476,55 @@ object SettingsAppearanceScreen : SearchableSettings {
                     ),
                     title = "Nav bar style",
                 ),
+                Preference.PreferenceItem.SwitchPreference(
+                    preference = uiPreferences.translucentNav,
+                    title = "Translucent nav",
+                    subtitle = "Let the background show through the navigation bar",
+                ),
+                Preference.PreferenceItem.SwitchPreference(
+                    preference = uiPreferences.immersiveMode,
+                    title = "Immersive mode",
+                    subtitle = "Hide system status and navigation bars",
+                ),
+                Preference.PreferenceItem.ListPreference(
+                    preference = uiPreferences.appFont,
+                    entries = mapOf(
+                        eu.kanade.domain.ui.model.AppFont.DEFAULT to "Default",
+                        eu.kanade.domain.ui.model.AppFont.SANS_SERIF to "Sans serif",
+                        eu.kanade.domain.ui.model.AppFont.SERIF to "Serif",
+                        eu.kanade.domain.ui.model.AppFont.MONOSPACE to "Monospace",
+                        eu.kanade.domain.ui.model.AppFont.CURSIVE to "Cursive",
+                    ),
+                    title = "Font family",
+                ),
+                Preference.PreferenceItem.SliderPreference(
+                    value = navMargin,
+                    valueRange = 0..48,
+                    title = "Bottom nav bar margin",
+                    subtitle = "Horizontal space around the navigation bar",
+                    onValueChanged = { navMarginPref.set(it) },
+                ),
+                Preference.PreferenceItem.SliderPreference(
+                    value = roundness,
+                    valueRange = 0..200,
+                    title = "Card roundness",
+                    subtitle = "Corner roundness of library and history cards, in %",
+                    onValueChanged = { roundnessPref.set(it) },
+                ),
+                Preference.PreferenceItem.SliderPreference(
+                    value = glow,
+                    valueRange = 0..300,
+                    title = "Glow multiplier",
+                    subtitle = "Glow strength of Exotic library cards, in %",
+                    onValueChanged = { glowPref.set(it) },
+                ),
+                Preference.PreferenceItem.SliderPreference(
+                    value = anim,
+                    valueRange = 50..500,
+                    title = "Card animation duration",
+                    subtitle = "Tap animation speed in milliseconds",
+                    onValueChanged = { animPref.set(it) },
+                ),
                 Preference.PreferenceItem.TextPreference(
                     title = "Reorder navigation tabs",
                     subtitle = "Change tab order and hide tabs you don't use",
@@ -511,3 +568,4 @@ private val DateFormats = listOf(
 
 
              
+  
