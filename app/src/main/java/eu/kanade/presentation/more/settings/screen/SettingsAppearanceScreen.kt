@@ -383,7 +383,6 @@ object SettingsAppearanceScreen : SearchableSettings {
     }
 
     @Composable
-    @Composable
     private fun getFlourishGroup(
         uiPreferences: UiPreferences,
     ): Preference.PreferenceGroup {
