@@ -223,7 +223,7 @@ fun MangaComfortableGridItem(
                 )
             }
         }
-        val cover: @Composable () -> Unit = {
+        val cover: @Composable BoxScope.() -> Unit = {
             MangaCover.Book(
                 modifier = Modifier
                     .fillMaxWidth()
