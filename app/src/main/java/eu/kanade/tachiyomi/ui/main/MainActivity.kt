@@ -306,11 +306,7 @@ class MainActivity : BaseActivity() {
                             }
                         }
                     }
-
-                    eu.kanade.presentation.components.AmbientParticlesLayer(
-                        effect = particleEffect,
-                        modifier = Modifier.matchParentSize(),
-                    )
+   
                 }
 
                 // Pop source-related screens when incognito mode is turned off
