@@ -1,5 +1,14 @@
 package eu.kanade.presentation.library.components
 
+import androidx.compose.foundation.border
+import androidx.compose.ui.draw.shadow
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
+import eu.kanade.domain.ui.UiPreferences
+import eu.kanade.domain.ui.model.LibraryCardStyle
+import tachiyomi.presentation.core.util.collectAsState
+import uy.kohesive.injekt.Injekt
+import uy.kohesive.injekt.api.get
 import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Box
@@ -190,43 +199,156 @@ fun MangaComfortableGridItem(
     coverBadgeEnd: (@Composable RowScope.() -> Unit)? = null,
     onClickContinueReading: (() -> Unit)? = null,
 ) {
+    val cardStyle by remember { Injekt.get<UiPreferences>() }.libraryCardStyle.collectAsState()
+    val primary = MaterialTheme.colorScheme.primary
+    val cardShape = RoundedCornerShape(16.dp)
+
     GridItemSelectable(
         isSelected = isSelected,
         onClick = onClick,
         onLongClick = onLongClick,
     ) {
-        Column {
-            MangaGridCover(
-                cover = {
-                    MangaCover.Book(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .alpha(if (isSelected) GRID_SELECTED_COVER_ALPHA else coverAlpha),
-                        data = coverData,
+        val continueButton: @Composable BoxScope.(Alignment) -> Unit = { alignment ->
+            if (onClickContinueReading != null) {
+                ContinueReadingButton(
+                    size = ContinueReadingButtonSizeLarge,
+                    iconSize = ContinueReadingButtonIconSizeLarge,
+                    onClick = onClickContinueReading,
+                    modifier = Modifier
+                        .padding(ContinueReadingButtonGridPadding)
+                        .align(alignment),
+                )
+            }
+        }
+        val cover: @Composable () -> Unit = {
+            MangaCover.Book(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .alpha(if (isSelected) GRID_SELECTED_COVER_ALPHA else coverAlpha),
+                data = coverData,
+            )
+        }
+
+        when (cardStyle) {
+            LibraryCardStyle.DEFAULT -> Column(
+                modifier = Modifier
+                    .clip(cardShape)
+                    .background(MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.35f))
+                    .padding(4.dp),
+            ) {
+                MangaGridCover(
+                    cover = cover,
+                    badgesStart = coverBadgeStart,
+                    badgesEnd = coverBadgeEnd,
+                    content = { continueButton(Alignment.BottomEnd) },
+                )
+                GridItemTitle(
+                    modifier = Modifier.padding(4.dp),
+                    title = title,
+                    style = MaterialTheme.typography.titleSmall,
+                    minLines = 2,
+                    maxLines = titleMaxLines,
+                )
+            }
+
+            LibraryCardStyle.SAIKOU -> Column {
+                MangaGridCover(
+                    cover = cover,
+                    badgesStart = coverBadgeStart,
+                    badgesEnd = null,
+                    content = {
+                        if (coverBadgeEnd != null) {
+                            Row(
+                                modifier = Modifier
+                                    .align(Alignment.BottomEnd)
+                                    .clip(RoundedCornerShape(topStart = 10.dp))
+                                    .background(MaterialTheme.colorScheme.primaryContainer)
+                                    .padding(horizontal = 4.dp, vertical = 2.dp),
+                                content = coverBadgeEnd,
+                            )
+                        }
+                        continueButton(Alignment.BottomStart)
+                    },
+                )
+                GridItemTitle(
+                    modifier = Modifier.padding(horizontal = 2.dp, vertical = 6.dp),
+                    title = title,
+                    style = MaterialTheme.typography.titleSmall,
+                    minLines = 1,
+                    maxLines = titleMaxLines,
+                )
+            }
+
+            LibraryCardStyle.EXOTIC -> Column(
+                modifier = Modifier
+                    .padding(3.dp)
+                    .shadow(
+                        elevation = 10.dp,
+                        shape = cardShape,
+                        ambientColor = primary,
+                        spotColor = primary,
                     )
-                },
-                badgesStart = coverBadgeStart,
-                badgesEnd = coverBadgeEnd,
-                content = {
-                    if (onClickContinueReading != null) {
-                        ContinueReadingButton(
-                            size = ContinueReadingButtonSizeLarge,
-                            iconSize = ContinueReadingButtonIconSizeLarge,
-                            onClick = onClickContinueReading,
+                    .clip(cardShape)
+                    .border(1.5.dp, primary.copy(alpha = 0.6f), cardShape)
+                    .background(MaterialTheme.colorScheme.surfaceContainer),
+            ) {
+                MangaGridCover(
+                    cover = cover,
+                    badgesStart = coverBadgeStart,
+                    badgesEnd = coverBadgeEnd,
+                    content = { continueButton(Alignment.BottomEnd) },
+                )
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.85f))
+                        .padding(horizontal = 6.dp, vertical = 6.dp),
+                ) {
+                    Text(
+                        text = title,
+                        style = MaterialTheme.typography.titleSmall,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer,
+                        maxLines = titleMaxLines,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
+            }
+
+            LibraryCardStyle.MINIMAL_EXOTIC -> Box(
+                modifier = Modifier
+                    .padding(2.dp)
+                    .clip(cardShape)
+                    .border(1.5.dp, primary.copy(alpha = 0.5f), cardShape),
+            ) {
+                MangaGridCover(
+                    cover = cover,
+                    badgesStart = coverBadgeStart,
+                    badgesEnd = coverBadgeEnd,
+                    content = {
+                        Box(
                             modifier = Modifier
-                                .padding(ContinueReadingButtonGridPadding)
-                                .align(Alignment.BottomEnd),
-                        )
-                    }
-                },
-            )
-            GridItemTitle(
-                modifier = Modifier.padding(4.dp),
-                title = title,
-                style = MaterialTheme.typography.titleSmall,
-                minLines = 2,
-                maxLines = titleMaxLines,
-            )
+                                .align(Alignment.BottomCenter)
+                                .fillMaxWidth()
+                                .background(
+                                    Brush.verticalGradient(
+                                        listOf(Color.Transparent, Color.Black.copy(alpha = 0.85f)),
+                                    ),
+                                )
+                                .padding(start = 8.dp, end = 8.dp, top = 24.dp, bottom = 8.dp),
+                        ) {
+                            Text(
+                                text = title,
+                                style = MaterialTheme.typography.titleSmall,
+                                color = Color.White,
+                                maxLines = titleMaxLines,
+                                overflow = TextOverflow.Ellipsis,
+                                modifier = Modifier.padding(end = if (onClickContinueReading != null) 36.dp else 0.dp),
+                            )
+                        }
+                        continueButton(Alignment.BottomEnd)
+                    },
+                )
+            }
         }
     }
 }
