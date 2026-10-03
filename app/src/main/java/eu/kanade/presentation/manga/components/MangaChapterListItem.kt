@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.sizeIn
@@ -36,6 +37,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.graphics.Color
@@ -99,17 +101,38 @@ fun MangaChapterListItem(
         swipeThreshold = swipeActionThreshold,
         backgroundUntilSwipeThreshold = MaterialTheme.colorScheme.surfaceContainerLowest,
     ) {
+        val accentColor = if (!read) {
+            MaterialTheme.colorScheme.primary
+        } else {
+            MaterialTheme.colorScheme.onSurface.copy(alpha = DISABLED_ALPHA)
+        }
         Box(
-            modifier = modifier
-                .padding(horizontal = 12.dp, vertical = 4.dp)
-                .clip(RoundedCornerShape(16.dp))
-                .background(MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.6f))
-                .selectedBackground(selected)
-                .combinedClickable(
-                    onClick = onClick,
-                    onLongClick = onLongClick,
-                ),
+            // Unclipped on purpose: the glow box below is sized larger than the card surface
+            // and needs to bleed past its rounded edge into the gap between rows.
+            modifier = modifier.padding(horizontal = 12.dp, vertical = 4.dp),
         ) {
+            // Soft glow behind the accent bar, drawn first so the card surface below covers
+            // most of it and only the overflow past the card's edge remains visible.
+            Box(
+                modifier = Modifier
+                    .align(Alignment.CenterStart)
+                    .padding(start = 6.dp)
+                    .fillMaxHeight(0.85f)
+                    .width(14.dp)
+                    .blur(10.dp)
+                    .background(accentColor.copy(alpha = 0.55f)),
+            ) {}
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(16.dp))
+                    .background(MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.6f))
+                    .selectedBackground(selected)
+                    .combinedClickable(
+                        onClick = onClick,
+                        onLongClick = onLongClick,
+                    ),
+            ) {
             Box(
                 modifier = Modifier
                     .align(Alignment.CenterStart)
@@ -117,9 +140,7 @@ fun MangaChapterListItem(
                     .fillMaxHeight(0.6f)
                     .width(4.dp)
                     .clip(RoundedCornerShape(50))
-                    .background(
-                        if (!read) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface.copy(alpha = DISABLED_ALPHA),
-                    ),
+                    .background(accentColor),
             ) {}
             Row(
                 modifier = Modifier.padding(start = 20.dp, top = 12.dp, end = 8.dp, bottom = 12.dp),
@@ -214,6 +235,7 @@ fun MangaChapterListItem(
                 downloadProgressProvider = downloadProgressProvider,
                 onClick = { onDownloadClick?.invoke(it) },
             )
+            }
             }
         }
     }
