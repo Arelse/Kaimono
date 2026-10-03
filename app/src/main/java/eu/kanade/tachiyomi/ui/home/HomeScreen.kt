@@ -249,12 +249,18 @@ object HomeScreen : Screen() {
             horizontalArrangement = Arrangement.SpaceAround,
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            tabs.fastForEach { PillTabItem(it, dynamicPill = navBarStyle == eu.kanade.domain.ui.model.NavBarStyle.DYNAMIC_PILL) }
+            tabs.fastForEach {
+                PillTabItem(
+                    it,
+                    dynamicPill = navBarStyle == eu.kanade.domain.ui.model.NavBarStyle.DYNAMIC_PILL,
+                    translucentNav = translucentNav,
+                )
+            }
         }
     }
 
     @Composable
-    private fun PillTabItem(tab: eu.kanade.presentation.util.Tab, dynamicPill: Boolean = false) {
+    private fun PillTabItem(tab: eu.kanade.presentation.util.Tab, dynamicPill: Boolean = false, translucentNav: Boolean = false) {
         val tabNavigator = LocalTabNavigator.current
         val navigator = LocalNavigator.currentOrThrow
         val scope = rememberCoroutineScope()
@@ -300,7 +306,11 @@ object HomeScreen : Screen() {
                             verticalAlignment = Alignment.CenterVertically,
                             modifier = Modifier
                                 .clip(RoundedCornerShape(50))
-                                .background(MaterialTheme.colorScheme.primaryContainer)
+                                .background(
+                                    MaterialTheme.colorScheme.primaryContainer.copy(
+                                        alpha = if (translucentNav) 0.3f else 1f,
+                                    ),
+                                )
                                 .padding(horizontal = 14.dp, vertical = 8.dp),
                         ) {
                             CompositionLocalProvider(
@@ -440,6 +450,25 @@ object HomeScreen : Screen() {
                             }
                         }
                     }
+                    BrowseTab::class.isInstance(tab) -> {
+                        val count by produceState(initialValue = 0) {
+                            Injekt.get<SourcePreferences>().extensionUpdatesCount.changes()
+                                .collectLatest { value = it }
+                        }
+                        if (count > 0) {
+                            Badge {
+                                val desc = pluralStringResource(
+                                    MR.plurals.update_check_notification_ext_updates,
+                                    count = count,
+                                    count,
+                                )
+                                Text(
+                                    text = count.toString(),
+                                    modifier = Modifier.semantics { contentDescription = desc },
+                                )
+                            }
+                        }
+                    }
                 }
             },
         ) {
@@ -507,5 +536,3 @@ object HomeScreen : Screen() {
         data class More(val toDownloads: Boolean) : Tab
     }
 }
-
-                                   
