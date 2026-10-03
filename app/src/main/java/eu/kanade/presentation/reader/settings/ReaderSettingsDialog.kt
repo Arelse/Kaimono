@@ -59,12 +59,33 @@ private fun MangaReaderSettingsDialog(
     onHideMenus: () -> Unit,
     viewModel: ReaderSettingsViewModel,
 ) {
-    val tabTitles = listOf(
+    val controlTheme by viewModel.preferences.controlTheme.collectAsState()
+    val tabTitleStrings = listOf(
         stringResource(MR.strings.pref_category_reading_mode),
         stringResource(MR.strings.pref_category_general),
         stringResource(MR.strings.custom_filter),
-    ).toTabTitles()
-    val pagerState = rememberPagerState { tabTitles.size }
+    )
+    val pagerState = rememberPagerState { tabTitleStrings.size }
+
+    if (controlTheme == eu.kanade.tachiyomi.ui.reader.setting.ReaderPreferences.ReaderControlTheme.IOS26) {
+        IosReaderSettingsSheet(
+            tabLabels = tabTitleStrings,
+            pagerState = pagerState,
+            onDismissRequest = {
+                onDismissRequest()
+                onShowMenus()
+            },
+        ) { page ->
+            when (page) {
+                0 -> ReadingModePage(viewModel)
+                1 -> GeneralPage(viewModel)
+                2 -> ColorFilterPage(viewModel)
+            }
+        }
+        return
+    }
+
+    val tabTitles = tabTitleStrings.toTabTitles()
 
     BoxWithConstraints {
         TabbedDialog(
