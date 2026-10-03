@@ -19,6 +19,11 @@ class ReaderPreferences(
 
     // region General
 
+    val controlTheme: Preference<ReaderControlTheme> = preferenceStore.getEnum(
+        "pref_reader_control_theme",
+        ReaderControlTheme.DEFAULT,
+    )
+
     val pageTransitions: Preference<Boolean> = preferenceStore.getBoolean("pref_enable_transitions_key", true)
 
     val flashOnPageChange: Preference<Boolean> = preferenceStore.getBoolean("pref_reader_flash", false)
@@ -204,6 +209,11 @@ class ReaderPreferences(
     )
 
     // endregion
+
+    enum class ReaderControlTheme {
+        DEFAULT,
+        IOS26,
+    }
 
     enum class FlashColor {
         BLACK,
@@ -534,3 +544,5 @@ class ReaderPreferences(
         }
     }
 }
+
+    
