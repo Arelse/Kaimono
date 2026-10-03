@@ -29,8 +29,6 @@ import androidx.compose.foundation.text.appendInlineContent
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Brush
-import androidx.compose.material.icons.filled.Favorite
-import androidx.compose.material.icons.filled.HourglassEmpty
 import androidx.compose.material.icons.filled.Label
 import androidx.compose.material.icons.filled.PersonOutline
 import androidx.compose.material.icons.filled.Warning
@@ -39,9 +37,7 @@ import androidx.compose.material.icons.outlined.Block
 import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.Done
 import androidx.compose.material.icons.outlined.DoneAll
-import androidx.compose.material.icons.outlined.FavoriteBorder
 import androidx.compose.material.icons.outlined.Pause
-import androidx.compose.material.icons.outlined.Public
 import androidx.compose.material.icons.outlined.Schedule
 import androidx.compose.material.icons.outlined.Sync
 import androidx.compose.material3.DropdownMenuItem
@@ -203,6 +199,7 @@ fun MangaActionRow(
     onEditIntervalClicked: (() -> Unit)?,
     onEditCategory: (() -> Unit)?,
     modifier: Modifier = Modifier,
+    onMergeClicked: () -> Unit = {},
 ) {
     val defaultActionButtonColor = MaterialTheme.colorScheme.onSurface.copy(alpha = DISABLED_ALPHA)
 
@@ -223,7 +220,7 @@ fun MangaActionRow(
             } else {
                 stringResource(MR.strings.add_to_library)
             },
-            icon = if (favorite) Icons.Filled.Favorite else Icons.Outlined.FavoriteBorder,
+            icon = MangaBookOpenIcon,
             color = if (favorite) MaterialTheme.colorScheme.primary else defaultActionButtonColor,
             onClick = onAddToLibraryClicked,
             onLongClick = onEditCategory,
@@ -238,7 +235,7 @@ fun MangaActionRow(
                     nextUpdateDays,
                 )
             },
-            icon = Icons.Default.HourglassEmpty,
+            icon = MangaCalendarClockIcon,
             color = if (isUserIntervalMode) MaterialTheme.colorScheme.primary else defaultActionButtonColor,
             onClick = { onEditIntervalClicked?.invoke() },
         )
@@ -255,12 +252,18 @@ fun MangaActionRow(
         if (onWebViewClicked != null) {
             MangaActionButton(
                 title = stringResource(MR.strings.action_web_view),
-                icon = Icons.Outlined.Public,
+                icon = MangaCompassIcon,
                 color = defaultActionButtonColor,
                 onClick = onWebViewClicked,
                 onLongClick = onWebViewLongClicked,
             )
         }
+        MangaActionButton(
+            title = "Merge",
+            icon = MangaGitMergeIcon,
+            color = defaultActionButtonColor,
+            onClick = onMergeClicked,
+        )
     }
 }
 
