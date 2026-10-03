@@ -34,6 +34,8 @@ private val flashColors = listOf(
 
 @Composable
 internal fun ColumnScope.GeneralPage(viewModel: ReaderSettingsViewModel) {
+    IosControlThemeRow(viewModel)
+
     val readerTheme by viewModel.preferences.readerTheme.collectAsState()
 
     val flashPageState by viewModel.preferences.flashOnPageChange.collectAsState()
