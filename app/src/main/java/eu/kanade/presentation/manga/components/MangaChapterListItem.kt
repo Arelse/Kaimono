@@ -3,11 +3,15 @@ package eu.kanade.presentation.manga.components
 import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.sizeIn
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Bookmark
 import androidx.compose.material.icons.filled.Circle
@@ -32,10 +36,12 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import eu.kanade.tachiyomi.data.download.model.Download
@@ -93,16 +99,31 @@ fun MangaChapterListItem(
         swipeThreshold = swipeActionThreshold,
         backgroundUntilSwipeThreshold = MaterialTheme.colorScheme.surfaceContainerLowest,
     ) {
-        Row(
+        Box(
             modifier = modifier
-                .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.22f))
+                .padding(horizontal = 12.dp, vertical = 4.dp)
+                .clip(RoundedCornerShape(16.dp))
+                .background(MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.6f))
                 .selectedBackground(selected)
                 .combinedClickable(
                     onClick = onClick,
                     onLongClick = onLongClick,
-                )
-                .padding(start = 16.dp, top = 12.dp, end = 8.dp, bottom = 12.dp),
+                ),
         ) {
+            Box(
+                modifier = Modifier
+                    .align(Alignment.CenterStart)
+                    .padding(start = 6.dp)
+                    .fillMaxHeight(0.6f)
+                    .width(4.dp)
+                    .clip(RoundedCornerShape(50))
+                    .background(
+                        if (!read) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface.copy(alpha = DISABLED_ALPHA),
+                    ),
+            ) {}
+            Row(
+                modifier = Modifier.padding(start = 20.dp, top = 12.dp, end = 8.dp, bottom = 12.dp),
+            ) {
             Column(
                 modifier = Modifier.weight(1f),
                 verticalArrangement = Arrangement.spacedBy(6.dp),
@@ -143,6 +164,7 @@ fun MangaChapterListItem(
                     Text(
                         text = title,
                         style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.Bold,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                         onTextLayout = { textHeight = it.size.height },
@@ -192,6 +214,7 @@ fun MangaChapterListItem(
                 downloadProgressProvider = downloadProgressProvider,
                 onClick = { onDownloadClick?.invoke(it) },
             )
+            }
         }
     }
 }
