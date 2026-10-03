@@ -561,6 +561,8 @@ private fun MangaScreenSmallImpl(
                             onTrackingClicked = onTrackingClicked,
                             onEditIntervalClicked = onEditIntervalClicked,
                             onEditCategory = onEditCategoryClicked,
+                            onMergeClicked = { onMigrateClicked?.invoke() },
+)
                         )
                     }
 
