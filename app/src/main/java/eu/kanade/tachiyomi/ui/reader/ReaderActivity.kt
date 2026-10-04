@@ -167,6 +167,7 @@ class ReaderActivity : BaseActivity() {
 
     private val readerPreferences = Injekt.get<ReaderPreferences>()
     private val preferences = Injekt.get<BasePreferences>()
+    private var autoScrollJob: Job? = null
 
     lateinit var binding: ReaderActivityBinding
 
@@ -391,20 +392,44 @@ class ReaderActivity : BaseActivity() {
             .launchIn(lifecycleScope)
 
         readerPreferences.novelTtsBackgroundPlayback.changes()
-            .drop(1)
-            .onEach { enabled ->
-                if (enabled) {
-                    val state = currentNovelTtsState()
-                    if (state?.active == true) {
-                        startTtsNotificationSync()
-                        syncBackgroundTtsState()
-                    }
-                } else {
-                    stopBackgroundTtsIfRunning()
-                }
+    .drop(1)
+    .onEach { enabled ->
+        if (enabled) {
+            val state = currentNovelTtsState()
+            if (state?.active == true) {
+                startTtsNotificationSync()
+                syncBackgroundTtsState()
             }
-            .launchIn(lifecycleScope)
+        } else {
+            stopBackgroundTtsIfRunning()
+        }
     }
+    .launchIn(lifecycleScope)
+
+    readerPreferences.autoScroll.changes()
+        .onEach { enabled -> restartAutoScroll(enabled) }
+        .launchIn(lifecycleScope)
+}
+
+/**
+ * Starts or stops the auto-scroll loop. While running, it periodically synthesizes the same
+ * down/next key event that a hardware down-arrow press would send, so it reuses each
+ * viewer's existing, already-correct page/scroll advance logic instead of duplicating it.
+ */
+private fun restartAutoScroll(enabled: Boolean) {
+    autoScrollJob?.cancel()
+    autoScrollJob = if (enabled) {
+        lifecycleScope.launch {
+            while (isActive) {
+                delay(readerPreferences.autoScrollSeconds.get().coerceAtLeast(1) * 1000L)
+                viewModel.state.value.viewer
+                    ?.handleKeyEvent(KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_DPAD_DOWN))
+            }
+        }
+    } else {
+        null
+    }
+}
     
     // Edge-glow style: the blurred background image is hidden near the center (where the page
     // sits) and only shows as a soft glow right at the screen edges, via a radial-gradient scrim
