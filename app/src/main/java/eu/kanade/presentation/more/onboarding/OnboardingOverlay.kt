@@ -67,7 +67,8 @@ fun OnboardingOverlay(
     if (currentStep == 0) {
         ModalBottomSheet(
             onDismissRequest = { currentStep = 1 },
-            sheetState = sheetState
+            sheetState = sheetState,
+            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.85f),
         ) {
             Column(
                 modifier = Modifier.fillMaxWidth().padding(24.dp)
@@ -115,7 +116,7 @@ fun OnboardingOverlay(
                     .fillMaxWidth(0.85f)
                     .wrapContentHeight(),
                 shape = RoundedCornerShape(24.dp),
-                color = MaterialTheme.colorScheme.surfaceVariant
+                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.85f)
             ) {
                 Column(
                     modifier = Modifier.padding(16.dp), horizontalAlignment = Alignment.CenterHorizontally
