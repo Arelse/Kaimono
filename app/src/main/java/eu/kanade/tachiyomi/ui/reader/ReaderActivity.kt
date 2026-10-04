@@ -1406,6 +1406,72 @@ private fun restartAutoScroll(enabled: Boolean) {
             )
             val verticalNavigatorOnLeft by readerPreferences.verticalNavigatorOnLeft.collectAsState()
             val verticalNavigatorHeight by readerPreferences.verticalNavigatorHeight.collectAsState()
+            val controlTheme by readerPreferences.controlTheme.collectAsState()
+            val autoScrollActive by readerPreferences.autoScroll.collectAsState()
+
+            val chapterNavigatorType = if (!verticalNavigator) {
+                if (state.viewer is R2LPagerViewer) {
+                    ChapterNavigatorType.HORIZONTAL_RTL
+                } else {
+                    ChapterNavigatorType.HORIZONTAL_LTR
+                }
+            } else {
+                if (verticalNavigatorOnLeft) {
+                    ChapterNavigatorType.VERTICAL_LEFT
+                } else {
+                    ChapterNavigatorType.VERTICAL_RIGHT
+                }
+            }
+
+            if (controlTheme == eu.kanade.tachiyomi.ui.reader.setting.ReaderPreferences.ReaderControlTheme.IOS26 &&
+                chapterNavigatorType.isHorizontal()
+            ) {
+                eu.kanade.presentation.reader.appbars.IosReaderAppBars(
+                    visible = state.menuVisible,
+                    mangaTitle = state.manga?.title,
+                    chapterTitle = state.currentChapter?.chapter?.name,
+                    navigateUp = onBackPressedDispatcher::onBackPressed,
+                    onClickTopAppBar = ::openMangaScreen,
+                    bookmarked = state.bookmarked,
+                    onToggleBookmarked = viewModel::toggleChapterBookmark,
+                    currentPage = state.currentPage,
+                    totalPages = state.totalPages,
+                    onPageIndexChange = {
+                        isScrollingThroughPages = true
+                        moveToPageIndex(it)
+                    },
+                    onPageIndexChangeFinished = {
+                        isScrollingThroughPages = false
+                    },
+                    readingMode = ReadingMode.fromPreference(
+                        viewModel.getMangaReadingMode(resolveDefault = false),
+                    ),
+                    onClickReadingMode = viewModel::openReadingModeSelectDialog,
+                    orientation = ReaderOrientation.fromPreference(
+                        viewModel.getMangaOrientation(resolveDefault = false),
+                    ),
+                    onClickOrientation = viewModel::openOrientationModeSelectDialog,
+                    cropEnabled = cropEnabled,
+                    onClickCropBorder = {
+                        val enabled = viewModel.toggleCropBorders()
+                        menuToggleToast?.cancel()
+                        menuToggleToast = toast(if (enabled) MR.strings.on else MR.strings.off)
+                    },
+                    onClickSettings = viewModel::openSettingsDialog,
+                )
+                androidx.compose.foundation.layout.Box(modifier = Modifier.fillMaxSize()) {
+                    eu.kanade.presentation.reader.appbars.IosZoomControlPill(
+                        autoScrollActive = autoScrollActive,
+                        onToggleAutoScroll = { readerPreferences.autoScroll.set(!autoScrollActive) },
+                        onZoomIn = {},
+                        onZoomOut = {},
+                        modifier = Modifier
+                            .align(Alignment.CenterEnd)
+                            .padding(end = 8.dp),
+                    )
+                }
+                return
+            }
 
             ReaderAppBars(
                 visible = state.menuVisible,
@@ -1420,19 +1486,7 @@ private fun restartAutoScroll(enabled: Boolean) {
                 onOpenInBrowser = ::openChapterInBrowser.takeIf { hasWebViewSupport },
                 onShare = ::shareChapter.takeIf { hasWebViewSupport },
 
-                chapterNavigatorType = if (!verticalNavigator) {
-                    if (state.viewer is R2LPagerViewer) {
-                        ChapterNavigatorType.HORIZONTAL_RTL
-                    } else {
-                        ChapterNavigatorType.HORIZONTAL_LTR
-                    }
-                } else {
-                    if (verticalNavigatorOnLeft) {
-                        ChapterNavigatorType.VERTICAL_LEFT
-                    } else {
-                        ChapterNavigatorType.VERTICAL_RIGHT
-                    }
-                },
+                chapterNavigatorType = chapterNavigatorType,
                 verticalNavigatorHeight = verticalNavigatorHeight / 100f,
                 onNextChapter = ::loadNextChapter,
                 enabledNext = state.viewerChapters?.nextChapter != null,
