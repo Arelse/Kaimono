@@ -1,6 +1,7 @@
 package eu.kanade.presentation.reader.settings
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -173,14 +174,10 @@ private fun RowScope.IosPillTab(
     }
 }
 
-private fun Modifier.clickableNoRipple(onClick: () -> Unit): Modifier = this.then(
-    Modifier.then(
-        androidx.compose.foundation.clickable(
-            interactionSource = null,
-            indication = null,
-            onClick = onClick,
-        ),
-    ),
+private fun Modifier.clickableNoRipple(onClick: () -> Unit): Modifier = this.clickable(
+    interactionSource = null,
+    indication = null,
+    onClick = onClick,
 )
 
 /**
