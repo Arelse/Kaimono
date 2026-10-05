@@ -7,3 +7,4 @@ Các tính năng:
 * Và còn nhiều tính năng hơn thế nữa đang chờ bạn khám phá...
 
 Nhà phát triển của ứng dụng này không liên quan đến bất kỳ bên cung cấp dữ liệu / nội dung có sẵn nào, và ứng dụng này không có sẵn bất kỳ nội dung nào.
+
