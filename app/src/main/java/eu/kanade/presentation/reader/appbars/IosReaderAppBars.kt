@@ -48,13 +48,14 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import eu.kanade.tachiyomi.R
 import eu.kanade.tachiyomi.ui.reader.setting.ReaderOrientation
 import eu.kanade.tachiyomi.ui.reader.setting.ReadingMode
 import kotlin.math.roundToInt
 
-private val iosBarsAnimSpec = tween<Int>(200)
+private val iosBarsSlideSpec = tween<IntOffset>(200)
 private val iosBarsFadeSpec = tween<Float>(150)
 
 /**
@@ -95,8 +96,8 @@ fun IosReaderAppBars(
         AnimatedVisibility(
             modifier = Modifier.align(Alignment.TopCenter),
             visible = visible,
-            enter = slideInVertically(iosBarsAnimSpec) { -it } + fadeIn(iosBarsFadeSpec),
-            exit = slideOutVertically(iosBarsAnimSpec) { -it } + fadeOut(iosBarsFadeSpec),
+            enter = slideInVertically(iosBarsSlideSpec) { -it } + fadeIn(iosBarsFadeSpec),
+            exit = slideOutVertically(iosBarsSlideSpec) { -it } + fadeOut(iosBarsFadeSpec),
         ) {
             Row(
                 modifier = Modifier
@@ -166,8 +167,8 @@ fun IosReaderAppBars(
         AnimatedVisibility(
             modifier = Modifier.align(Alignment.BottomCenter),
             visible = visible,
-            enter = slideInVertically(iosBarsAnimSpec) { it } + fadeIn(iosBarsFadeSpec),
-            exit = slideOutVertically(iosBarsAnimSpec) { it } + fadeOut(iosBarsFadeSpec),
+            enter = slideInVertically(iosBarsSlideSpec) { it } + fadeIn(iosBarsFadeSpec),
+            exit = slideOutVertically(iosBarsSlideSpec) { it } + fadeOut(iosBarsFadeSpec),
         ) {
             Column(
                 modifier = Modifier
