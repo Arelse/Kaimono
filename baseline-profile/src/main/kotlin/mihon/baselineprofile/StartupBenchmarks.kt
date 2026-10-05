@@ -96,3 +96,4 @@ abstract class AbstractStartupBenchmark(private val startupMode: StartupMode) {
         )
     }
 }
+
