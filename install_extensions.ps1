@@ -240,3 +240,4 @@ if ($All -or $ExtensionsOnly) {
 }
 
 Write-Host "Installation complete for $($devices.Count) device(s)!"
+
