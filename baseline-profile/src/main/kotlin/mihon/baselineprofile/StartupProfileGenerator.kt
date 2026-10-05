@@ -32,3 +32,4 @@ class StartupProfileGenerator {
 private fun UiDevice.waitAndClick(by: BySelector) {
     wait(Until.findObject(by), 60_000).click()
 }
+
