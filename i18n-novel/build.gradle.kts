@@ -39,3 +39,4 @@ multiplatformResources {
     resourcesClassName.set("TDMR")
     resourcesPackage.set("tachiyomi.i18n.novel")
 }
+
