@@ -48,3 +48,4 @@ androidComponents {
         variant.instrumentationRunnerArguments.put("targetAppId", applicationId)
     }
 }
+
