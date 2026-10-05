@@ -29,3 +29,4 @@ dependencies {
         implementation(libs.firebase.crashlytics)
     }
 }
+
