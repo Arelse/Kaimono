@@ -216,6 +216,7 @@ class ReaderPreferences(
 
     enum class ReaderControlTheme {
         DEFAULT,
+        TRANSLUCENT,
         IOS26,
     }
 
@@ -548,5 +549,3 @@ class ReaderPreferences(
         }
     }
 }
-
- 
