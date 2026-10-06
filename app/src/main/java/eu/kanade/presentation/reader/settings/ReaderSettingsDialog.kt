@@ -67,7 +67,7 @@ private fun MangaReaderSettingsDialog(
     )
     val pagerState = rememberPagerState { tabTitleStrings.size }
 
-    if (controlTheme == eu.kanade.tachiyomi.ui.reader.setting.ReaderPreferences.ReaderControlTheme.IOS26) {
+    if (controlTheme != eu.kanade.tachiyomi.ui.reader.setting.ReaderPreferences.ReaderControlTheme.DEFAULT) {
         IosReaderSettingsSheet(
             tabLabels = tabTitleStrings,
             pagerState = pagerState,
