@@ -50,6 +50,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import eu.kanade.tachiyomi.R
 import eu.kanade.tachiyomi.ui.reader.setting.ReaderOrientation
 import eu.kanade.tachiyomi.ui.reader.setting.ReadingMode
@@ -72,6 +73,7 @@ fun IosReaderAppBars(
     chapterTitle: String?,
     navigateUp: () -> Unit,
     onClickTopAppBar: () -> Unit,
+    onClickChapterList: () -> Unit,
     bookmarked: Boolean,
     onToggleBookmarked: () -> Unit,
 
@@ -119,7 +121,7 @@ fun IosReaderAppBars(
                         .weight(1f)
                         .clip(RoundedCornerShape(24.dp))
                         .background(pillColor)
-                        .clickable(onClick = onClickTopAppBar)
+                        .clickable(onClick = onClickChapterList)
                         .padding(horizontal = 16.dp, vertical = 10.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
@@ -291,31 +293,35 @@ private fun IosCircleIconButton(
 }
 
 /**
- * Floating vertical pill on the right edge: zoom in/out, and a play/pause button wired to
- * Auto Scroll. Shown independent of menu visibility, matching the reference design.
- * Zoom in/out are not wired to real per-page zoom yet (onZoomIn/onZoomOut are placeholders) —
- * flagged to the user rather than left silently non-functional.
+ * Floating vertical pill on the right edge. The middle button starts/stops Auto Scroll; + and −
+ * raise/lower its speed (Auto Scroll Speed), so every control on this pill is wired to a real,
+ * working feature. Shown independent of menu visibility, matching the reference design.
  */
 @Composable
 fun IosZoomControlPill(
     autoScrollActive: Boolean,
     onToggleAutoScroll: () -> Unit,
-    onZoomIn: () -> Unit,
-    onZoomOut: () -> Unit,
+    onSpeedIncrease: () -> Unit,
+    onSpeedDecrease: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val pillColor = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.55f)
     Column(
         modifier = modifier
-            .widthIn(min = 48.dp)
-            .clip(RoundedCornerShape(24.dp))
+            .widthIn(min = 52.dp)
+            .clip(RoundedCornerShape(26.dp))
             .background(pillColor)
             .padding(vertical = 6.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(4.dp),
     ) {
-        IconButton(onClick = onZoomIn) {
-            Text(text = "+", color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold)
+        IconButton(onClick = onSpeedIncrease, modifier = Modifier.size(52.dp)) {
+            Text(
+                text = "+",
+                color = MaterialTheme.colorScheme.onSurface,
+                fontWeight = FontWeight.Bold,
+                fontSize = 26.sp,
+            )
         }
         IconButton(onClick = onToggleAutoScroll) {
             Icon(
@@ -324,8 +330,13 @@ fun IosZoomControlPill(
                 tint = MaterialTheme.colorScheme.onSurface,
             )
         }
-        IconButton(onClick = onZoomOut) {
-            Text(text = "\u2212", color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold)
+        IconButton(onClick = onSpeedDecrease, modifier = Modifier.size(52.dp)) {
+            Text(
+                text = "\u2212",
+                color = MaterialTheme.colorScheme.onSurface,
+                fontWeight = FontWeight.Bold,
+                fontSize = 26.sp,
+            )
         }
     }
 }
