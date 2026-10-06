@@ -450,6 +450,27 @@ class ReaderViewModel @JvmOverloads constructor(
         return newChapters
     }
 
+/**
+     * Snapshot of the chapter list for UI that needs to present it (e.g. a quick chapter-jump
+     * sheet). Read-only; does not expose the backing list for mutation.
+     */
+    fun getChapterListSnapshot(): List<ReaderChapter> = chapterList.toList()
+
+    /**
+     * Jumps directly to an arbitrary chapter by id, reusing the same loadNewChapter path used for
+     * normal in-viewer chapter transitions, so it keeps the same read-timer and state handling.
+     */
+    fun jumpToChapterId(id: Long) {
+        val target = chapterList.firstOrNull { it.chapter.id == id } ?: return
+        loadNewChapter(target)
+    }
+
+    /**
+     * Called when the user changed to the given [chapter] when changing pages from the viewer.
+     * It's used only to set this chapter as active.
+     */
+    private fun loadNewChapter(chapter: ReaderChapter) {
+    
     /**
      * Called when the user changed to the given [chapter] when changing pages from the viewer.
      * It's used only to set this chapter as active.
