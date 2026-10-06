@@ -46,6 +46,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -1424,15 +1425,18 @@ private fun restartAutoScroll(enabled: Boolean) {
                 }
             }
 
-            if (controlTheme == eu.kanade.tachiyomi.ui.reader.setting.ReaderPreferences.ReaderControlTheme.IOS26 &&
+            if (controlTheme != eu.kanade.tachiyomi.ui.reader.setting.ReaderPreferences.ReaderControlTheme.DEFAULT &&
                 chapterNavigatorType.isHorizontal()
             ) {
+                var showChapterListSheet by remember { mutableStateOf(false) }
+
                 eu.kanade.presentation.reader.appbars.IosReaderAppBars(
                     visible = state.menuVisible,
                     mangaTitle = state.manga?.title,
                     chapterTitle = state.currentChapter?.chapter?.name,
                     navigateUp = onBackPressedDispatcher::onBackPressed,
                     onClickTopAppBar = ::openMangaScreen,
+                    onClickChapterList = { showChapterListSheet = true },
                     bookmarked = state.bookmarked,
                     onToggleBookmarked = viewModel::toggleChapterBookmark,
                     currentPage = state.currentPage,
@@ -1464,11 +1468,30 @@ private fun restartAutoScroll(enabled: Boolean) {
                     eu.kanade.presentation.reader.appbars.IosZoomControlPill(
                         autoScrollActive = autoScrollActive,
                         onToggleAutoScroll = { readerPreferences.autoScroll.set(!autoScrollActive) },
-                        onZoomIn = {},
-                        onZoomOut = {},
+                        onSpeedIncrease = {
+                            val current = readerPreferences.autoScrollSeconds.get()
+                            readerPreferences.autoScrollSeconds.set((current + 1).coerceAtMost(10))
+                        },
+                        onSpeedDecrease = {
+                            val current = readerPreferences.autoScrollSeconds.get()
+                            readerPreferences.autoScrollSeconds.set((current - 1).coerceAtLeast(1))
+                        },
                         modifier = Modifier
                             .align(Alignment.CenterEnd)
                             .padding(end = 8.dp),
+                    )
+                }
+
+                if (showChapterListSheet) {
+                    eu.kanade.presentation.reader.appbars.IosChapterListSheet(
+                        chapters = viewModel.getChapterListSnapshot(),
+                        currentChapterId = state.currentChapter?.chapter?.id,
+                        onChapterClick = {
+                            showChapterListSheet = false
+                            viewModel.jumpToChapterId(it)
+                        },
+                        onDismissRequest = { showChapterListSheet = false },
+                        sheetState = rememberModalBottomSheetState(),
                     )
                 }
                 return
