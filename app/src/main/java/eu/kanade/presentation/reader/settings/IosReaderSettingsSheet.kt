@@ -44,9 +44,10 @@ import kotlinx.coroutines.launch
 import tachiyomi.presentation.core.util.collectAsState
 
 /**
- * Translucent, pill-segmented-tab bottom sheet for the reader settings, used only when
- * [ReaderControlTheme.IOS26] is selected. The [ReaderControlTheme.DEFAULT] path in
- * ReaderSettingsDialog.kt is untouched by this file.
+ * Translucent, pill-segmented-tab bottom sheet for the reader settings, used whenever the control
+ * theme is not [ReaderControlTheme.DEFAULT] (i.e. [ReaderControlTheme.TRANSLUCENT] or
+ * [ReaderControlTheme.IOS26]). The [ReaderControlTheme.DEFAULT] path in ReaderSettingsDialog.kt is
+ * untouched by this file.
  */
 @Composable
 internal fun IosReaderSettingsSheet(
@@ -180,9 +181,16 @@ private fun Modifier.clickableNoRipple(onClick: () -> Unit): Modifier = this.cli
     onClick = onClick,
 )
 
+private fun ReaderControlTheme.label(): String = when (this) {
+    ReaderControlTheme.DEFAULT -> "Default"
+    ReaderControlTheme.TRANSLUCENT -> "Translucent"
+    ReaderControlTheme.IOS26 -> "iOS 26"
+}
+
 /**
- * "Control Theme" settings row + its picker dialog (Default / iOS 26), styled after the app's
- * existing "Nav bar style" picker dialog pattern.
+ * "Control Theme" settings row + its picker dialog (Default / Translucent / iOS 26), styled after
+ * the app's existing "Nav bar style" picker dialog pattern. Translucent and iOS 26 currently
+ * render the same translucent reader chrome; iOS 26 is a separate slot for a future distinct look.
  */
 @Composable
 internal fun IosControlThemeRow(viewModel: ReaderSettingsViewModel) {
@@ -191,7 +199,7 @@ internal fun IosControlThemeRow(viewModel: ReaderSettingsViewModel) {
 
     eu.kanade.presentation.more.settings.widget.TextPreferenceWidget(
         title = "Control Theme",
-        subtitle = if (controlTheme == ReaderControlTheme.IOS26) "iOS 26" else "Default",
+        subtitle = controlTheme.label(),
         onPreferenceClick = { showDialog = true },
     )
 
@@ -221,7 +229,7 @@ private fun ControlThemeDialog(
         text = {
             Column {
                 ReaderControlTheme.entries.forEach { theme ->
-                    val label = if (theme == ReaderControlTheme.IOS26) "iOS 26" else "Default"
+                    val label = theme.label()
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
