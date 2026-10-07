@@ -98,6 +98,22 @@ import eu.kanade.tachiyomi.ui.history.HistoryFilter
 import eu.kanade.tachiyomi.ui.browse.source.browse.BrowseSourceScreen
 import tachiyomi.domain.source.interactor.GetRemoteManga
 
+/**
+ * Frames a Home tab cover card per the selected Home Screen Style, WITHOUT touching
+ * MangaCompactGridItem itself (that composable is shared across the whole app - library
+ * grids included - so its internals stay constant regardless of this preference). CLASSIC
+ * (homeTokens == null) is a no-op: zero visual change for anyone who hasn't opened the
+ * switcher.
+ */
+private fun Modifier.cardFrame(homeTokens: HomeStyleTokens?): Modifier {
+    if (homeTokens == null) return this
+    return this
+        .clip(RoundedCornerShape(14.dp))
+        .background(if (homeTokens.cardGlass) Color.White.copy(alpha = 0.05f) else homeTokens.surface)
+        .border(1.dp, Color.White.copy(alpha = homeTokens.borderAlpha), RoundedCornerShape(14.dp))
+        .padding(6.dp)
+}
+
 object DiscoverTab : Tab {
 
     override val options: cafe.adriel.voyager.navigator.tab.TabOptions
@@ -335,7 +351,7 @@ object DiscoverTab : Tab {
                                     horizontalArrangement = Arrangement.spacedBy(12.dp)
                                 ) {
                                     items(recentlyRead) { history ->
-                                        Box(modifier = Modifier.width(90.dp)) {
+                                        Box(modifier = Modifier.width(90.dp).cardFrame(homeTokens)) {
                                             MangaCompactGridItem(
                                                 isSelected = false,
                                                 title = history.title,
@@ -378,23 +394,12 @@ object DiscoverTab : Tab {
                                         val titleText = firstSource.name
                                         val subtitleText = if (firstSource.lang == "all" || firstSource.lang.isEmpty()) null else eu.kanade.tachiyomi.util.system.LocaleHelper.getLocalizedDisplayName(firstSource.lang)
                                         SectionHeader(title = titleText, subtitle = subtitleText, onSeeAll = { navigator.push(BrowseSourceScreen(firstSource.id, GetRemoteManga.QUERY_POPULAR, isFeed = true)) })
-                                        SkeletonCarousel()
-                                    }
-                                    LaunchedEffect(firstSource.id) {
-                                        val result = viewModel.loadSourcePopular(firstSource)
-                                        viewModel.popularCache[firstSource.id] = result
-                                    }
-                                } else if (cached.isNotEmpty()) {
-                                    Column(modifier = Modifier.fillMaxWidth().padding(bottom = 24.dp)) {
-                                        val titleText = firstSource.name
-                                        val subtitleText = if (firstSource.lang == "all" || firstSource.lang.isEmpty()) null else eu.kanade.tachiyomi.util.system.LocaleHelper.getLocalizedDisplayName(firstSource.lang)
-                                        SectionHeader(title = titleText, subtitle = subtitleText, onSeeAll = { navigator.push(BrowseSourceScreen(firstSource.id, GetRemoteManga.QUERY_POPULAR, isFeed = true)) })
                                         LazyRow(
                                             contentPadding = PaddingValues(horizontal = 16.dp),
                                             horizontalArrangement = Arrangement.spacedBy(12.dp)
                                         ) {
                                             items(cached) { manga ->
-                                                Box(modifier = Modifier.width(90.dp)) {
+                                                Box(modifier = Modifier.width(90.dp).cardFrame(homeTokens)) {
                                                     MangaCompactGridItem(
                                                         isSelected = false,
                                                         title = manga.title,
@@ -489,7 +494,7 @@ object DiscoverTab : Tab {
                                             horizontalArrangement = Arrangement.spacedBy(12.dp)
                                         ) {
                                             items(cached) { manga ->
-                                                Box(modifier = Modifier.width(90.dp)) {
+                                                Box(modifier = Modifier.width(90.dp).cardFrame(homeTokens)) {
                                                     MangaCompactGridItem(
                                                         isSelected = false,
                                                         title = manga.title,
@@ -909,4 +914,4 @@ fun EmptyDiscoverScreen(isNovel: Boolean, onBrowseExtensions: () -> Unit) {
 
 
 
-                          
+                    
