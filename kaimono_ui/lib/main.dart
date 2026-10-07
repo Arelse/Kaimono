@@ -31,7 +31,7 @@ class KaimonoApp extends ConsumerWidget {
     );
 
     return MaterialApp(
-      title: 'Kaimono',
+      title: 'Atsuyune',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         colorScheme: scheme,
