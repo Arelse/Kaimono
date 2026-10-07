@@ -5,6 +5,7 @@ import eu.kanade.domain.ui.model.AccentColor
 import eu.kanade.domain.ui.model.AppFont
 import eu.kanade.domain.ui.model.AppTheme
 import eu.kanade.domain.ui.model.HistoryCardStyle
+import eu.kanade.domain.ui.model.HomeScreenStyle
 import eu.kanade.domain.ui.model.LibraryCardStyle
 import eu.kanade.domain.ui.model.NavBarStyle
 import eu.kanade.domain.ui.model.ParticleEffect
@@ -76,6 +77,10 @@ class UiPreferences(
     val appFont: Preference<AppFont> = preferenceStore.getEnum("pref_app_font", AppFont.DEFAULT)
 
     val navBarStyle: Preference<NavBarStyle> = preferenceStore.getEnum("pref_nav_bar_style", NavBarStyle.CLASSIC)
+
+    // Home Screen Switcher: re-skins the Home tab + floating nav bar. CLASSIC = app theme, unchanged.
+    val homeScreenStyle: Preference<HomeScreenStyle> =
+        preferenceStore.getEnum("pref_home_screen_style", HomeScreenStyle.CLASSIC)
 
     // Comma-separated tab keys in display order, e.g. "home,library,history,browse,more".
     // Empty means default order.
