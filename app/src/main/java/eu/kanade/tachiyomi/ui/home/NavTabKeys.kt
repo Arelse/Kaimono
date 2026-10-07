@@ -8,14 +8,15 @@ object NavTabKeys {
     const val HOME = "home"
     const val NOVELS = "novels"
     const val LIBRARY = "library"
+    const val ANIME = "anime"
     const val HISTORY = "history"
     const val BROWSE = "browse"
     const val MORE = "more"
 
     fun defaultKeys(joined: Boolean): List<String> = if (joined) {
-        listOf(HOME, NOVELS, HISTORY, BROWSE, MORE)
+        listOf(HOME, NOVELS, ANIME, HISTORY, BROWSE, MORE)
     } else {
-        listOf(HOME, NOVELS, LIBRARY, HISTORY, BROWSE, MORE)
+        listOf(HOME, NOVELS, LIBRARY, ANIME, HISTORY, BROWSE, MORE)
     }
 
     /** Parses the saved order string, keeping only known keys and appending any missing ones. */
@@ -28,6 +29,7 @@ object NavTabKeys {
         HOME -> "Home"
         NOVELS -> if (joined) "Library" else "Novels"
         LIBRARY -> "Manga"
+        ANIME -> "Anime"
         HISTORY -> "History"
         BROWSE -> "Browse"
         MORE -> "Settings"
