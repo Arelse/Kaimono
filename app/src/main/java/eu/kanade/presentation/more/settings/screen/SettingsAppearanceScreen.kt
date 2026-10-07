@@ -476,6 +476,19 @@ object SettingsAppearanceScreen : SearchableSettings {
                     ),
                     title = "Nav bar style",
                 ),
+                Preference.PreferenceItem.ListPreference(
+                    preference = uiPreferences.homeScreenStyle,
+                    entries = mapOf(
+                        eu.kanade.domain.ui.model.HomeScreenStyle.CLASSIC to "Classic",
+                        eu.kanade.domain.ui.model.HomeScreenStyle.AURORA_VIOLET to "Aurora Violet",
+                        eu.kanade.domain.ui.model.HomeScreenStyle.NEBULA_GLASS to "Nebula Glass",
+                        eu.kanade.domain.ui.model.HomeScreenStyle.PRISM_AURORA to "Prism Aurora",
+                        eu.kanade.domain.ui.model.HomeScreenStyle.MIDNIGHT_INDIGO to "Midnight Indigo",
+                        eu.kanade.domain.ui.model.HomeScreenStyle.ECLIPSE_NOIR to "Eclipse Noir",
+                    ),
+                    title = "Home screen style",
+                    subtitle = "Re-skins the Home tab and the nav bar",
+                ),
                 Preference.PreferenceItem.SwitchPreference(
                     preference = uiPreferences.translucentNav,
                     title = "Translucent nav",
@@ -568,4 +581,6 @@ private val DateFormats = listOf(
 
 
              
+
+  
   
