@@ -58,6 +58,15 @@ val SparkleNavIcon: ImageVector by lazy {
     )
 }
 
+// Anime tab: circle with a play triangle
+val AnimeNavIcon: ImageVector by lazy {
+    strokeIcon(
+        "AnimeNavIcon",
+        "M22 12A10 10 0 1 1 2 12A10 10 0 1 1 22 12z",
+        "M10 8L16 12L10 16Z",
+    )
+}
+
 // Browse/Sources tab: 2x2 grid of squares (kept for other possible uses)
 val SourcesNavIcon: ImageVector by lazy {
     strokeIcon(
