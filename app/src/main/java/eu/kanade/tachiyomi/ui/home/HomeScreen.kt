@@ -7,6 +7,7 @@ import androidx.compose.animation.expandVertically
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -43,6 +44,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalLayoutDirection
@@ -236,10 +238,19 @@ object HomeScreen : Screen() {
     // show a small pink-to-blue gradient underline instead of the default filled indicator pill.
     @Composable
     private fun PillNavigationBar(tabs: List<eu.kanade.presentation.util.Tab>) {
-        val navBarStyle by remember { Injekt.get<eu.kanade.domain.ui.UiPreferences>() }.navBarStyle.collectAsState()
-        val navPrefs = remember { Injekt.get<eu.kanade.domain.ui.UiPreferences>() }
-        val translucentNav by navPrefs.translucentNav.collectAsState()
-        val navBarMargin by navPrefs.navBarMargin.collectAsState()
+        val uiPreferences = remember { Injekt.get<eu.kanade.domain.ui.UiPreferences>() }
+        val navBarStyle by uiPreferences.navBarStyle.collectAsState()
+        val translucentNav by uiPreferences.translucentNav.collectAsState()
+        val navBarMargin by uiPreferences.navBarMargin.collectAsState()
+        // Home Screen Switcher: when a non-Classic style is picked, it re-skins this bar too
+        // (container tint + selected-tab accent), not just the Home tab's own content.
+        val homeScreenStyleSelection by uiPreferences.homeScreenStyle.collectAsState()
+        val homeTokens: eu.kanade.domain.ui.model.HomeStyleTokens? =
+            if (homeScreenStyleSelection == eu.kanade.domain.ui.model.HomeScreenStyle.CLASSIC) {
+                null
+            } else {
+                homeScreenStyleSelection.tokens
+            }
         // All tabs render inline in list order. Home (DiscoverTab) is first in TABS, so it
         // sits leftmost and behaves exactly like the other tabs - no raised/floating button.
         Row(
@@ -247,7 +258,25 @@ object HomeScreen : Screen() {
                 .fillMaxWidth()
                 .padding(horizontal = navBarMargin.dp, vertical = 12.dp)
                 .clip(RoundedCornerShape(32.dp))
-                .background(MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = if (translucentNav) 0.3f else 1f))
+                .background(
+                    when {
+                        homeTokens != null -> homeTokens.surface.copy(
+                            alpha = if (translucentNav) homeTokens.navTranslucentAlpha else homeTokens.navOpaqueAlpha,
+                        )
+                        else -> MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = if (translucentNav) 0.3f else 1f)
+                    },
+                )
+                .let {
+                    if (homeTokens != null) {
+                        it.border(
+                            width = 1.dp,
+                            color = Color.White.copy(alpha = homeTokens.borderAlpha),
+                            shape = RoundedCornerShape(32.dp),
+                        )
+                    } else {
+                        it
+                    }
+                }
                 .padding(vertical = 6.dp, horizontal = 4.dp),
             horizontalArrangement = Arrangement.SpaceAround,
             verticalAlignment = Alignment.CenterVertically,
@@ -257,13 +286,19 @@ object HomeScreen : Screen() {
                     it,
                     dynamicPill = navBarStyle == eu.kanade.domain.ui.model.NavBarStyle.DYNAMIC_PILL,
                     translucentNav = translucentNav,
+                    homeTokens = homeTokens,
                 )
             }
         }
     }
 
     @Composable
-    private fun PillTabItem(tab: eu.kanade.presentation.util.Tab, dynamicPill: Boolean = false, translucentNav: Boolean = false) {
+    private fun PillTabItem(
+        tab: eu.kanade.presentation.util.Tab,
+        dynamicPill: Boolean = false,
+        translucentNav: Boolean = false,
+        homeTokens: eu.kanade.domain.ui.model.HomeStyleTokens? = null,
+    ) {
         val tabNavigator = LocalTabNavigator.current
         val navigator = LocalNavigator.currentOrThrow
         val scope = rememberCoroutineScope()
@@ -310,21 +345,26 @@ object HomeScreen : Screen() {
                             modifier = Modifier
                                 .clip(RoundedCornerShape(50))
                                 .background(
-                                    MaterialTheme.colorScheme.primaryContainer.copy(
-                                        alpha = if (translucentNav) 0.3f else 1f,
-                                    ),
+                                    if (homeTokens != null) {
+                                        homeTokens.accent.copy(alpha = homeTokens.navActivePillAlpha)
+                                    } else {
+                                        MaterialTheme.colorScheme.primaryContainer.copy(
+                                            alpha = if (translucentNav) 0.3f else 1f,
+                                        )
+                                    },
                                 )
                                 .padding(horizontal = 14.dp, vertical = 8.dp),
                         ) {
                             CompositionLocalProvider(
-                                androidx.compose.material3.LocalContentColor provides MaterialTheme.colorScheme.onPrimaryContainer,
+                                androidx.compose.material3.LocalContentColor provides
+                                    (homeTokens?.accent ?: MaterialTheme.colorScheme.onPrimaryContainer),
                             ) {
                                 NavigationIconItem(tab)
                             }
                             Text(
                                 text = navLabelFor(tab),
                                 fontSize = 13.sp,
-                                color = MaterialTheme.colorScheme.onPrimaryContainer,
+                                color = homeTokens?.accent ?: MaterialTheme.colorScheme.onPrimaryContainer,
                                 modifier = Modifier.padding(start = 8.dp),
                             )
                         }
@@ -335,11 +375,17 @@ object HomeScreen : Screen() {
                     }
                 }
             } else {
-                NavigationIconItem(tab)
+                val selectedTint = homeTokens?.accent ?: MaterialTheme.colorScheme.onSurface
+                CompositionLocalProvider(
+                    androidx.compose.material3.LocalContentColor provides
+                        (if (selected) selectedTint else MaterialTheme.colorScheme.onSurfaceVariant),
+                ) {
+                    NavigationIconItem(tab)
+                }
                 Text(
                     text = navLabelFor(tab),
                     fontSize = 10.sp,
-                    color = if (selected) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant,
+                    color = if (selected) selectedTint else MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(top = 3.dp),
                 )
                 Box(
@@ -350,10 +396,14 @@ object HomeScreen : Screen() {
                         .background(
                             if (selected) {
                                 Brush.horizontalGradient(
-                                    colors = listOf(
-                                        androidx.compose.ui.graphics.Color(0xFFE94584),
-                                        androidx.compose.ui.graphics.Color(0xFF3EC6F0),
-                                    ),
+                                    colors = if (homeTokens != null) {
+                                        listOf(homeTokens.accent, homeTokens.accentSecondary)
+                                    } else {
+                                        listOf(
+                                            androidx.compose.ui.graphics.Color(0xFFE94584),
+                                            androidx.compose.ui.graphics.Color(0xFF3EC6F0),
+                                        )
+                                    },
                                 )
                             } else {
                                 Brush.horizontalGradient(
