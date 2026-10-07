@@ -6,6 +6,7 @@ import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -41,6 +42,7 @@ import androidx.compose.material.icons.automirrored.outlined.ArrowForward
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.outlined.AccountCircle
 import androidx.compose.material.icons.outlined.Explore
+import androidx.compose.material.icons.outlined.Palette
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -54,14 +56,20 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
+import eu.kanade.domain.ui.UiPreferences
+import eu.kanade.domain.ui.model.HomeScreenStyle
+import eu.kanade.domain.ui.model.HomeStyleTokens
 import kotlin.math.absoluteValue
 import androidx.compose.ui.graphics.vector.rememberVectorPainter
 import androidx.compose.ui.layout.ContentScale
@@ -120,17 +128,37 @@ object DiscoverTab : Tab {
         val libraryPreferences = remember { Injekt.get<LibraryPreferences>() }
         val updatesCount by libraryPreferences.newUpdatesCount.collectAsState()
 
+        val uiPreferences = remember { Injekt.get<UiPreferences>() }
+        val homeScreenStyleSelection by uiPreferences.homeScreenStyle.collectAsState()
+        // null means "Classic" - every color below falls back to MaterialTheme as before.
+        val homeTokens: HomeStyleTokens? =
+            if (homeScreenStyleSelection == HomeScreenStyle.CLASSIC) null else homeScreenStyleSelection.tokens
+        var showStyleDialog by remember { mutableStateOf(false) }
+
+        if (showStyleDialog) {
+            HomeScreenStyleDialog(
+                current = homeScreenStyleSelection,
+                onSelect = { uiPreferences.homeScreenStyle.set(it) },
+                onDismiss = { showStyleDialog = false },
+            )
+        }
+
         Scaffold(
+            containerColor = when {
+                LocalLiquidBackgroundActive.current -> androidx.compose.ui.graphics.Color.Transparent
+                homeTokens != null -> homeTokens.background
+                else -> MaterialTheme.colorScheme.background
+            },
             topBar = {
                 val liquidBackgroundActive = LocalLiquidBackgroundActive.current
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
                         .background(
-                            if (liquidBackgroundActive) {
-                                androidx.compose.ui.graphics.Color.Transparent
-                            } else {
-                                MaterialTheme.colorScheme.background
+                            when {
+                                liquidBackgroundActive -> androidx.compose.ui.graphics.Color.Transparent
+                                homeTokens != null -> homeTokens.background
+                                else -> MaterialTheme.colorScheme.background
                             },
                         )
                         .statusBarsPadding()
@@ -149,11 +177,18 @@ object DiscoverTab : Tab {
                             color = MaterialTheme.colorScheme.onBackground
                         )
                         Row(verticalAlignment = Alignment.CenterVertically) {
+                            IconButton(onClick = { showStyleDialog = true }) {
+                                Icon(
+                                    imageVector = Icons.Outlined.Palette,
+                                    contentDescription = "Home screen style",
+                                    tint = homeTokens?.accent ?: MaterialTheme.colorScheme.onBackground
+                                )
+                            }
                             IconButton(onClick = { navigator.push(eu.kanade.tachiyomi.ui.updates.UpdatesTab) }) {
                                 BadgedBox(
                                     badge = {
                                         if (updatesCount > 0) {
-                                            Badge(containerColor = MaterialTheme.colorScheme.primary)
+                                            Badge(containerColor = homeTokens?.accent ?: MaterialTheme.colorScheme.primary)
                                         }
                                     }
                                 ) {
@@ -245,6 +280,29 @@ object DiscoverTab : Tab {
                         onBrowseExtensions = { tabNavigator.current = BrowseTab }
                     )
                 } else {
+                    Box(modifier = Modifier.fillMaxSize()) {
+                        // Ambient glow blobs for styles that use them (Nebula Glass, Prism
+                        // Aurora): two oversized, heavily blurred color circles sitting behind
+                        // the scrollable content. Modifier.blur is a no-op pre-API 31, so this
+                        // degrades to plain (unblurred, still subtle) tinted circles there
+                        // rather than crashing.
+                        if (homeTokens?.ambientGlow == true) {
+                            Box(
+                                modifier = Modifier
+                                    .size(320.dp)
+                                    .graphicsLayer { translationX = -180f; translationY = -220f }
+                                    .blur(100.dp)
+                                    .background(homeTokens.accent.copy(alpha = 0.2f), CircleShape)
+                            )
+                            Box(
+                                modifier = Modifier
+                                    .size(320.dp)
+                                    .align(Alignment.BottomEnd)
+                                    .graphicsLayer { translationX = 180f; translationY = 220f }
+                                    .blur(120.dp)
+                                    .background(homeTokens.accentSecondary.copy(alpha = 0.15f), CircleShape)
+                            )
+                        }
                     LazyColumn(
                         contentPadding = PaddingValues(0.dp),
                         modifier = Modifier.fillMaxSize(),
@@ -253,6 +311,7 @@ object DiscoverTab : Tab {
                             Spacer(modifier = Modifier.height(8.dp))
                             HeroCarousel(
                                 featuredManga = featuredManga,
+                                style = homeTokens,
                                 onClick = { manga ->
                                     scope.launch {
                                         val localManga = viewModel.getNetworkToLocalManga(manga)
@@ -305,6 +364,17 @@ object DiscoverTab : Tab {
                                 val cached = viewModel.popularCache[firstSource.id]
                                 if (cached == null) {
                                     Column(modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)) {
+                                        val titleText = firstSource.name
+                                        val subtitleText = if (firstSource.lang == "all" || firstSource.lang.isEmpty()) null else eu.kanade.tachiyomi.util.system.LocaleHelper.getLocalizedDisplayName(firstSource.lang)
+                                        SectionHeader(title = titleText, subtitle = subtitleText, onSeeAll = { navigator.push(BrowseSourceScreen(firstSource.id, GetRemoteManga.QUERY_POPULAR, isFeed = true)) })
+                                        SkeletonCarousel()
+                                    }
+                                    LaunchedEffect(firstSource.id) {
+                                        val result = viewModel.loadSourcePopular(firstSource)
+                                        viewModel.popularCache[firstSource.id] = result
+                                    }
+                                } else if (cached.isNotEmpty()) {
+                                    Column(modifier = Modifier.fillMaxWidth().padding(bottom = 24.dp)) {
                                         val titleText = firstSource.name
                                         val subtitleText = if (firstSource.lang == "all" || firstSource.lang.isEmpty()) null else eu.kanade.tachiyomi.util.system.LocaleHelper.getLocalizedDisplayName(firstSource.lang)
                                         SectionHeader(title = titleText, subtitle = subtitleText, onSeeAll = { navigator.push(BrowseSourceScreen(firstSource.id, GetRemoteManga.QUERY_POPULAR, isFeed = true)) })
@@ -443,6 +513,7 @@ object DiscoverTab : Tab {
                             }
                         }
                     }
+                    }
                 }
             }
         }
@@ -562,7 +633,8 @@ fun RecentlyUpdatedItem(manga: Manga, onClick: () -> Unit) {
 @Composable
 fun HeroCarousel(
     featuredManga: List<Manga>,
-    onClick: (Manga) -> Unit
+    onClick: (Manga) -> Unit,
+    style: HomeStyleTokens? = null,
 ) {
     if (featuredManga.isEmpty()) {
         val infiniteTransition = rememberInfiniteTransition()
@@ -689,22 +761,49 @@ fun HeroCarousel(
                         modifier = Modifier.padding(top = 4.dp, bottom = 12.dp)
                     )
 
+                    val isGlassButton = style?.heroButtonGlass == true
                     Button(
                         onClick = { onClick(manga) },
-                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
-                        shape = RoundedCornerShape(8.dp),
-                        modifier = Modifier.height(40.dp)
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = when {
+                                isGlassButton -> Color.White.copy(alpha = 0.12f)
+                                style != null -> style.accent
+                                else -> MaterialTheme.colorScheme.primary
+                            },
+                        ),
+                        shape = RoundedCornerShape(50),
+                        modifier = Modifier
+                            .height(40.dp)
+                            .let {
+                                if (isGlassButton) {
+                                    it.border(
+                                        width = 1.dp,
+                                        color = Color.White.copy(alpha = style?.borderAlpha?.plus(0.1f) ?: 0.2f),
+                                        shape = RoundedCornerShape(50),
+                                    )
+                                } else {
+                                    it
+                                }
+                            },
                     ) {
                         Icon(
                             imageVector = Icons.Filled.PlayArrow,
                             contentDescription = "Start Reading",
-                            tint = MaterialTheme.colorScheme.onPrimary,
+                            tint = when {
+                                isGlassButton -> style?.accent ?: Color.White
+                                style != null -> style.onAccent
+                                else -> MaterialTheme.colorScheme.onPrimary
+                            },
                             modifier = Modifier.size(20.dp)
                         )
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
                             text = "Start Reading",
-                            color = MaterialTheme.colorScheme.onPrimary,
+                            color = when {
+                                isGlassButton -> Color.White
+                                style != null -> style.onAccent
+                                else -> MaterialTheme.colorScheme.onPrimary
+                            },
                             fontWeight = FontWeight.Bold
                         )
                     }
@@ -720,12 +819,22 @@ fun HeroCarousel(
             horizontalArrangement = Arrangement.spacedBy(6.dp)
         ) {
             repeat(featuredManga.size) { iteration ->
-                val color = if (pagerState.currentPage == iteration) MaterialTheme.colorScheme.primary else Color.White.copy(alpha = 0.5f)
+                val isSelected = pagerState.currentPage == iteration
+                val dotBrush = when {
+                    !isSelected -> Brush.linearGradient(
+                        listOf(Color.White.copy(alpha = 0.5f), Color.White.copy(alpha = 0.5f)),
+                    )
+                    style?.progressGradient == true -> Brush.linearGradient(listOf(style.accent, style.accentSecondary))
+                    style != null -> Brush.linearGradient(listOf(style.accent, style.accent))
+                    else -> Brush.linearGradient(
+                        listOf(MaterialTheme.colorScheme.primary, MaterialTheme.colorScheme.primary),
+                    )
+                }
                 Box(
                     modifier = Modifier
                         .size(6.dp)
-                        .clip(androidx.compose.foundation.shape.CircleShape)
-                        .background(color)
+                        .clip(CircleShape)
+                        .background(dotBrush)
                 )
             }
         }
@@ -799,3 +908,5 @@ fun EmptyDiscoverScreen(isNovel: Boolean, onBrowseExtensions: () -> Unit) {
 
 
 
+
+                          
