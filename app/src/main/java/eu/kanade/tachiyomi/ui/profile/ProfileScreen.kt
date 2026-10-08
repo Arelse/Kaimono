@@ -749,7 +749,6 @@ private fun InsightGroup(title: String, rows: List<Pair<String, Int>>, accent: C
     }
 }
 
-                 
                                     
                                 
                             
