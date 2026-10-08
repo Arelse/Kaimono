@@ -75,7 +75,7 @@ class ProfileScreen : Screen {
 
         if (user != null) {
             val highResPhotoUrl = user?.photoUrl?.toString()?.replace("s96-c", "s800-c")
-            val displayName = user?.displayName?.takeIf { it.isNotBlank() }
+            val profileDisplayName = user?.displayName?.takeIf { it.isNotBlank() }
                 ?: if (user?.isAnonymous == true) "Guest" else "Unknown User"
 
             var stats by remember { mutableStateOf(ProfileStats.EMPTY) }
@@ -161,7 +161,7 @@ class ProfileScreen : Screen {
                                 )
                             } else {
                                 Text(
-                                    text = displayName.take(1).uppercase(),
+                                    text = profileDisplayName.take(1).uppercase(),
                                     color = Color.White,
                                     fontWeight = FontWeight.Bold,
                                     style = MaterialTheme.typography.headlineSmall,
@@ -171,7 +171,7 @@ class ProfileScreen : Screen {
                         Spacer(modifier = Modifier.width(16.dp))
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
                             Text(
-                                text = displayName,
+                                text = profileDisplayName,
                                 style = MaterialTheme.typography.displaySmall,
                                 color = Color.White,
                                 fontWeight = FontWeight.Bold
@@ -759,4 +759,5 @@ private fun InsightGroup(title: String, rows: List<Pair<String, Int>>, accent: C
     }
 }
 
-         
+ 
+                                     
