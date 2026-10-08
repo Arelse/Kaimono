@@ -21,6 +21,7 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.EmojiEvents
 import androidx.compose.material.icons.filled.MoreHoriz
 import androidx.compose.material.icons.filled.Settings
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
@@ -74,7 +75,7 @@ class ProfileScreen : Screen {
 
         if (user != null) {
             val highResPhotoUrl = user?.photoUrl?.toString()?.replace("s96-c", "s800-c")
-            val currentDisplayName = user?.displayName?.takeIf { it.isNotBlank() }
+            val displayName = user?.displayName?.takeIf { it.isNotBlank() }
                 ?: if (user?.isAnonymous == true) "Guest" else "Unknown User"
 
             var stats by remember { mutableStateOf(ProfileStats.EMPTY) }
@@ -83,6 +84,7 @@ class ProfileScreen : Screen {
                 statsLoading = true
                 stats = computeProfileStats()
                 statsLoading = false
+                syncLeaderboardEntry(stats.totalChaptersRead, stats.currentStreak)
             }
 
             Box(modifier = Modifier.fillMaxSize().background(Color.Black)) {
@@ -117,11 +119,19 @@ class ProfileScreen : Screen {
                     ) {
                         Icon(Icons.Default.Close, contentDescription = "Close", tint = Color.White)
                     }
-                    IconButton(
-                        onClick = { },
-                        modifier = Modifier.background(Color.Black.copy(alpha = 0.5f), CircleShape)
-                    ) {
-                        Icon(Icons.Default.MoreHoriz, contentDescription = "Options", tint = Color.White)
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        IconButton(
+                            onClick = { navigator.push(LeaderboardScreen()) },
+                            modifier = Modifier.background(Color.Black.copy(alpha = 0.5f), CircleShape)
+                        ) {
+                            Icon(Icons.Default.EmojiEvents, contentDescription = "Leaderboard", tint = Color.White)
+                        }
+                        IconButton(
+                            onClick = { },
+                            modifier = Modifier.background(Color.Black.copy(alpha = 0.5f), CircleShape)
+                        ) {
+                            Icon(Icons.Default.MoreHoriz, contentDescription = "Options", tint = Color.White)
+                        }
                     }
                 }
 
@@ -151,7 +161,7 @@ class ProfileScreen : Screen {
                                 )
                             } else {
                                 Text(
-                                    text = currentDisplayName.take(1).uppercase(),
+                                    text = displayName.take(1).uppercase(),
                                     color = Color.White,
                                     fontWeight = FontWeight.Bold,
                                     style = MaterialTheme.typography.headlineSmall,
@@ -161,7 +171,7 @@ class ProfileScreen : Screen {
                         Spacer(modifier = Modifier.width(16.dp))
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
                             Text(
-                                text = currentDisplayName,
+                                text = displayName,
                                 style = MaterialTheme.typography.displaySmall,
                                 color = Color.White,
                                 fontWeight = FontWeight.Bold
@@ -749,9 +759,4 @@ private fun InsightGroup(title: String, rows: List<Pair<String, Int>>, accent: C
     }
 }
 
-                                    
-                                
-                            
-                        
-                    
-        
+         
