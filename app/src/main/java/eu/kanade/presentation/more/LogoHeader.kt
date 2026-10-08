@@ -25,7 +25,7 @@ fun LogoHeader(
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Image(
-            painter = painterResource(R.drawable.kaimono_logo_more),
+            painter = painterResource(R.drawable.atsuyune_logo_more),
             contentDescription = null,
             modifier = Modifier
                 .padding(iconPadding)
