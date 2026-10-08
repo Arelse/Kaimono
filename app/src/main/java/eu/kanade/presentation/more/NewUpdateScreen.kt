@@ -93,7 +93,7 @@ fun NewUpdateScreen(
 
             // App Icon
             Image(
-                painter = painterResource(id = R.drawable.kaimono_logo),
+                painter = painterResource(id = R.drawable.atsuyune_logo),
                 contentDescription = null,
                 modifier = Modifier
                     .size(100.dp)
