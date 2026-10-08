@@ -30,6 +30,7 @@ data class RecentItem(
 data class ProfileStats(
     val totalReadDuration: Long,
     val itemsConsumed: Int,
+    val totalChaptersRead: Int,
     val daysActive: Int,
     val avgChaptersPerDay: Double,
     val currentStreak: Int,
@@ -41,7 +42,7 @@ data class ProfileStats(
     val typeBreakdown: List<Pair<String, Int>>,
 ) {
     companion object {
-        val EMPTY = ProfileStats(0, 0, 0, 0.0, 0, 0, null, emptyList(), emptyList(), emptyList(), emptyList())
+        val EMPTY = ProfileStats(0, 0, 0, 0, 0.0, 0, 0, null, emptyList(), emptyList(), emptyList(), emptyList())
     }
 }
 
@@ -72,6 +73,9 @@ suspend fun computeProfileStats(genreLookupLimit: Int = 40): ProfileStats {
     if (rows.isEmpty()) return ProfileStats.EMPTY
 
     val totalReadDuration = rows.sumOf { it.readDuration }
+    // Distinct chapters, not raw history rows, so re-reading the same chapter doesn't inflate
+    // this - it's also what the leaderboard uses as "points" (see syncLeaderboardEntry).
+    val totalChaptersRead = rows.map { it.chapterId }.distinct().size
 
     val byManga: Map<Long, List<HistoryWithRelations>> = rows.groupBy { it.mangaId }
     val recentItems = byManga.map { (mangaId, group) ->
@@ -162,6 +166,7 @@ suspend fun computeProfileStats(genreLookupLimit: Int = 40): ProfileStats {
     return ProfileStats(
         totalReadDuration = totalReadDuration,
         itemsConsumed = byManga.size,
+        totalChaptersRead = totalChaptersRead,
         daysActive = daysActive,
         avgChaptersPerDay = avgChaptersPerDay,
         currentStreak = currentStreak,
