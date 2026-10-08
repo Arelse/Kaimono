@@ -10,6 +10,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.EmojiEvents
+import androidx.compose.material.icons.filled.LocalFireDepartment
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -58,6 +59,7 @@ data class LeaderboardEntry(
     val displayName: String,
     val photoUrl: String?,
     val points: Long,
+    val currentStreak: Int,
     val isAnonymous: Boolean,
 )
 
@@ -73,12 +75,13 @@ private const val LEADERBOARD_COLLECTION = "leaderboard"
  * collection - this call will silently fail (caught below) until those rules are set in the
  * Firebase console; this app has no way to set them from client code.
  */
-suspend fun syncLeaderboardEntry(points: Int) {
+suspend fun syncLeaderboardEntry(points: Int, currentStreak: Int) {
     val user = FirebaseAuth.getInstance().currentUser ?: return
     val entry = hashMapOf(
         "displayName" to (user.displayName?.takeIf { it.isNotBlank() } ?: if (user.isAnonymous) "Guest" else "Reader"),
         "photoUrl" to user.photoUrl?.toString(),
         "points" to points,
+        "currentStreak" to currentStreak,
         "isAnonymous" to user.isAnonymous,
     )
     try {
@@ -107,6 +110,7 @@ suspend fun fetchLeaderboard(limit: Long = 50): List<LeaderboardEntry> {
                 displayName = doc.getString("displayName") ?: "Reader",
                 photoUrl = doc.getString("photoUrl"),
                 points = points,
+                currentStreak = doc.getLong("currentStreak")?.toInt() ?: 0,
                 isAnonymous = doc.getBoolean("isAnonymous") ?: false,
             )
         }
@@ -289,6 +293,7 @@ private fun PodiumSlot(
             maxLines = 1,
         )
         Text("${entry.points} pts", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = ringColor)
+        StreakBadge(days = entry.currentStreak, modifier = Modifier.padding(top = 2.dp))
     }
 }
 
@@ -314,7 +319,31 @@ private fun YouBar(rank: Int, entry: LeaderboardEntry) {
         }
         Spacer(modifier = Modifier.width(10.dp))
         Text("You", fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f))
-        Text("${entry.points} pts", fontWeight = FontWeight.Bold, color = accent)
+        Column(horizontalAlignment = Alignment.End) {
+            Text("${entry.points} pts", fontWeight = FontWeight.Bold, color = accent)
+            StreakBadge(days = entry.currentStreak)
+        }
+    }
+}
+
+/** Small flame + day-count badge, shown wherever an entry's streak is displayed. */
+@Composable
+private fun StreakBadge(days: Int, modifier: Modifier = Modifier) {
+    if (days <= 0) return
+    Row(modifier = modifier, verticalAlignment = Alignment.CenterVertically) {
+        Icon(
+            imageVector = Icons.Default.LocalFireDepartment,
+            contentDescription = "Streak",
+            tint = Color(0xFFFF7A3C),
+            modifier = Modifier.size(13.dp),
+        )
+        Spacer(modifier = Modifier.width(2.dp))
+        Text(
+            text = "${days}d",
+            style = MaterialTheme.typography.labelSmall,
+            fontWeight = FontWeight.Bold,
+            color = Color(0xFFFF7A3C),
+        )
     }
 }
 
@@ -370,6 +399,9 @@ private fun LeaderboardRow(rank: Int, entry: LeaderboardEntry, isMe: Boolean) {
                 Text("Guest", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
-        Text("${entry.points} pts", fontWeight = FontWeight.Bold, color = accent)
+        Column(horizontalAlignment = Alignment.End) {
+            Text("${entry.points} pts", fontWeight = FontWeight.Bold, color = accent)
+            StreakBadge(days = entry.currentStreak)
+        }
     }
 }
