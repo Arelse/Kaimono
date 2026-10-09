@@ -306,10 +306,23 @@ class App : Application(), DefaultLifecycleObserver, SingletonImageLoader.Factor
 
     override fun onStart(owner: LifecycleOwner) {
         SecureActivityDelegate.onApplicationStart()
+
+        if (!hasSyncedDownThisProcess) {
+            hasSyncedDownThisProcess = true
+            ProcessLifecycleOwner.get().lifecycleScope.launch {
+                eu.kanade.tachiyomi.data.sync.CloudSyncManager.syncDown(this@App)
+            }
+        }
     }
 
     override fun onStop(owner: LifecycleOwner) {
         SecureActivityDelegate.onApplicationStopped()
+
+        // Best-effort: keep the cloud copy fresh even if the user force-quits instead of
+        // signing out (sign-out already pushes explicitly - see ProfileScreen).
+        ProcessLifecycleOwner.get().lifecycleScope.launch {
+            eu.kanade.tachiyomi.data.sync.CloudSyncManager.syncUp(this@App)
+        }
     }
 
     override fun getPackageName(): String {
