@@ -1,6 +1,7 @@
 package eu.kanade.domain.ui.model
 
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.unit.dp
 
 /**
  * Visual tokens for one Home Screen Switcher style. Consumed by [DiscoverTab]
@@ -42,6 +43,15 @@ data class HomeStyleTokens(
     val navTranslucentAlpha: Float,
     val navActivePillAlpha: Float,
     val borderAlpha: Float,
+    /** Hero banner corner radius. Differs per style - e.g. Midnight Indigo's boxier 16dp vs
+     * the 24dp most other styles use - this is the "corner shape" customization. */
+    val heroCornerRadius: androidx.compose.ui.unit.Dp,
+    /** Hero banner image opacity. Styles with a dimmer, moodier hero (Midnight, Eclipse) dim
+     * the image under the gradient instead of showing it at full brightness. */
+    val heroImageAlpha: Float,
+    /** Padding around the hero banner's title/button content - also affects where the
+     * pagination dots sit, so both move together. */
+    val heroContentPadding: androidx.compose.ui.unit.Dp,
 )
 
 /**
@@ -74,6 +84,9 @@ enum class HomeScreenStyle(
             navTranslucentAlpha = 0.3f,
             navActivePillAlpha = 1f,
             borderAlpha = 0.1f,
+            heroCornerRadius = 24.dp,
+            heroImageAlpha = 1f,
+            heroContentPadding = 16.dp,
         ),
     ),
 
@@ -83,7 +96,7 @@ enum class HomeScreenStyle(
         description = "Deep navy with a bold violet glow",
         tokens = HomeStyleTokens(
             background = Color(0xFF07080C),
-            surface = Color(0xFF1E1B2E),
+            surface = Color(0xFF11131A),
             accent = Color(0xFF9D4EDD),
             accentSecondary = Color(0xFF9D4EDD),
             onAccent = Color.White,
@@ -94,7 +107,10 @@ enum class HomeScreenStyle(
             navOpaqueAlpha = 0.9f,
             navTranslucentAlpha = 0.45f,
             navActivePillAlpha = 0.2f,
-            borderAlpha = 0.1f,
+            borderAlpha = 0.05f,
+            heroCornerRadius = 24.dp,
+            heroImageAlpha = 1f,
+            heroContentPadding = 16.dp,
         ),
     ),
 
@@ -115,7 +131,10 @@ enum class HomeScreenStyle(
             navOpaqueAlpha = 0.95f,
             navTranslucentAlpha = 0.35f,
             navActivePillAlpha = 0.12f,
-            borderAlpha = 0.15f,
+            borderAlpha = 0.10f,
+            heroCornerRadius = 24.dp,
+            heroImageAlpha = 1f,
+            heroContentPadding = 16.dp,
         ),
     ),
 
@@ -136,7 +155,10 @@ enum class HomeScreenStyle(
             navOpaqueAlpha = 0.95f,
             navTranslucentAlpha = 0.35f,
             navActivePillAlpha = 0.15f,
-            borderAlpha = 0.25f,
+            borderAlpha = 0.20f,
+            heroCornerRadius = 24.dp,
+            heroImageAlpha = 1f,
+            heroContentPadding = 16.dp,
         ),
     ),
 
@@ -158,6 +180,9 @@ enum class HomeScreenStyle(
             navTranslucentAlpha = 0.5f,
             navActivePillAlpha = 1f,
             borderAlpha = 0.1f,
+            heroCornerRadius = 16.dp,
+            heroImageAlpha = 0.7f,
+            heroContentPadding = 20.dp,
         ),
     ),
 
@@ -178,7 +203,10 @@ enum class HomeScreenStyle(
             navOpaqueAlpha = 0.95f,
             navTranslucentAlpha = 0.25f,
             navActivePillAlpha = 0.08f,
-            borderAlpha = 0.1f,
+            borderAlpha = 0.08f,
+            heroCornerRadius = 20.dp,
+            heroImageAlpha = 0.6f,
+            heroContentPadding = 20.dp,
         ),
     ),
 }
