@@ -681,7 +681,20 @@ fun HeroCarousel(
         modifier = Modifier
             .fillMaxWidth()
             .height(240.dp)
-            
+            .padding(horizontal = if (style != null) 16.dp else 0.dp)
+            .clip(RoundedCornerShape(style?.heroCornerRadius ?: 0.dp))
+            .let {
+                if (style != null) {
+                    it.border(
+                        width = 1.dp,
+                        color = Color.White.copy(alpha = style.borderAlpha),
+                        shape = RoundedCornerShape(style.heroCornerRadius),
+                    )
+                } else {
+                    it
+                }
+            }
+            .background(style?.surface ?: Color.Transparent),
     ) {
         androidx.compose.foundation.pager.HorizontalPager(
             state = pagerState,
@@ -703,7 +716,9 @@ fun HeroCarousel(
                 AsyncImage(
                     model = manga.asMangaCover(),
                     contentDescription = null,
-                    modifier = Modifier.fillMaxSize(),
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .graphicsLayer { alpha = style?.heroImageAlpha ?: 1f },
                     contentScale = ContentScale.Crop
                 )
 
@@ -744,7 +759,7 @@ fun HeroCarousel(
                 Column(
                     modifier = Modifier
                         .align(Alignment.BottomStart)
-                        .padding(16.dp)
+                        .padding(style?.heroContentPadding ?: 16.dp)
                 ) {
                     Text(
                         text = manga.title,
@@ -820,7 +835,7 @@ fun HeroCarousel(
         Row(
             modifier = Modifier
                 .align(Alignment.BottomEnd)
-                .padding(16.dp),
+                .padding(style?.heroContentPadding ?: 16.dp),
             horizontalArrangement = Arrangement.spacedBy(6.dp)
         ) {
             repeat(featuredManga.size) { iteration ->
@@ -889,29 +904,3 @@ fun EmptyDiscoverScreen(isNovel: Boolean, onBrowseExtensions: () -> Unit) {
 }
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-                    
