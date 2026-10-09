@@ -57,6 +57,8 @@ import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.GoogleAuthProvider
 import eu.kanade.tachiyomi.data.auth.AuthManager
+import eu.kanade.domain.ui.UiPreferences
+import tachiyomi.presentation.core.util.collectAsState
 
 private enum class AuthMode { SIGN_IN, SIGN_UP }
 
@@ -127,13 +129,32 @@ class ProfileScreen : Screen {
                             Icon(Icons.Default.EmojiEvents, contentDescription = "Leaderboard", tint = Color.White)
                         }
                         IconButton(
-                            onClick = { },
-                            modifier = Modifier.background(Color.Black.copy(alpha = 0.5f), CircleShape)
-                        ) {
-                            Icon(Icons.Default.MoreHoriz, contentDescription = "Options", tint = Color.White)
-                        }
-                    }
-                }
+                            Box {
+                            var showOptionsMenu by remember { mutableStateOf(false) }
+                            IconButton(
+                                onClick = { showOptionsMenu = true },
+                                modifier = Modifier.background(Color.Black.copy(alpha = 0.5f), CircleShape)
+                            ) {
+                                Icon(Icons.Default.MoreHoriz, contentDescription = "Options", tint = Color.White)
+                            }
+                            DropdownMenu(
+                                expanded = showOptionsMenu,
+                                onDismissRequest = { showOptionsMenu = false }
+                            ) {
+                                DropdownMenuItem(
+                                    text = { Text("Sign Out") },
+                                    onClick = {
+                                        showOptionsMenu = false
+                                        scope.launch {
+                                            eu.kanade.tachiyomi.data.sync.CloudSyncManager.syncUp(context)
+                                            authManager.signOut()
+                                            navigator.pop()
+                                        }
+                                    }
+                                )
+                            }
+                            }
+
 
                 Column(
                     modifier = Modifier
