@@ -43,6 +43,7 @@ import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.outlined.AccountCircle
 import androidx.compose.material.icons.outlined.Explore
 import androidx.compose.material.icons.outlined.Palette
+import androidx.compose.material.icons.outlined.EmojiEvents
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -214,6 +215,14 @@ object DiscoverTab : Tab {
                                         tint = MaterialTheme.colorScheme.onBackground
                                     )
                                 }
+                            }
+                            IconButton(onClick = { navigator.push(eu.kanade.tachiyomi.ui.profile.LeaderboardScreen()) }) {
+                                Icon(
+                                    imageVector = Icons.Outlined.EmojiEvents,
+                                    contentDescription = "Leaderboard",
+                                    modifier = Modifier.size(26.dp),
+                                    tint = MaterialTheme.colorScheme.onBackground
+                                )
                             }
                             IconButton(onClick = { navigator.push(eu.kanade.tachiyomi.ui.profile.ProfileScreen()) }) {
                             if (user?.photoUrl != null) {
