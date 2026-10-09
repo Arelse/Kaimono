@@ -84,6 +84,7 @@ class App : Application(), DefaultLifecycleObserver, SingletonImageLoader.Factor
     private val networkPreferences: NetworkPreferences by injectLazy()
 
     private val disableIncognitoReceiver = DisableIncognitoReceiver()
+    private var hasSyncedDownThisProcess = false
 
     @SuppressLint("LaunchActivityFromNotification")
     override fun onCreate() {
