@@ -11,7 +11,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -21,14 +20,12 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.SheetState
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.unit.dp
@@ -38,9 +35,14 @@ import tachiyomi.presentation.core.util.collectAsState
 
 /**
  * Translucent "UI Switcher" sheet, opened from the More screen's App section. Picks between the
- * three UiMode values (sharing IosGlassColorScheme - see TachiyomiTheme) and optionally layers a
- * custom two-color gradient on top. Gradient color choice is a small fixed preset swatch palette
- * rather than a full HSV picker, to keep this self-contained without a new dependency.
+ * three UiMode values (translucency/card treatment only - see SettingsGroup's cardAlpha param;
+ * this does NOT touch the app's actual color scheme, which stays fully governed by the Theme
+ * group in Settings > Appearance, same as before this feature existed).
+ *
+ * Gradient customization used to live here too, but now lives in Settings > Appearance >
+ * Flourish, alongside the pre-existing "Accent gradient background" / "Accent color" controls it
+ * shares a mechanism with (see getFlourishGroup in SettingsAppearanceScreen.kt and
+ * AccentGradientBackground in FlourishOverlay.kt) - this sheet no longer duplicates it.
  */
 @Composable
 fun UiSwitcherSheet(
@@ -49,9 +51,6 @@ fun UiSwitcherSheet(
     sheetState: SheetState,
 ) {
     val uiMode by uiPreferences.uiMode.collectAsState()
-    val gradientEnabled by uiPreferences.gradientThemeEnabled.collectAsState()
-    val gradientStart by uiPreferences.gradientColorStart.collectAsState()
-    val gradientEnd by uiPreferences.gradientColorEnd.collectAsState()
 
     ModalBottomSheet(
         onDismissRequest = onDismissRequest,
@@ -60,7 +59,7 @@ fun UiSwitcherSheet(
     ) {
         Column(
             modifier = Modifier
-                .heightIn(max = 620.dp)
+                .heightIn(max = 460.dp)
                 .padding(horizontal = 16.dp, vertical = 8.dp),
         ) {
             Row(
@@ -99,71 +98,12 @@ fun UiSwitcherSheet(
                 }
             }
 
-            Spacer(modifier = Modifier.padding(top = 20.dp))
             Text(
-                text = "GRADIENT THEME",
-                style = MaterialTheme.typography.labelLarge,
+                text = "Looking for the gradient option? It moved to Settings > Appearance > Flourish.",
+                style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(start = 4.dp, bottom = 8.dp),
+                modifier = Modifier.padding(top = 16.dp, start = 4.dp),
             )
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(16.dp))
-                    .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.3f))
-                    .padding(16.dp),
-            ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text("Custom gradient", style = MaterialTheme.typography.bodyLarge)
-                        Text(
-                            "Overlay a gradient background behind glass cards",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
-                    Switch(
-                        checked = gradientEnabled,
-                        onCheckedChange = { uiPreferences.gradientThemeEnabled.set(it) },
-                    )
-                }
-
-                if (gradientEnabled) {
-                    Spacer(modifier = Modifier.padding(top = 12.dp))
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(16.dp),
-                    ) {
-                        GradientSwatchPicker(
-                            label = "Start",
-                            selected = Color(gradientStart),
-                            modifier = Modifier.weight(1f),
-                            onSelect = { uiPreferences.gradientColorStart.set(it.toArgb()) },
-                        )
-                        GradientSwatchPicker(
-                            label = "End",
-                            selected = Color(gradientEnd),
-                            modifier = Modifier.weight(1f),
-                            onSelect = { uiPreferences.gradientColorEnd.set(it.toArgb()) },
-                        )
-                    }
-                    Spacer(modifier = Modifier.padding(top = 12.dp))
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .heightIn(min = 40.dp)
-                            .clip(RoundedCornerShape(12.dp))
-                            .background(
-                                Brush.horizontalGradient(
-                                    listOf(Color(gradientStart), Color(gradientEnd)),
-                                ),
-                            ),
-                    )
-                }
-            }
             Spacer(modifier = Modifier.padding(bottom = 24.dp))
         }
     }
@@ -203,8 +143,13 @@ private val gradientPresets = listOf(
     Color(0xFFFFFFFF), Color(0xFF000000),
 )
 
+/**
+ * A row of preset color swatches with a checkmark on the selected one. Used by the Flourish
+ * group's "Custom gradient colors" controls (SettingsAppearanceScreen.kt). Internal rather than
+ * private since it's now shared across files in this module.
+ */
 @Composable
-private fun GradientSwatchPicker(
+internal fun GradientSwatchPicker(
     label: String,
     selected: Color,
     modifier: Modifier = Modifier,
@@ -239,7 +184,7 @@ private fun GradientSwatchPicker(
     }
 }
 
-private fun Color.toArgb(): Int = android.graphics.Color.argb(
+internal fun Color.toArgb(): Int = android.graphics.Color.argb(
     (alpha * 255).toInt(),
     (red * 255).toInt(),
     (green * 255).toInt(),
