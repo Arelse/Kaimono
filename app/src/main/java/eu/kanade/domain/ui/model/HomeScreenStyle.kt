@@ -58,6 +58,10 @@ data class HomeStyleTokens(
     /** Width of the small cover cards. Most styles share 90dp; a style can specify its own
      * (e.g. Violet Starfall's narrower 88dp) to match a particular reference design exactly. */
     val smallCardWidth: androidx.compose.ui.unit.Dp,
+    /** Color of the small cover cards' 1dp hairline border, before [borderAlpha] is applied.
+     * Always kept thin (1dp) and low-alpha across every style - only the hue differs, so each
+     * theme reads as a distinct outline rather than just a lighter/darker shade of white. */
+    val smallCardBorderColor: Color,
 )
 
 /**
@@ -95,6 +99,7 @@ enum class HomeScreenStyle(
             heroContentPadding = 16.dp,
             smallCardCornerRadius = 12.dp,
             smallCardWidth = 90.dp,
+            smallCardBorderColor = Color.White,
         ),
     ),
 
@@ -121,6 +126,7 @@ enum class HomeScreenStyle(
             heroContentPadding = 16.dp,
             smallCardCornerRadius = 10.dp,
             smallCardWidth = 90.dp,
+            smallCardBorderColor = Color(0xFF9D4EDD),
         ),
     ),
 
@@ -147,6 +153,7 @@ enum class HomeScreenStyle(
             heroContentPadding = 16.dp,
             smallCardCornerRadius = 16.dp,
             smallCardWidth = 90.dp,
+            smallCardBorderColor = Color(0xFFA855F7),
         ),
     ),
 
@@ -173,6 +180,7 @@ enum class HomeScreenStyle(
             heroContentPadding = 16.dp,
             smallCardCornerRadius = 16.dp,
             smallCardWidth = 90.dp,
+            smallCardBorderColor = Color(0xFFEC4899),
         ),
     ),
 
@@ -199,6 +207,7 @@ enum class HomeScreenStyle(
             heroContentPadding = 20.dp,
             smallCardCornerRadius = 8.dp,
             smallCardWidth = 90.dp,
+            smallCardBorderColor = Color(0xFF4F46E5),
         ),
     ),
 
@@ -225,6 +234,7 @@ enum class HomeScreenStyle(
             heroContentPadding = 20.dp,
             smallCardCornerRadius = 12.dp,
             smallCardWidth = 90.dp,
+            smallCardBorderColor = Color.White,
         ),
     ),
 
@@ -253,6 +263,7 @@ enum class HomeScreenStyle(
             heroContentPadding = 20.dp,
             smallCardCornerRadius = 14.dp,
             smallCardWidth = 88.dp,
+            smallCardBorderColor = Color.White,
         ),
     ),
 }
