@@ -73,6 +73,8 @@ fun MoreScreen(
     val uriHandler = LocalUriHandler.current
     val uiPreferences = remember { Injekt.get<UiPreferences>() }
     val fabSizeDp by uiPreferences.fabSizeDp.collectAsState()
+    val profileShowRecentlyRead by uiPreferences.profileShowRecentlyRead.collectAsState()
+    val profileShowGenres by uiPreferences.profileShowGenres.collectAsState()
 
     Scaffold { contentPadding ->
         ScrollbarLazyColumn(contentPadding = contentPadding) {
@@ -103,6 +105,37 @@ fun MoreScreen(
                         trailing = {
                             Switch(checked = incognitoMode, onCheckedChange = onIncognitoModeChange)
                         }
+                    )
+                }
+            }
+
+            // Profile Group
+            item {
+                SettingsGroup(title = "Profile") {
+                    SettingItem(
+                        title = "Show recently read",
+                        subtitle = "\"Recently Read\" row on your Profile",
+                        icon = Icons.Outlined.Update,
+                        onClick = { uiPreferences.profileShowRecentlyRead.set(!profileShowRecentlyRead) },
+                        trailing = {
+                            Switch(
+                                checked = profileShowRecentlyRead,
+                                onCheckedChange = { uiPreferences.profileShowRecentlyRead.set(it) },
+                            )
+                        },
+                    )
+                    HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp), color = MaterialTheme.colorScheme.outlineVariant)
+                    SettingItem(
+                        title = "Show genres",
+                        subtitle = "\"Top Genres\" insight on your Profile",
+                        icon = Icons.AutoMirrored.Outlined.Label,
+                        onClick = { uiPreferences.profileShowGenres.set(!profileShowGenres) },
+                        trailing = {
+                            Switch(
+                                checked = profileShowGenres,
+                                onCheckedChange = { uiPreferences.profileShowGenres.set(it) },
+                            )
+                        },
                     )
                 }
             }
