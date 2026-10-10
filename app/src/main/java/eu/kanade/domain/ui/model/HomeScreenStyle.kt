@@ -52,12 +52,18 @@ data class HomeStyleTokens(
     /** Padding around the hero banner's title/button content - also affects where the
      * pagination dots sit, so both move together. */
     val heroContentPadding: androidx.compose.ui.unit.Dp,
+    /** Corner radius of the small cover cards (Recently Read row, library rows). Same idea as
+     * [heroCornerRadius] but for the small cards - each style gets its own card silhouette. */
+    val smallCardCornerRadius: androidx.compose.ui.unit.Dp,
+    /** Width of the small cover cards. Most styles share 90dp; a style can specify its own
+     * (e.g. Violet Starfall's narrower 88dp) to match a particular reference design exactly. */
+    val smallCardWidth: androidx.compose.ui.unit.Dp,
 )
 
 /**
  * The Home Screen Switcher's selectable styles. [CLASSIC] means "no override" - the Home tab
  * and nav bar keep using the app's normal Material theme colors, exactly as before this
- * feature existed. The other five are independent, fully-specified looks; picking one of them
+ * feature existed. The other six are independent, fully-specified looks; picking one of them
  * re-skins the Home tab body (header, hero banner, section chips) and the floating bottom nav
  * at the same time, since both read this same preference.
  */
@@ -87,6 +93,8 @@ enum class HomeScreenStyle(
             heroCornerRadius = 24.dp,
             heroImageAlpha = 1f,
             heroContentPadding = 16.dp,
+            smallCardCornerRadius = 12.dp,
+            smallCardWidth = 90.dp,
         ),
     ),
 
@@ -111,6 +119,8 @@ enum class HomeScreenStyle(
             heroCornerRadius = 24.dp,
             heroImageAlpha = 1f,
             heroContentPadding = 16.dp,
+            smallCardCornerRadius = 10.dp,
+            smallCardWidth = 90.dp,
         ),
     ),
 
@@ -135,6 +145,8 @@ enum class HomeScreenStyle(
             heroCornerRadius = 24.dp,
             heroImageAlpha = 1f,
             heroContentPadding = 16.dp,
+            smallCardCornerRadius = 16.dp,
+            smallCardWidth = 90.dp,
         ),
     ),
 
@@ -159,6 +171,8 @@ enum class HomeScreenStyle(
             heroCornerRadius = 24.dp,
             heroImageAlpha = 1f,
             heroContentPadding = 16.dp,
+            smallCardCornerRadius = 16.dp,
+            smallCardWidth = 90.dp,
         ),
     ),
 
@@ -183,6 +197,8 @@ enum class HomeScreenStyle(
             heroCornerRadius = 16.dp,
             heroImageAlpha = 0.7f,
             heroContentPadding = 20.dp,
+            smallCardCornerRadius = 8.dp,
+            smallCardWidth = 90.dp,
         ),
     ),
 
@@ -207,6 +223,36 @@ enum class HomeScreenStyle(
             heroCornerRadius = 20.dp,
             heroImageAlpha = 0.6f,
             heroContentPadding = 20.dp,
+            smallCardCornerRadius = 12.dp,
+            smallCardWidth = 90.dp,
+        ),
+    ),
+
+    /** Deep violet "starfield" void with a violet-to-fuchsia gradient hero button. The small
+     * cards keep a fixed, slightly-visible white hairline border (0.15 alpha) regardless of
+     * what else changes about this style - that border is this style's one constant. */
+    VIOLET_STARFALL(
+        displayName = "Violet Starfall",
+        description = "A violet-fuchsia glow over a deep starfield",
+        tokens = HomeStyleTokens(
+            background = Color(0xFF05020A),
+            surface = Color(0xFF16092B),
+            accent = Color(0xFF8B5CF6),
+            accentSecondary = Color(0xFFD946EF),
+            onAccent = Color.White,
+            cardGlass = false,
+            ambientGlow = false,
+            heroButtonGlass = false,
+            progressGradient = false,
+            navOpaqueAlpha = 0.95f,
+            navTranslucentAlpha = 0.35f,
+            navActivePillAlpha = 0.15f,
+            borderAlpha = 0.15f,
+            heroCornerRadius = 20.dp,
+            heroImageAlpha = 1f,
+            heroContentPadding = 20.dp,
+            smallCardCornerRadius = 14.dp,
+            smallCardWidth = 88.dp,
         ),
     ),
 }
