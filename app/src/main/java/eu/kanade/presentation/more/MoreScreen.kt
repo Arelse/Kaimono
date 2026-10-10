@@ -55,6 +55,7 @@ import eu.kanade.domain.ui.UiPreferences
 import uy.kohesive.injekt.Injekt
 import uy.kohesive.injekt.api.get
 import androidx.compose.material.icons.outlined.TouchApp
+import androidx.compose.material.icons.outlined.Palette
 
 @Composable
 fun MoreScreen(
@@ -240,7 +241,7 @@ fun MoreScreen(
                     SettingItem(
                         title = "UI Switcher",
                         subtitle = uiMode.displayName,
-                        icon = androidx.compose.material.icons.Icons.Outlined.Palette,
+                        icon = Icons.Outlined.Palette,
                         onClick = { showUiSwitcher = true },
                     )
                     HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp), color = MaterialTheme.colorScheme.outlineVariant)
