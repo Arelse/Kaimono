@@ -21,12 +21,13 @@ import kotlin.math.sin
 import kotlin.random.Random
 
 /**
- * A slow, looping flowing gradient built from an [AccentColor]'s two tones. Independent of
- * Liquid mode's background image and of the app's actual AppTheme/color scheme - this is a
- * purely decorative "flourish" layer.
+ * A slow, looping flowing gradient built from two tones. Independent of Liquid mode's
+ * background image and of the app's actual AppTheme/color scheme - this is a purely decorative
+ * "flourish" layer. Takes resolved colors rather than an [AccentColor] directly so the same
+ * mechanism serves both the fixed presets and a custom pair chosen in the Flourish group.
  */
 @Composable
-fun AccentGradientBackground(accent: AccentColor, modifier: Modifier = Modifier) {
+fun AccentGradientBackground(primary: Color, secondary: Color, modifier: Modifier = Modifier) {
     val transition = rememberInfiniteTransition(label = "accentGradient")
     val t by transition.animateFloatLoop(durationMillis = 14000, label = "accentGradientTime")
 
@@ -37,8 +38,8 @@ fun AccentGradientBackground(accent: AccentColor, modifier: Modifier = Modifier)
         drawRect(
             brush = Brush.radialGradient(
                 colors = listOf(
-                    accent.primary.copy(alpha = 0.55f),
-                    accent.secondary.copy(alpha = 0.85f),
+                    primary.copy(alpha = 0.55f),
+                    secondary.copy(alpha = 0.85f),
                     Color.Black,
                 ),
                 center = Offset(cx, cy),
@@ -46,6 +47,12 @@ fun AccentGradientBackground(accent: AccentColor, modifier: Modifier = Modifier)
             ),
         )
     }
+}
+
+/** Convenience overload for the fixed [AccentColor] presets. */
+@Composable
+fun AccentGradientBackground(accent: AccentColor, modifier: Modifier = Modifier) {
+    AccentGradientBackground(primary = accent.primary, secondary = accent.secondary, modifier = modifier)
 }
 
 private data class ParticleSpec(
