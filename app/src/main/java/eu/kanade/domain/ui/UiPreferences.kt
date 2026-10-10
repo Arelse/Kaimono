@@ -118,6 +118,10 @@ class UiPreferences(
 
     val profileShowGenres: Preference<Boolean> = preferenceStore.getBoolean("pref_profile_show_genres", true)
 
+    // A manga/anime id the user explicitly picked as their favorite from the Profile screen's
+    // favorite-title picker, overriding the auto-computed (most-time-spent) favorite. 0 = none.
+    val profilePinnedFavoriteId: Preference<Long> = preferenceStore.getLong("pref_profile_pinned_favorite_id", 0L)
+
     companion object {
         fun dateFormat(format: String): DateTimeFormatter = when (format) {
             "" -> DateTimeFormatter.ofLocalizedDate(FormatStyle.SHORT)
