@@ -1,5 +1,12 @@
 package eu.kanade.presentation.more.settings.screen
 
+import eu.kanade.presentation.more.toArgb
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
 import android.app.Activity
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -61,12 +68,12 @@ object SettingsAppearanceScreen : SearchableSettings {
 
         return listOf(
             getThemeGroup(uiPreferences = uiPreferences),
-            getUiSettingsGroup(uiPreferences = uiPreferences, libraryPreferences = libraryPreferences),
+            getFlourishGroup(uiPreferences = uiPreferences),
             getDisplayGroup(uiPreferences = uiPreferences),
             getMangaInfoGroup(uiPreferences = uiPreferences),
-            getFlourishGroup(uiPreferences = uiPreferences),
             getSettingsBackgroundGroup(uiPreferences = uiPreferences),
             getLibraryLayoutGroup(libraryPreferences = libraryPreferences),
+            // getUiSettingsGroup moved out to its own top-level Settings category - see next pass.
         )
     }
 
@@ -366,6 +373,12 @@ object SettingsAppearanceScreen : SearchableSettings {
     ): Preference.PreferenceGroup {
         val accentGradientEnabledPref = uiPreferences.accentGradientEnabled
         val accentGradientEnabled by accentGradientEnabledPref.collectAsState()
+        val useCustomGradientPref = uiPreferences.gradientThemeEnabled
+        val useCustomGradient by useCustomGradientPref.collectAsState()
+        val gradientStartPref = uiPreferences.gradientColorStart
+        val gradientStart by gradientStartPref.collectAsState()
+        val gradientEndPref = uiPreferences.gradientColorEnd
+        val gradientEnd by gradientEndPref.collectAsState()
 
         return Preference.PreferenceGroup(
             title = "Flourish",
@@ -385,8 +398,37 @@ object SettingsAppearanceScreen : SearchableSettings {
                         AccentColor.WALLPAPER to "Wallpaper",
                     ),
                     title = "Accent color",
+                    enabled = accentGradientEnabled && !useCustomGradient,
+                ),
+                Preference.PreferenceItem.SwitchPreference(
+                    preference = useCustomGradientPref,
+                    title = "Use custom gradient colors",
+                    subtitle = "Overrides the preset above with the two colors you pick below",
                     enabled = accentGradientEnabled,
                 ),
+                Preference.PreferenceItem.CustomPreference(title = "Custom gradient colors") {
+                    if (accentGradientEnabled && useCustomGradient) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp, vertical = 8.dp),
+                            horizontalArrangement = Arrangement.spacedBy(16.dp),
+                        ) {
+                            eu.kanade.presentation.more.GradientSwatchPicker(
+                                label = "Start",
+                                selected = androidx.compose.ui.graphics.Color(gradientStart),
+                                modifier = Modifier.weight(1f),
+                                onSelect = { gradientStartPref.set(it.toArgb()) },
+                            )
+                            eu.kanade.presentation.more.GradientSwatchPicker(
+                                label = "End",
+                                selected = androidx.compose.ui.graphics.Color(gradientEnd),
+                                modifier = Modifier.weight(1f),
+                                onSelect = { gradientEndPref.set(it.toArgb()) },
+                            )
+                        }
+                    }
+                },
                 Preference.PreferenceItem.ListPreference(
                     preference = uiPreferences.particleEffect,
                     entries = mapOf(
@@ -583,4 +625,5 @@ private val DateFormats = listOf(
              
 
   
+
   
