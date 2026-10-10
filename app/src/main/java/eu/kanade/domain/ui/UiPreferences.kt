@@ -134,7 +134,7 @@ class UiPreferences(
      * picker below. False reverts to that legacy system untouched, for anyone who wants the
      * classic Tachiyomi theme picker back instead.
      */
-    val useUiSwitcherTheme: Preference<Boolean> = preferenceStore.getBoolean("pref_use_ui_switcher_theme", true)
+    val useUiSwitcherTheme: Preference<Boolean> = preferenceStore.getBoolean("pref_use_ui_switcher_theme", false)
 
     /** Whether a custom two-color gradient overlay is layered on top of the active UI mode. */
     val gradientThemeEnabled: Preference<Boolean> = preferenceStore.getBoolean("pref_gradient_theme_enabled", false)
