@@ -122,6 +122,27 @@ class UiPreferences(
     // favorite-title picker, overriding the auto-computed (most-time-spent) favorite. 0 = none.
     val profilePinnedFavoriteId: Preference<Long> = preferenceStore.getLong("pref_profile_pinned_favorite_id", 0L)
 
+    /** The active UI Switcher mode (Default / Vision Glass / Translucent). See UiMode.kt. */
+    val uiMode: Preference<eu.kanade.domain.ui.model.UiMode> = preferenceStore.getEnum(
+        "pref_ui_mode",
+        eu.kanade.domain.ui.model.UiMode.DEFAULT,
+    )
+
+    /**
+     * Master switch for the UI Switcher system. True (the default, per "set as default") means
+     * the active uiMode's IosGlassColorScheme overrides the legacy AppTheme/custom-seed-color
+     * picker below. False reverts to that legacy system untouched, for anyone who wants the
+     * classic Tachiyomi theme picker back instead.
+     */
+    val useUiSwitcherTheme: Preference<Boolean> = preferenceStore.getBoolean("pref_use_ui_switcher_theme", true)
+
+    /** Whether a custom two-color gradient overlay is layered on top of the active UI mode. */
+    val gradientThemeEnabled: Preference<Boolean> = preferenceStore.getBoolean("pref_gradient_theme_enabled", false)
+
+    /** Gradient start/end colors as ARGB ints, editable from the UI Switcher sheet. */
+    val gradientColorStart: Preference<Int> = preferenceStore.getInt("pref_gradient_color_start", 0xFF0A84FF.toInt())
+    val gradientColorEnd: Preference<Int> = preferenceStore.getInt("pref_gradient_color_end", 0xFF000000.toInt())
+
     companion object {
         fun dateFormat(format: String): DateTimeFormatter = when (format) {
             "" -> DateTimeFormatter.ofLocalizedDate(FormatStyle.SHORT)
