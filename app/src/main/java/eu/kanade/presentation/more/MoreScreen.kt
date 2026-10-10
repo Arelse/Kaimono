@@ -48,6 +48,8 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Slider
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.mutableStateOf
 import tachiyomi.presentation.core.util.collectAsState
 import eu.kanade.domain.ui.UiPreferences
 import uy.kohesive.injekt.Injekt
@@ -75,6 +77,25 @@ fun MoreScreen(
     val fabSizeDp by uiPreferences.fabSizeDp.collectAsState()
     val profileShowRecentlyRead by uiPreferences.profileShowRecentlyRead.collectAsState()
     val profileShowGenres by uiPreferences.profileShowGenres.collectAsState()
+    val uiMode by uiPreferences.uiMode.collectAsState()
+
+    // Lower surface alpha = more see-through, used by SettingsGroup below so switching modes
+    // visibly changes every card on this screen (and anywhere else SettingsGroup is reused).
+    val cardAlpha = when (uiMode) {
+        eu.kanade.domain.ui.model.UiMode.DEFAULT -> 0.28f
+        eu.kanade.domain.ui.model.UiMode.ALTERNATIVE -> 0.22f
+        eu.kanade.domain.ui.model.UiMode.TRANSLUCENT -> 0.10f
+    }
+
+    var showUiSwitcher by remember { mutableStateOf(false) }
+    val uiSwitcherSheetState = androidx.compose.material3.rememberModalBottomSheetState()
+    if (showUiSwitcher) {
+        eu.kanade.presentation.more.UiSwitcherSheet(
+            uiPreferences = uiPreferences,
+            onDismissRequest = { showUiSwitcher = false },
+            sheetState = uiSwitcherSheetState,
+        )
+    }
 
     Scaffold { contentPadding ->
         ScrollbarLazyColumn(contentPadding = contentPadding) {
@@ -86,7 +107,7 @@ fun MoreScreen(
 
             // Mode Group
             item {
-                SettingsGroup(title = "Mode") {
+                SettingsGroup(title = "Mode", cardAlpha = cardAlpha) {
                     SettingItem(
                         title = stringResource(MR.strings.label_downloaded_only),
                         subtitle = stringResource(MR.strings.downloaded_only_summary),
@@ -111,7 +132,7 @@ fun MoreScreen(
 
             // Profile Group
             item {
-                SettingsGroup(title = "Profile") {
+                SettingsGroup(title = "Profile", cardAlpha = cardAlpha) {
                     SettingItem(
                         title = "Show recently read",
                         subtitle = "\"Recently Read\" row on your Profile",
@@ -142,7 +163,7 @@ fun MoreScreen(
 
             // Content Group
             item {
-                SettingsGroup(title = "Content") {
+                SettingsGroup(title = "Content", cardAlpha = cardAlpha) {
                     val downloadQueueState = downloadQueueStateProvider()
                     val downloadSubtitle = when (downloadQueueState) {
                         DownloadQueueState.Stopped -> null
@@ -194,7 +215,7 @@ fun MoreScreen(
 
             // App Group
             item {
-                SettingsGroup(title = "App") {
+                SettingsGroup(title = "App", cardAlpha = cardAlpha) {
                     SettingItem(
                         title = "Switch Button Size",
                         subtitle = "${fabSizeDp}dp",
@@ -214,6 +235,13 @@ fun MoreScreen(
                         onValueChange = { uiPreferences.fabSizeDp.set(it.toInt()) },
                         valueRange = 48f..96f,
                         modifier = Modifier.padding(horizontal = 32.dp, vertical = 0.dp)
+                    )
+                    HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp), color = MaterialTheme.colorScheme.outlineVariant)
+                    SettingItem(
+                        title = "UI Switcher",
+                        subtitle = uiMode.displayName,
+                        icon = androidx.compose.material.icons.Icons.Outlined.Palette,
+                        onClick = { showUiSwitcher = true },
                     )
                     HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp), color = MaterialTheme.colorScheme.outlineVariant)
                     SettingItem(
@@ -242,6 +270,7 @@ fun MoreScreen(
 @Composable
 fun SettingsGroup(
     title: String,
+    cardAlpha: Float = 0.28f,
     content: @Composable () -> Unit
 ) {
     Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
@@ -254,7 +283,7 @@ fun SettingsGroup(
         )
         Surface(
             shape = RoundedCornerShape(16.dp),
-            color = MaterialTheme.colorScheme.surface.copy(alpha = 0.28f)
+            color = MaterialTheme.colorScheme.surface.copy(alpha = cardAlpha)
         ) {
             Column {
                 content()
