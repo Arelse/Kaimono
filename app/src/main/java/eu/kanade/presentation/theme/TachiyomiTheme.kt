@@ -78,11 +78,23 @@ private fun BaseTachiyomiTheme(
     val isDark = isSystemInDarkTheme()
     val customThemeColor by Injekt.get<UiPreferences>().customThemeColor.collectAsState()
     val appFont by Injekt.get<UiPreferences>().appFont.collectAsState()
+    val uiMode by Injekt.get<UiPreferences>().uiMode.collectAsState()
+    val useUiSwitcherTheme by Injekt.get<UiPreferences>().useUiSwitcherTheme.collectAsState()
     val typography = remember(appFont) { typographyFor(appFont) }
     MaterialExpressiveTheme(
         typography = typography,
-        colorScheme = remember(appTheme, isDark, isAmoled, seedColor, coverStyle, customThemeColor) {
-            if (seedColor != null) {
+        colorScheme = remember(appTheme, isDark, isAmoled, seedColor, coverStyle, customThemeColor, uiMode, useUiSwitcherTheme) {
+            // The UI Switcher (More screen) takes priority over the legacy AppTheme picker below,
+            // unless the user has explicitly turned it off. All three UiMode values share this
+            // palette, differing in translucency/treatment rather than color - see
+            // IosGlassColorScheme and SettingsGroup/SettingItem.
+            if (useUiSwitcherTheme) {
+                eu.kanade.presentation.theme.colorscheme.IosGlassColorScheme.getColorScheme(
+                    isDark = true,
+                    isAmoled = isAmoled,
+                    overrideDarkSurfaceContainers = true,
+                )
+            } else if (seedColor != null) {
                 val scheme = MonetCompatColorScheme(Color(seedColor), coverStyle)
                 scheme.getColorScheme(isDark, isAmoled, overrideDarkSurfaceContainers = false)
             } else if (appTheme == AppTheme.CUSTOM) {
