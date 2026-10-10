@@ -5,6 +5,7 @@ import tachiyomi.domain.history.interactor.GetHistory
 import tachiyomi.domain.history.model.HistoryWithRelations
 import tachiyomi.domain.manga.interactor.GetManga
 import tachiyomi.domain.manga.model.MangaCover
+import tachiyomi.domain.manga.model.asMangaCover
 import tachiyomi.domain.source.service.SourceManager
 import uy.kohesive.injekt.Injekt
 import uy.kohesive.injekt.api.get
@@ -176,6 +177,31 @@ suspend fun computeProfileStats(genreLookupLimit: Int = 40): ProfileStats {
         topGenres = genreCounts.toList().sortedByDescending { it.second }.take(5),
         topSources = sourceCounts.toList().sortedByDescending { it.second }.take(5),
         typeBreakdown = typeBreakdown,
+    )
+}
+
+/**
+ * Loads the manga/novel the user explicitly pinned as their favorite (see the Profile screen's
+ * favorite-title picker), as a [RecentItem] so it can stand in for the auto-computed favorite.
+ * Unlike [computeProfileStats]'s favoriteTitle, this one may have no reading history at all -
+ * interactionCount/totalDuration/lastReadAt are honestly zero/null rather than fabricated, since
+ * picking a favorite doesn't imply having read it.
+ */
+suspend fun loadPinnedFavorite(mangaId: Long): RecentItem? {
+    if (mangaId <= 0) return null
+    val manga = try {
+        Injekt.get<GetManga>().await(mangaId)
+    } catch (e: Exception) {
+        null
+    } ?: return null
+    return RecentItem(
+        mangaId = manga.id,
+        title = manga.title,
+        coverData = manga.asMangaCover(),
+        isNovel = manga.isNovel,
+        interactionCount = 0,
+        totalDuration = 0,
+        lastReadAt = null,
     )
 }
 
