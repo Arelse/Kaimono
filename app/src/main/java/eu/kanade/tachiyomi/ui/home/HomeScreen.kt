@@ -239,8 +239,21 @@ object HomeScreen : Screen() {
     @Composable
     private fun PillNavigationBar(tabs: List<eu.kanade.presentation.util.Tab>) {
         val uiPreferences = remember { Injekt.get<eu.kanade.domain.ui.UiPreferences>() }
-        val navBarStyle by uiPreferences.navBarStyle.collectAsState()
-        val translucentNav by uiPreferences.translucentNav.collectAsState()
+        // The UI Switcher mode (More screen) drives nav bar style directly: Default/Vision Glass
+        // match their reference mockups (flat tabs, no raised pill), Translucent keeps the
+        // existing floating-pill behavior. This overrides the manual picker in Settings > UI
+        // Settings while a mode is active, same as that screen's own subtitle now says.
+        val uiMode by uiPreferences.uiMode.collectAsState()
+        val navBarStyle = when (uiMode) {
+            eu.kanade.domain.ui.model.UiMode.TRANSLUCENT -> eu.kanade.domain.ui.model.NavBarStyle.DYNAMIC_PILL
+            eu.kanade.domain.ui.model.UiMode.DEFAULT,
+            eu.kanade.domain.ui.model.UiMode.ALTERNATIVE,
+                -> eu.kanade.domain.ui.model.NavBarStyle.CLASSIC
+        }
+        // Likewise, the nav bar only shows its background-bleeds-through treatment in
+        // Translucent mode - Default/Vision Glass keep a consistently present, opaque-ish bar
+        // matching their mockups rather than one that fades with content behind it.
+        val translucentNav = uiMode == eu.kanade.domain.ui.model.UiMode.TRANSLUCENT
         val navBarMargin by uiPreferences.navBarMargin.collectAsState()
         // Home Screen Switcher: when a non-Classic style is picked, it re-skins this bar too
         // (container tint + selected-tab accent), not just the Home tab's own content.
