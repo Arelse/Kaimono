@@ -15,6 +15,7 @@ import androidx.compose.material.icons.outlined.Explore
 import androidx.compose.material.icons.outlined.GetApp
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.Palette
+import androidx.compose.material.icons.outlined.Widgets
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.outlined.Security
 import androidx.compose.material.icons.outlined.Storage
@@ -166,7 +167,7 @@ object SettingsMainScreen : Screen() {
                         CompositionLocalProvider(LocalContentColor provides contentColor) {
                             TextPreferenceWidget(
                                 modifier = modifier,
-                                title = stringResource(item.titleRes),
+                                title = item.titleRes?.let { stringResource(it) } ?: item.titleString.orEmpty(),
                                 subtitle = item.formatSubtitle(),
                                 icon = item.icon,
                                 onPreferenceClick = { navigator.navigate(item.screen, twoPane) },
@@ -183,9 +184,11 @@ object SettingsMainScreen : Screen() {
     }
 
     private data class Item(
-        val titleRes: StringResource,
+        val titleRes: StringResource? = null,
+        val titleString: String? = null,
         val subtitleRes: StringResource? = null,
-        val formatSubtitle: @Composable () -> String? = { subtitleRes?.let { stringResource(it) } },
+        val subtitleString: String? = null,
+        val formatSubtitle: @Composable () -> String? = { subtitleRes?.let { stringResource(it) } ?: subtitleString },
         val icon: ImageVector,
         val screen: VoyagerScreen,
         val isMangaOnly: Boolean = false,
@@ -197,6 +200,12 @@ object SettingsMainScreen : Screen() {
             subtitleRes = MR.strings.pref_appearance_summary,
             icon = Icons.Outlined.Palette,
             screen = SettingsAppearanceScreen,
+        ),
+        Item(
+            titleRes = MR.strings.pref_category_ui_settings,
+            subtitleRes = MR.strings.pref_ui_settings_summary,
+            icon = Icons.Outlined.Widgets,
+            screen = SettingsUiScreen,
         ),
         Item(
             titleRes = MR.strings.pref_category_library,
