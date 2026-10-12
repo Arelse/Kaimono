@@ -113,9 +113,48 @@ object SettingsAppearanceScreen : SearchableSettings {
             )
         }
 
+        val useUiSwitcherThemePref = uiPreferences.useUiSwitcherTheme
+        val useUiSwitcherTheme by useUiSwitcherThemePref.collectAsState()
+
         return Preference.PreferenceGroup(
             title = stringResource(MR.strings.pref_category_theme),
-            preferenceItems = listOf(
+            preferenceItems = listOfNotNull(
+                if (useUiSwitcherTheme) {
+                    Preference.PreferenceItem.CustomPreference(title = "UI Switcher notice") {
+                        androidx.compose.material3.Surface(
+                            modifier = androidx.compose.ui.Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp, vertical = 8.dp),
+                            shape = androidx.compose.foundation.shape.RoundedCornerShape(12.dp),
+                            color = androidx.compose.material3.MaterialTheme.colorScheme.errorContainer,
+                        ) {
+                            Row(
+                                modifier = androidx.compose.ui.Modifier.padding(12.dp),
+                                verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                            ) {
+                                androidx.compose.foundation.layout.Column(modifier = androidx.compose.ui.Modifier.weight(1f)) {
+                                    androidx.compose.material3.Text(
+                                        "Everything below is inactive",
+                                        style = androidx.compose.material3.MaterialTheme.typography.bodyMedium,
+                                        fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
+                                        color = androidx.compose.material3.MaterialTheme.colorScheme.onErrorContainer,
+                                    )
+                                    androidx.compose.material3.Text(
+                                        "The UI Switcher's custom palette (More > UI Switcher) is overriding this page. Turn it off there, or tap here, to use these controls again.",
+                                        style = androidx.compose.material3.MaterialTheme.typography.bodySmall,
+                                        color = androidx.compose.material3.MaterialTheme.colorScheme.onErrorContainer,
+                                    )
+                                }
+                                androidx.compose.material3.TextButton(onClick = { useUiSwitcherThemePref.set(false) }) {
+                                    androidx.compose.material3.Text("Turn off")
+                                }
+                            }
+                        }
+                    }
+                } else {
+                    null
+                },
                 Preference.PreferenceItem.CustomPreference(
                     title = stringResource(MR.strings.pref_app_theme),
                 ) {
