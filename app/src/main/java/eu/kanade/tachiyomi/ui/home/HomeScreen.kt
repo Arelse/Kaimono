@@ -370,14 +370,14 @@ object HomeScreen : Screen() {
                         ) {
                             CompositionLocalProvider(
                                 androidx.compose.material3.LocalContentColor provides
-                                    (homeTokens?.accent ?: MaterialTheme.colorScheme.onPrimaryContainer),
+                                    (homeTokens?.onAccent ?: MaterialTheme.colorScheme.onPrimaryContainer),
                             ) {
                                 NavigationIconItem(tab)
                             }
                             Text(
                                 text = navLabelFor(tab),
                                 fontSize = 13.sp,
-                                color = homeTokens?.accent ?: MaterialTheme.colorScheme.onPrimaryContainer,
+                                color = homeTokens?.onAccent ?: MaterialTheme.colorScheme.onPrimaryContainer,
                                 modifier = Modifier.padding(start = 8.dp),
                             )
                         }
