@@ -110,7 +110,7 @@ object SettingsUiScreen : SearchableSettings {
                         NavBarStyle.DYNAMIC_PILL to "Dynamic pill",
                     ),
                     title = "Nav bar style",
-                    subtitle = "Overridden automatically while a UI Switcher mode is active - see More > UI Switcher",
+                    subtitle = "Overridden by the \"Navigation bar\" toggle in More > UI Switcher",
                 ),
                 Preference.PreferenceItem.ListPreference(
                     preference = uiPreferences.homeScreenStyle,
