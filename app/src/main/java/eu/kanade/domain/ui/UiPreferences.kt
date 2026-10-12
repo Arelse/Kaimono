@@ -134,7 +134,14 @@ class UiPreferences(
      * picker below. False reverts to that legacy system untouched, for anyone who wants the
      * classic Tachiyomi theme picker back instead.
      */
-    val useUiSwitcherTheme: Preference<Boolean> = preferenceStore.getBoolean("pref_use_ui_switcher_theme", false)
+    val useUiSwitcherTheme: Preference<Boolean> = preferenceStore.getBoolean("pref_use_ui_switcher_theme", true)
+
+    /**
+     * True = floating pill nav bar (current/default look). False = docked bar matching the
+     * Default/Vision Glass reference mockups. User-controlled from the UI Switcher sheet -
+     * no longer auto-derived from uiMode, since the person using it wants direct control.
+     */
+    val floatingNavBar: Preference<Boolean> = preferenceStore.getBoolean("pref_floating_nav_bar", true)
 
     /** Whether a custom two-color gradient overlay is layered on top of the active UI mode. */
     val gradientThemeEnabled: Preference<Boolean> = preferenceStore.getBoolean("pref_gradient_theme_enabled", false)
