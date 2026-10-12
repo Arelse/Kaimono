@@ -2,6 +2,8 @@ package eu.kanade.presentation.more
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -51,6 +53,8 @@ fun UiSwitcherSheet(
     sheetState: SheetState,
 ) {
     val uiMode by uiPreferences.uiMode.collectAsState()
+    val useUiSwitcherTheme by uiPreferences.useUiSwitcherTheme.collectAsState()
+    val floatingNavBar by uiPreferences.floatingNavBar.collectAsState()
 
     ModalBottomSheet(
         onDismissRequest = onDismissRequest,
@@ -59,8 +63,9 @@ fun UiSwitcherSheet(
     ) {
         Column(
             modifier = Modifier
-                .heightIn(max = 460.dp)
-                .padding(horizontal = 16.dp, vertical = 8.dp),
+                .heightIn(max = 680.dp)
+                .padding(horizontal = 16.dp, vertical = 8.dp)
+                .verticalScroll(rememberScrollState()),
         ) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
@@ -96,6 +101,71 @@ fun UiSwitcherSheet(
                         )
                     }
                 }
+            }
+
+            Spacer(modifier = Modifier.padding(top = 20.dp))
+            Text(
+                text = "PALETTE",
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(start = 4.dp, bottom = 8.dp),
+            )
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(16.dp))
+                    .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.3f))
+                    .padding(16.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text("Apply custom color palette", style = MaterialTheme.typography.bodyLarge)
+                    Text(
+                        "Black + accent blue, matching the mode descriptions above. Turn off to use your own theme from Settings > Appearance > Theme instead.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                androidx.compose.material3.Switch(
+                    checked = useUiSwitcherTheme,
+                    onCheckedChange = { uiPreferences.useUiSwitcherTheme.set(it) },
+                )
+            }
+
+            Spacer(modifier = Modifier.padding(top = 20.dp))
+            Text(
+                text = "NAVIGATION BAR",
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(start = 4.dp, bottom = 8.dp),
+            )
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(16.dp))
+                    .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.3f))
+                    .padding(16.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        if (floatingNavBar) "Floating pill" else "Docked bar",
+                        style = MaterialTheme.typography.bodyLarge,
+                    )
+                    Text(
+                        if (floatingNavBar) {
+                            "The current default - a rounded bar inset from the edges"
+                        } else {
+                            "Matches the Default/Vision Glass reference mockups - a bar docked flat to the bottom edge"
+                        },
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                androidx.compose.material3.Switch(
+                    checked = floatingNavBar,
+                    onCheckedChange = { uiPreferences.floatingNavBar.set(it) },
+                )
             }
 
             Text(
