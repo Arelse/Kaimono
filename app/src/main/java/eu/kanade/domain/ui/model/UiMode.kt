@@ -19,4 +19,8 @@ enum class UiMode(val displayName: String, val description: String) {
         displayName = "Translucent",
         description = "Expands the glass effect across the whole app, not just cards.",
     ),
+    GLASSMORPHISM(
+        displayName = "Glassmorphism",
+        description = "See-through frosted surfaces everywhere, via the color scheme itself - not just a few screens.",
+    ),
 }
