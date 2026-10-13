@@ -5,6 +5,7 @@ import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.MaterialExpressiveTheme
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.unit.dp
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalContext
@@ -81,19 +82,75 @@ private fun BaseTachiyomiTheme(
     val uiMode by Injekt.get<UiPreferences>().uiMode.collectAsState()
     val useUiSwitcherTheme by Injekt.get<UiPreferences>().useUiSwitcherTheme.collectAsState()
     val typography = remember(appFont) { typographyFor(appFont) }
+    // Spatial UI's lever is the shape theme rather than color: any Card/Surface/Button using
+    // default MaterialTheme.shapes tokens (most of the app) picks up rounder, more "floating
+    // panel" corners automatically - same cascading trick as colorScheme below, just for shape
+    // instead of color. Only active when Spatial is actually selected; every other mode (and the
+    // legacy AppTheme picker) keeps Material's normal default shapes untouched.
+    val shapes = remember(uiMode, useUiSwitcherTheme) {
+        if (useUiSwitcherTheme && uiMode == eu.kanade.domain.ui.model.UiMode.SPATIAL) {
+            androidx.compose.material3.Shapes(
+                extraSmall = androidx.compose.foundation.shape.RoundedCornerShape(12.dp),
+                small = androidx.compose.foundation.shape.RoundedCornerShape(16.dp),
+                medium = androidx.compose.foundation.shape.RoundedCornerShape(22.dp),
+                large = androidx.compose.foundation.shape.RoundedCornerShape(28.dp),
+                extraLarge = androidx.compose.foundation.shape.RoundedCornerShape(36.dp),
+            )
+        } else {
+            androidx.compose.material3.Shapes()
+        }
+    }
     MaterialExpressiveTheme(
         typography = typography,
+        shapes = shapes,
         colorScheme = remember(appTheme, isDark, isAmoled, seedColor, coverStyle, customThemeColor, uiMode, useUiSwitcherTheme) {
             // The UI Switcher (More screen) takes priority over the legacy AppTheme picker below,
             // unless the user has explicitly turned it off. All three UiMode values share this
             // palette, differing in translucency/treatment rather than color - see
             // IosGlassColorScheme and SettingsGroup/SettingItem.
             if (useUiSwitcherTheme) {
-                eu.kanade.presentation.theme.colorscheme.IosGlassColorScheme.getColorScheme(
+                val base = eu.kanade.presentation.theme.colorscheme.IosGlassColorScheme.getColorScheme(
                     isDark = true,
                     isAmoled = isAmoled,
                     overrideDarkSurfaceContainers = true,
                 )
+                if (uiMode == eu.kanade.domain.ui.model.UiMode.GLASSMORPHISM) {
+                    // The single app-wide lever: every surface token below is translucent, not
+                    // opaque. Any screen using standard Material3 Surface/Card with default
+                    // colors (the vast majority of this app's screens) reads these same tokens,
+                    // so this cascades everywhere automatically - not just the screens Claude
+                    // has hand-styled (More screen's SettingsGroup, etc). No new dependency, no
+                    // true backdrop blur (would need the Haze library) - this is alpha-based
+                    // "frosted" translucency, same honest limitation as Translucent mode.
+                    base.copy(
+                        surface = base.surface.copy(alpha = 0.45f),
+                        surfaceVariant = base.surfaceVariant.copy(alpha = 0.45f),
+                        surfaceContainerLowest = base.surfaceContainerLowest.copy(alpha = 0.35f),
+                        surfaceContainerLow = base.surfaceContainerLow.copy(alpha = 0.40f),
+                        surfaceContainer = base.surfaceContainer.copy(alpha = 0.45f),
+                        surfaceContainerHigh = base.surfaceContainerHigh.copy(alpha = 0.55f),
+                        surfaceContainerHighest = base.surfaceContainerHighest.copy(alpha = 0.65f),
+                        primaryContainer = base.primaryContainer.copy(alpha = 0.55f),
+                        secondaryContainer = base.secondaryContainer.copy(alpha = 0.55f),
+                        tertiaryContainer = base.tertiaryContainer.copy(alpha = 0.45f),
+                    )
+                } else if (uiMode == eu.kanade.domain.ui.model.UiMode.SPATIAL) {
+                    // More opaque than Glassmorphism on purpose - Spatial's identity is depth
+                    // and rounded floating panels (see the shapes override above and the
+                    // elevation Claude added on the More screen), not see-through-ness. A light
+                    // translucency here still lets it read as "layered" rather than flat/solid.
+                    base.copy(
+                        surface = base.surface.copy(alpha = 0.72f),
+                        surfaceVariant = base.surfaceVariant.copy(alpha = 0.72f),
+                        surfaceContainerLowest = base.surfaceContainerLowest.copy(alpha = 0.60f),
+                        surfaceContainerLow = base.surfaceContainerLow.copy(alpha = 0.66f),
+                        surfaceContainer = base.surfaceContainer.copy(alpha = 0.72f),
+                        surfaceContainerHigh = base.surfaceContainerHigh.copy(alpha = 0.80f),
+                        surfaceContainerHighest = base.surfaceContainerHighest.copy(alpha = 0.88f),
+                    )
+                } else {
+                    base
+                }
             } else if (seedColor != null) {
                 val scheme = MonetCompatColorScheme(Color(seedColor), coverStyle)
                 scheme.getColorScheme(isDark, isAmoled, overrideDarkSurfaceContainers = false)
