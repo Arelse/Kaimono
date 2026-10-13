@@ -86,7 +86,23 @@ fun MoreScreen(
         eu.kanade.domain.ui.model.UiMode.DEFAULT -> 0.28f
         eu.kanade.domain.ui.model.UiMode.ALTERNATIVE -> 0.22f
         eu.kanade.domain.ui.model.UiMode.TRANSLUCENT -> 0.10f
+        eu.kanade.domain.ui.model.UiMode.GLASSMORPHISM -> 0.16f
+        eu.kanade.domain.ui.model.UiMode.SPATIAL -> 0.55f
     }
+    // Glassmorphism gets a thin light border - what actually sells "glass" rather than just
+    // "see-through". Spatial gets real shadow elevation instead - what sells "floating panel"
+    // rather than just "rounder corners" (the shape change itself is global - see
+    // TachiyomiTheme.kt's `shapes` override - these two are per-screen flourishes layered on
+    // top, currently only built out here on the More screen).
+    val cardBorder = if (uiMode == eu.kanade.domain.ui.model.UiMode.GLASSMORPHISM) {
+        androidx.compose.foundation.BorderStroke(
+            width = 1.dp,
+            color = androidx.compose.ui.graphics.Color.White.copy(alpha = 0.18f),
+        )
+    } else {
+        null
+    }
+    val cardElevation = if (uiMode == eu.kanade.domain.ui.model.UiMode.SPATIAL) 12.dp else 0.dp
 
     var showUiSwitcher by remember { mutableStateOf(false) }
     val uiSwitcherSheetState = androidx.compose.material3.rememberModalBottomSheetState()
@@ -108,7 +124,7 @@ fun MoreScreen(
 
             // Mode Group
             item {
-                SettingsGroup(title = "Mode", cardAlpha = cardAlpha) {
+                SettingsGroup(title = "Mode", cardAlpha = cardAlpha, cardBorder = cardBorder, cardElevation = cardElevation) {
                     SettingItem(
                         title = stringResource(MR.strings.label_downloaded_only),
                         subtitle = stringResource(MR.strings.downloaded_only_summary),
@@ -133,7 +149,7 @@ fun MoreScreen(
 
             // Profile Group
             item {
-                SettingsGroup(title = "Profile", cardAlpha = cardAlpha) {
+                SettingsGroup(title = "Profile", cardAlpha = cardAlpha, cardBorder = cardBorder, cardElevation = cardElevation) {
                     SettingItem(
                         title = "Show recently read",
                         subtitle = "\"Recently Read\" row on your Profile",
@@ -164,7 +180,7 @@ fun MoreScreen(
 
             // Content Group
             item {
-                SettingsGroup(title = "Content", cardAlpha = cardAlpha) {
+                SettingsGroup(title = "Content", cardAlpha = cardAlpha, cardBorder = cardBorder, cardElevation = cardElevation) {
                     val downloadQueueState = downloadQueueStateProvider()
                     val downloadSubtitle = when (downloadQueueState) {
                         DownloadQueueState.Stopped -> null
@@ -216,7 +232,7 @@ fun MoreScreen(
 
             // App Group
             item {
-                SettingsGroup(title = "App", cardAlpha = cardAlpha) {
+                SettingsGroup(title = "App", cardAlpha = cardAlpha, cardBorder = cardBorder, cardElevation = cardElevation) {
                     SettingItem(
                         title = "Switch Button Size",
                         subtitle = "${fabSizeDp}dp",
@@ -272,6 +288,8 @@ fun MoreScreen(
 fun SettingsGroup(
     title: String,
     cardAlpha: Float = 0.28f,
+    cardBorder: androidx.compose.foundation.BorderStroke? = null,
+    cardElevation: androidx.compose.ui.unit.Dp = 0.dp,
     content: @Composable () -> Unit
 ) {
     Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
@@ -284,7 +302,10 @@ fun SettingsGroup(
         )
         Surface(
             shape = RoundedCornerShape(16.dp),
-            color = MaterialTheme.colorScheme.surface.copy(alpha = cardAlpha)
+            color = MaterialTheme.colorScheme.surface.copy(alpha = cardAlpha),
+            border = cardBorder,
+            shadowElevation = cardElevation,
+            tonalElevation = cardElevation,
         ) {
             Column {
                 content()
