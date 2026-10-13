@@ -23,4 +23,8 @@ enum class UiMode(val displayName: String, val description: String) {
         displayName = "Glassmorphism",
         description = "See-through frosted surfaces everywhere, via the color scheme itself - not just a few screens.",
     ),
+    SPATIAL(
+        displayName = "Spatial UI",
+        description = "Rounder floating panels with real depth/shadow, app-wide via the shape theme - less see-through, more layered.",
+    ),
 }
