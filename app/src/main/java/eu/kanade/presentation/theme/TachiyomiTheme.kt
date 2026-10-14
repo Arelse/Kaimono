@@ -148,6 +148,44 @@ private fun BaseTachiyomiTheme(
                         surfaceContainerHigh = base.surfaceContainerHigh.copy(alpha = 0.80f),
                         surfaceContainerHighest = base.surfaceContainerHighest.copy(alpha = 0.88f),
                     )
+                } else if (uiMode == eu.kanade.domain.ui.model.UiMode.NEUMORPHISM) {
+                    // Opaque, not translucent - that's the point. Neumorphism's identity is
+                    // depth from shadow alone, against a surface that barely differs in tone
+                    // from the background it sits on (see the near-black surface values below,
+                    // close to base.background rather than base.surfaceContainerHighest). The
+                    // elevation Claude added on the More screen does the rest of the work here.
+                    val neuSurface = Color(0xFF0A0A0A)
+                    base.copy(
+                        surface = neuSurface,
+                        surfaceVariant = neuSurface,
+                        surfaceContainerLowest = Color(0xFF060606),
+                        surfaceContainerLow = Color(0xFF080808),
+                        surfaceContainer = neuSurface,
+                        surfaceContainerHigh = Color(0xFF0D0D0D),
+                        surfaceContainerHighest = Color(0xFF101010),
+                    )
+                } else if (uiMode == eu.kanade.domain.ui.model.UiMode.LIQUID_GLASS) {
+                    // Translucent like Glassmorphism, but tinted toward the accent blue rather
+                    // than neutral gray - approximates the "tinted refraction" look of Apple's
+                    // Liquid Glass / the linked liquid-glass-js project. This is an honest
+                    // Compose-native interpretation, not a port: that library runs its effect in
+                    // a browser via WebGL + html2canvas sampling the live DOM, neither of which
+                    // exists in a native Android view hierarchy, so there's nothing to literally
+                    // "use" from it here. The animated specular sweep on the More screen is the
+                    // other half of this mode's identity.
+                    val tint = Color(0xFF0A84FF)
+                    base.copy(
+                        surface = androidx.compose.ui.graphics.lerp(base.surface, tint, 0.12f).copy(alpha = 0.40f),
+                        surfaceVariant = androidx.compose.ui.graphics.lerp(base.surfaceVariant, tint, 0.12f).copy(alpha = 0.40f),
+                        surfaceContainerLowest = androidx.compose.ui.graphics.lerp(base.surfaceContainerLowest, tint, 0.10f).copy(alpha = 0.30f),
+                        surfaceContainerLow = androidx.compose.ui.graphics.lerp(base.surfaceContainerLow, tint, 0.12f).copy(alpha = 0.35f),
+                        surfaceContainer = androidx.compose.ui.graphics.lerp(base.surfaceContainer, tint, 0.14f).copy(alpha = 0.40f),
+                        surfaceContainerHigh = androidx.compose.ui.graphics.lerp(base.surfaceContainerHigh, tint, 0.16f).copy(alpha = 0.50f),
+                        surfaceContainerHighest = androidx.compose.ui.graphics.lerp(base.surfaceContainerHighest, tint, 0.18f).copy(alpha = 0.60f),
+                        primaryContainer = base.primaryContainer.copy(alpha = 0.55f),
+                        secondaryContainer = base.secondaryContainer.copy(alpha = 0.55f),
+                        tertiaryContainer = base.tertiaryContainer.copy(alpha = 0.40f),
+                    )
                 } else {
                     base
                 }
