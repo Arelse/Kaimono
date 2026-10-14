@@ -2,6 +2,7 @@ package eu.kanade.presentation.more
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -88,21 +89,34 @@ fun MoreScreen(
         eu.kanade.domain.ui.model.UiMode.TRANSLUCENT -> 0.10f
         eu.kanade.domain.ui.model.UiMode.GLASSMORPHISM -> 0.16f
         eu.kanade.domain.ui.model.UiMode.SPATIAL -> 0.55f
+        eu.kanade.domain.ui.model.UiMode.NEUMORPHISM -> 1f
+        eu.kanade.domain.ui.model.UiMode.LIQUID_GLASS -> 0.40f
     }
-    // Glassmorphism gets a thin light border - what actually sells "glass" rather than just
-    // "see-through". Spatial gets real shadow elevation instead - what sells "floating panel"
-    // rather than just "rounder corners" (the shape change itself is global - see
-    // TachiyomiTheme.kt's `shapes` override - these two are per-screen flourishes layered on
-    // top, currently only built out here on the More screen).
-    val cardBorder = if (uiMode == eu.kanade.domain.ui.model.UiMode.GLASSMORPHISM) {
-        androidx.compose.foundation.BorderStroke(
+    // Glassmorphism: thin light border - what sells "glass" over just "see-through". Spatial:
+    // shadow elevation instead - what sells "floating panel" over just "rounder corners" (the
+    // shape change is global, see TachiyomiTheme.kt's `shapes` override). Neumorphism: no
+    // border, soft shadow only - a border would fight the "surface barely differs from
+    // background" premise. Liquid Glass: a blue-tinted border plus elevation plus the animated
+    // specular sweep below - all three per-mode flourishes are currently only built out here on
+    // the More screen, same as before.
+    val cardBorder = when (uiMode) {
+        eu.kanade.domain.ui.model.UiMode.GLASSMORPHISM -> androidx.compose.foundation.BorderStroke(
             width = 1.dp,
             color = androidx.compose.ui.graphics.Color.White.copy(alpha = 0.18f),
         )
-    } else {
-        null
+        eu.kanade.domain.ui.model.UiMode.LIQUID_GLASS -> androidx.compose.foundation.BorderStroke(
+            width = 1.dp,
+            color = androidx.compose.ui.graphics.Color(0xFF0A84FF).copy(alpha = 0.35f),
+        )
+        else -> null
     }
-    val cardElevation = if (uiMode == eu.kanade.domain.ui.model.UiMode.SPATIAL) 12.dp else 0.dp
+    val cardElevation = when (uiMode) {
+        eu.kanade.domain.ui.model.UiMode.SPATIAL -> 12.dp
+        eu.kanade.domain.ui.model.UiMode.NEUMORPHISM -> 8.dp
+        eu.kanade.domain.ui.model.UiMode.LIQUID_GLASS -> 4.dp
+        else -> 0.dp
+    }
+    val specularSweep = uiMode == eu.kanade.domain.ui.model.UiMode.LIQUID_GLASS
 
     var showUiSwitcher by remember { mutableStateOf(false) }
     val uiSwitcherSheetState = androidx.compose.material3.rememberModalBottomSheetState()
@@ -124,7 +138,7 @@ fun MoreScreen(
 
             // Mode Group
             item {
-                SettingsGroup(title = "Mode", cardAlpha = cardAlpha, cardBorder = cardBorder, cardElevation = cardElevation) {
+                SettingsGroup(title = "Mode", cardAlpha = cardAlpha, cardBorder = cardBorder, cardElevation = cardElevation, specularSweep = specularSweep) {
                     SettingItem(
                         title = stringResource(MR.strings.label_downloaded_only),
                         subtitle = stringResource(MR.strings.downloaded_only_summary),
@@ -149,7 +163,7 @@ fun MoreScreen(
 
             // Profile Group
             item {
-                SettingsGroup(title = "Profile", cardAlpha = cardAlpha, cardBorder = cardBorder, cardElevation = cardElevation) {
+                SettingsGroup(title = "Profile", cardAlpha = cardAlpha, cardBorder = cardBorder, cardElevation = cardElevation, specularSweep = specularSweep) {
                     SettingItem(
                         title = "Show recently read",
                         subtitle = "\"Recently Read\" row on your Profile",
@@ -180,7 +194,7 @@ fun MoreScreen(
 
             // Content Group
             item {
-                SettingsGroup(title = "Content", cardAlpha = cardAlpha, cardBorder = cardBorder, cardElevation = cardElevation) {
+                SettingsGroup(title = "Content", cardAlpha = cardAlpha, cardBorder = cardBorder, cardElevation = cardElevation, specularSweep = specularSweep) {
                     val downloadQueueState = downloadQueueStateProvider()
                     val downloadSubtitle = when (downloadQueueState) {
                         DownloadQueueState.Stopped -> null
@@ -232,7 +246,7 @@ fun MoreScreen(
 
             // App Group
             item {
-                SettingsGroup(title = "App", cardAlpha = cardAlpha, cardBorder = cardBorder, cardElevation = cardElevation) {
+                SettingsGroup(title = "App", cardAlpha = cardAlpha, cardBorder = cardBorder, cardElevation = cardElevation, specularSweep = specularSweep) {
                     SettingItem(
                         title = "Switch Button Size",
                         subtitle = "${fabSizeDp}dp",
@@ -290,6 +304,7 @@ fun SettingsGroup(
     cardAlpha: Float = 0.28f,
     cardBorder: androidx.compose.foundation.BorderStroke? = null,
     cardElevation: androidx.compose.ui.unit.Dp = 0.dp,
+    specularSweep: Boolean = false,
     content: @Composable () -> Unit
 ) {
     Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
@@ -307,10 +322,54 @@ fun SettingsGroup(
             shadowElevation = cardElevation,
             tonalElevation = cardElevation,
         ) {
-            Column {
-                content()
+            Box {
+                Column {
+                    content()
+                }
+                if (specularSweep) {
+                    LiquidGlassSpecularSweep(modifier = Modifier.matchParentSize())
+                }
             }
         }
+    }
+}
+
+/**
+ * A soft diagonal highlight band that loops across the card, approximating the moving specular
+ * highlight from Apple's Liquid Glass look (and the liquid-glass-js project this mode is
+ * inspired by). That project renders its effect via WebGL shaders sampling a live screenshot of
+ * the DOM (html2canvas) - there's no equivalent pipeline in a native Android view hierarchy, so
+ * this is a from-scratch Compose animation aiming at the same visual idea, not a port of it.
+ */
+@Composable
+private fun LiquidGlassSpecularSweep(modifier: Modifier = Modifier) {
+    val transition = androidx.compose.animation.core.rememberInfiniteTransition(label = "liquidGlassSweep")
+    val t by transition.animateFloat(
+        initialValue = -0.4f,
+        targetValue = 1.4f,
+        animationSpec = androidx.compose.animation.core.infiniteRepeatable(
+            animation = androidx.compose.animation.core.tween(
+                durationMillis = 2600,
+                easing = androidx.compose.animation.core.LinearEasing,
+            ),
+            repeatMode = androidx.compose.animation.core.RepeatMode.Restart,
+        ),
+        label = "liquidGlassSweepT",
+    )
+    androidx.compose.foundation.Canvas(modifier = modifier) {
+        val bandWidth = size.width * 0.3f
+        val x = t * size.width
+        drawRect(
+            brush = androidx.compose.ui.graphics.Brush.linearGradient(
+                colors = listOf(
+                    androidx.compose.ui.graphics.Color.Transparent,
+                    androidx.compose.ui.graphics.Color.White.copy(alpha = 0.22f),
+                    androidx.compose.ui.graphics.Color.Transparent,
+                ),
+                start = androidx.compose.ui.geometry.Offset(x - bandWidth, 0f),
+                end = androidx.compose.ui.geometry.Offset(x + bandWidth, size.height),
+            ),
+        )
     }
 }
 
