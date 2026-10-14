@@ -27,4 +27,12 @@ enum class UiMode(val displayName: String, val description: String) {
         displayName = "Spatial UI",
         description = "Rounder floating panels with real depth/shadow, app-wide via the shape theme - less see-through, more layered.",
     ),
+    NEUMORPHISM(
+        displayName = "Neumorphism",
+        description = "Soft, opaque extruded surfaces that nearly match the background - low contrast, shadow-driven depth, not translucency.",
+    ),
+    LIQUID_GLASS(
+        displayName = "Liquid Glass",
+        description = "Tinted glass with an animated specular sweep, inspired by Apple's Liquid Glass look - not a literal use of the linked WebGL library, which can't run in a native Android app.",
+    ),
 }
