@@ -86,7 +86,10 @@ class UiPreferences(
     // Empty means default order.
     val navTabOrder: Preference<String> = preferenceStore.getString("pref_nav_tab_order", "")
 
-    val navHiddenTabs: Preference<Set<String>> = preferenceStore.getStringSet("pref_nav_hidden_tabs", emptySet())
+    // "anime" hidden by default - see NavTabKeys.ANIME. Still fully recoverable from
+    // Settings > UI Settings > Reorder navigation tabs, this just changes what a fresh/existing
+    // install shows out of the box rather than removing the tab from the app entirely.
+    val navHiddenTabs: Preference<Set<String>> = preferenceStore.getStringSet("pref_nav_hidden_tabs", setOf("anime"))
 
     val accentGradientEnabled: Preference<Boolean> = preferenceStore.getBoolean("pref_accent_gradient_enabled", false)
 
@@ -121,6 +124,22 @@ class UiPreferences(
     // A manga/anime id the user explicitly picked as their favorite from the Profile screen's
     // favorite-title picker, overriding the auto-computed (most-time-spent) favorite. 0 = none.
     val profilePinnedFavoriteId: Preference<Long> = preferenceStore.getLong("pref_profile_pinned_favorite_id", 0L)
+
+    /** Genre names excluded from the Profile "Top Genres" insight. */
+    val profileExcludedGenres: Preference<Set<String>> = preferenceStore.getStringSet("pref_profile_excluded_genres", emptySet())
+
+    /** Source names excluded from the Profile "Top Sources" insight. */
+    val profileExcludedSources: Preference<Set<String>> = preferenceStore.getStringSet("pref_profile_excluded_sources", emptySet())
+
+    /** Manga IDs (as strings) hidden from the Profile "Lately Alighted Upon" row. */
+    val profileHiddenRecentIds: Preference<Set<String>> = preferenceStore.getStringSet("pref_profile_hidden_recent_ids", emptySet())
+
+    /**
+     * When true (the default), the Profile favorite-title card only ever shows a manga the user
+     * explicitly pinned (see profilePinnedFavoriteId) - no pin means no favorite card, rather
+     * than silently falling back to whichever recently-read title has the most time/interactions.
+     */
+    val profilePreventAutoFavorite: Preference<Boolean> = preferenceStore.getBoolean("pref_profile_prevent_auto_favorite", true)
 
     /** The active UI Switcher mode (Default / Vision Glass / Translucent). See UiMode.kt. */
     val uiMode: Preference<eu.kanade.domain.ui.model.UiMode> = preferenceStore.getEnum(
