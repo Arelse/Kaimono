@@ -14,9 +14,9 @@ object NavTabKeys {
     const val MORE = "more"
 
     fun defaultKeys(joined: Boolean): List<String> = if (joined) {
-        listOf(HOME, NOVELS, ANIME, HISTORY, BROWSE, MORE)
+        listOf(HOME, NOVELS, HISTORY, BROWSE, MORE)
     } else {
-        listOf(HOME, NOVELS, LIBRARY, ANIME, HISTORY, BROWSE, MORE)
+        listOf(HOME, NOVELS, LIBRARY, HISTORY, BROWSE, MORE)
     }
 
     /** Parses the saved order string, keeping only known keys and appending any missing ones. */
