@@ -7,6 +7,7 @@ import tachiyomi.domain.manga.interactor.GetManga
 import tachiyomi.domain.manga.model.MangaCover
 import tachiyomi.domain.manga.model.asMangaCover
 import tachiyomi.domain.source.service.SourceManager
+import eu.kanade.domain.ui.UiPreferences
 import uy.kohesive.injekt.Injekt
 import uy.kohesive.injekt.api.get
 import java.time.Instant
@@ -78,7 +79,17 @@ suspend fun computeProfileStats(genreLookupLimit: Int = 40): ProfileStats {
     // this - it's also what the leaderboard uses as "points" (see syncLeaderboardEntry).
     val totalChaptersRead = rows.map { it.chapterId }.distinct().size
 
+    // Items the user hid from "Lately Alighted Upon" (Profile > Settings) are filtered out here,
+    // before anything downstream (favorite-title candidate, genre/source insights) sees them -
+    // hiding a title means "leave it off my profile", not just "don't show it in this one row".
+    val hiddenIds = try {
+        Injekt.get<UiPreferences>().profileHiddenRecentIds.get()
+    } catch (e: Exception) {
+        emptySet()
+    }
+
     val byManga: Map<Long, List<HistoryWithRelations>> = rows.groupBy { it.mangaId }
+        .filterKeys { it.toString() !in hiddenIds }
     val recentItems = byManga.map { (mangaId, group) ->
         val latest = group.maxByOrNull { it.readAt ?: Date(0) }
         RecentItem(
@@ -163,6 +174,17 @@ suspend fun computeProfileStats(genreLookupLimit: Int = 40): ProfileStats {
             sourceCounts[sourceName] = (sourceCounts[sourceName] ?: 0) + 1
         }
     }
+
+    // Genres/sources the user cleared from Profile > Settings never resurface in the insight,
+    // even if they'd otherwise be a top-5 entry.
+    val (excludedGenres, excludedSources) = try {
+        val prefs = Injekt.get<UiPreferences>()
+        prefs.profileExcludedGenres.get() to prefs.profileExcludedSources.get()
+    } catch (e: Exception) {
+        emptySet<String>() to emptySet<String>()
+    }
+    excludedGenres.forEach { genreCounts.remove(it) }
+    excludedSources.forEach { sourceCounts.remove(it) }
 
     return ProfileStats(
         totalReadDuration = totalReadDuration,
