@@ -65,7 +65,6 @@ import eu.kanade.presentation.util.isTabletUi
 import eu.kanade.tachiyomi.ui.browse.BrowseTab
 import eu.kanade.tachiyomi.ui.download.DownloadQueueScreen
 import eu.kanade.tachiyomi.ui.history.HistoryTab
-import eu.kanade.tachiyomi.ui.library.AnimeTab
 import eu.kanade.tachiyomi.ui.library.LibraryTab
 import eu.kanade.tachiyomi.ui.library.NovelsTab
 import eu.kanade.tachiyomi.ui.manga.MangaScreen
@@ -104,7 +103,6 @@ object HomeScreen : Screen() {
         eu.kanade.tachiyomi.ui.discover.DiscoverTab,
         NovelsTab,
         LibraryTab,
-        AnimeTab,
         HistoryTab,
         BrowseTab,
         MoreTab,
@@ -113,7 +111,6 @@ object HomeScreen : Screen() {
     private val JOINED_TABS = listOf(
         eu.kanade.tachiyomi.ui.discover.DiscoverTab,
         NovelsTab,
-        AnimeTab,
         HistoryTab,
         BrowseTab,
         MoreTab,
@@ -417,7 +414,7 @@ object HomeScreen : Screen() {
                                     },
                                 )
                             } else {
-                                Brush.horizontalGradient(
+                                Brush.horizontalGrradient(
                                     colors = listOf(
                                         androidx.compose.ui.graphics.Color.Transparent,
                                         androidx.compose.ui.graphics.Color.Transparent,
@@ -555,7 +552,6 @@ object HomeScreen : Screen() {
         tab::class == eu.kanade.tachiyomi.ui.discover.DiscoverTab::class -> NavTabKeys.HOME
         tab is NovelsTab -> NavTabKeys.NOVELS
         tab is LibraryTab -> NavTabKeys.LIBRARY
-        tab is AnimeTab -> NavTabKeys.ANIME
         tab is HistoryTab -> NavTabKeys.HISTORY
         tab is MoreTab -> NavTabKeys.MORE
         BrowseTab::class.isInstance(tab) -> NavTabKeys.BROWSE
@@ -566,7 +562,6 @@ object HomeScreen : Screen() {
     private fun navLabelFor(tab: eu.kanade.presentation.util.Tab): String = when {
         tab::class == eu.kanade.tachiyomi.ui.discover.DiscoverTab::class -> "Home"
         tab is LibraryTab || tab is NovelsTab -> "Library"
-        tab is AnimeTab -> "Anime"
         tab is HistoryTab -> "History"
         BrowseTab::class.isInstance(tab) -> "Browse"
         tab is MoreTab -> "Settings"
@@ -576,7 +571,6 @@ object HomeScreen : Screen() {
     private fun customNavIconFor(tab: eu.kanade.presentation.util.Tab): ImageVector? = when {
         tab::class == eu.kanade.tachiyomi.ui.discover.DiscoverTab::class -> SparkleNavIcon
         tab is LibraryTab || tab is NovelsTab -> LibraryNavIcon
-        tab is AnimeTab -> AnimeNavIcon
         tab is HistoryTab -> UpdatesNavIcon
         BrowseTab::class.isInstance(tab) -> BrowseSearchNavIcon
         tab is MoreTab -> SettingsNavIcon
@@ -603,5 +597,6 @@ object HomeScreen : Screen() {
         data class More(val toDownloads: Boolean) : Tab
     }
 }
+
 
     
