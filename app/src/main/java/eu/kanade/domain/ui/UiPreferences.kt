@@ -164,6 +164,18 @@ class UiPreferences(
      */
     val floatingNavBar: Preference<Boolean> = preferenceStore.getBoolean("pref_floating_nav_bar", true)
 
+    /** Which layout the Home tab uses: the original Default layout or the Media Hub layout. */
+    val homeLayout: Preference<eu.kanade.domain.ui.model.HomeLayout> = preferenceStore.getEnum(
+        "pref_home_layout",
+        eu.kanade.domain.ui.model.HomeLayout.DEFAULT,
+    )
+
+    /** Accent color (ARGB) used by the Media Hub home layout. */
+    val homeHubAccent: Preference<Int> = preferenceStore.getInt("pref_home_hub_accent", 0xFFC8B6FF.toInt())
+
+    /** Pure black background for the Media Hub home layout. */
+    val homeHubAmoled: Preference<Boolean> = preferenceStore.getBoolean("pref_home_hub_amoled", false)
+
     /** Use the Default mode's iOS tab bar in every UI mode, instead of each mode's own bar. */
     val navBarFromDefault: Preference<Boolean> = preferenceStore.getBoolean("pref_nav_bar_from_default", false)
 
