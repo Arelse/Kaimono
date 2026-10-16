@@ -37,7 +37,6 @@ class UiPreferences(
 
     val themeDarkAmoled: Preference<Boolean> = preferenceStore.getBoolean("pref_theme_dark_amoled_key", false)
 
-    val fabSizeDp: Preference<Int> = preferenceStore.getInt("pref_fab_size_dp", 68)
 
     val relativeTime: Preference<Boolean> = preferenceStore.getBoolean("relative_time_v2", true)
 
@@ -92,6 +91,9 @@ class UiPreferences(
     val navHiddenTabs: Preference<Set<String>> = preferenceStore.getStringSet("pref_nav_hidden_tabs", setOf("anime"))
 
     val accentGradientEnabled: Preference<Boolean> = preferenceStore.getBoolean("pref_accent_gradient_enabled", false)
+
+    /** true: gradient sits behind the whole app. false: only behind the Home tab. */
+    val gradientWholeApp: Preference<Boolean> = preferenceStore.getBoolean("pref_gradient_whole_app", true)
 
     val accentColor: Preference<AccentColor> = preferenceStore.getEnum("pref_accent_color", AccentColor.EMBER)
 
@@ -161,6 +163,9 @@ class UiPreferences(
      * no longer auto-derived from uiMode, since the person using it wants direct control.
      */
     val floatingNavBar: Preference<Boolean> = preferenceStore.getBoolean("pref_floating_nav_bar", true)
+
+    /** Use the Default mode's iOS tab bar in every UI mode, instead of each mode's own bar. */
+    val navBarFromDefault: Preference<Boolean> = preferenceStore.getBoolean("pref_nav_bar_from_default", false)
 
     /** Whether a custom two-color gradient overlay is layered on top of the active UI mode. */
     val gradientThemeEnabled: Preference<Boolean> = preferenceStore.getBoolean("pref_gradient_theme_enabled", false)
