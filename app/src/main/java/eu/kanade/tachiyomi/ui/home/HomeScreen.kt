@@ -129,6 +129,13 @@ object HomeScreen : Screen() {
         val navTabOrder by uiPreferences.navTabOrder.collectAsState()
         val navHiddenTabs by uiPreferences.navHiddenTabs.collectAsState()
         val uiMode by uiPreferences.uiMode.collectAsState()
+        val navBarFromDefault by uiPreferences.navBarFromDefault.collectAsState()
+        val accentGradientEnabled by uiPreferences.accentGradientEnabled.collectAsState()
+        val gradientWholeApp by uiPreferences.gradientWholeApp.collectAsState()
+        val accentColor by uiPreferences.accentColor.collectAsState()
+        val useCustomGradient by uiPreferences.gradientThemeEnabled.collectAsState()
+        val customGradientStart by uiPreferences.gradientColorStart.collectAsState()
+        val customGradientEnd by uiPreferences.gradientColorEnd.collectAsState()
         val navScope = rememberCoroutineScope()
         val baseTabs = if (isJoined || hideMangaUi) JOINED_TABS else TABS
         val orderedKeys = NavTabKeys.ordered(baseTabs.map { navTabKey(it) }, navTabOrder)
@@ -161,7 +168,8 @@ object HomeScreen : Screen() {
                                 enter = expandVertically(),
                                 exit = shrinkVertically(),
                             ) {
-                                if (uiMode == eu.kanade.domain.ui.model.UiMode.DEFAULT ||
+                                if (navBarFromDefault ||
+                                    uiMode == eu.kanade.domain.ui.model.UiMode.DEFAULT ||
                                     uiMode == eu.kanade.domain.ui.model.UiMode.ALTERNATIVE
                                 ) {
                                     IosMockupTabBar(
@@ -188,7 +196,11 @@ object HomeScreen : Screen() {
                                                 },
                                             )
                                         },
-                                        uiMode = uiMode,
+                                        uiMode = if (uiMode == eu.kanade.domain.ui.model.UiMode.ALTERNATIVE) {
+                                            eu.kanade.domain.ui.model.UiMode.ALTERNATIVE
+                                        } else {
+                                            eu.kanade.domain.ui.model.UiMode.DEFAULT
+                                        },
                                     )
                                 } else {
                                     PillNavigationBar(tabs)
@@ -210,6 +222,21 @@ object HomeScreen : Screen() {
                             .padding(contentPaddingNoBottom)
                             .consumeWindowInsets(contentPaddingNoBottom),
                     ) {
+                        // Gradient scoped to the Home tab. When "whole app" is on, MainActivity draws it instead.
+                        if (accentGradientEnabled && !gradientWholeApp && tabNavigator.current == eu.kanade.tachiyomi.ui.discover.DiscoverTab) {
+                            if (useCustomGradient) {
+                                eu.kanade.presentation.components.AccentGradientBackground(
+                                    primary = androidx.compose.ui.graphics.Color(customGradientStart),
+                                    secondary = androidx.compose.ui.graphics.Color(customGradientEnd),
+                                    modifier = Modifier.matchParentSize(),
+                                )
+                            } else {
+                                eu.kanade.presentation.components.AccentGradientBackground(
+                                    accent = accentColor,
+                                    modifier = Modifier.matchParentSize(),
+                                )
+                            }
+                        }
                         AnimatedContent(
                             targetState = tabNavigator.current,
                             transitionSpec = {
@@ -635,4 +662,5 @@ object HomeScreen : Screen() {
 
 
     
+
             
