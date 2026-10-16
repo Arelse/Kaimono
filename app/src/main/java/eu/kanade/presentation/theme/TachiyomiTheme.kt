@@ -88,7 +88,14 @@ private fun BaseTachiyomiTheme(
     // instead of color. Only active when Spatial is actually selected; every other mode (and the
     // legacy AppTheme picker) keeps Material's normal default shapes untouched.
     val shapes = remember(uiMode, useUiSwitcherTheme) {
-        if (useUiSwitcherTheme && uiMode == eu.kanade.domain.ui.model.UiMode.SPATIAL) {
+        // Neumorphism and Liquid Glass use the same app-wide corner treatment: their cards and
+        // surfaces are the shape-bearing components, so this cascades to every Card/Surface app-wide.
+        val roundedModes = setOf(
+            eu.kanade.domain.ui.model.UiMode.SPATIAL,
+            eu.kanade.domain.ui.model.UiMode.NEUMORPHISM,
+            eu.kanade.domain.ui.model.UiMode.LIQUID_GLASS,
+        )
+        if (useUiSwitcherTheme && uiMode in roundedModes) {
             androidx.compose.material3.Shapes(
                 extraSmall = androidx.compose.foundation.shape.RoundedCornerShape(12.dp),
                 small = androidx.compose.foundation.shape.RoundedCornerShape(16.dp),
