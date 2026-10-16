@@ -414,7 +414,7 @@ object HomeScreen : Screen() {
                                     },
                                 )
                             } else {
-                                Brush.horizontalGrradient(
+                                Brush.horizontalGradient(
                                     colors = listOf(
                                         androidx.compose.ui.graphics.Color.Transparent,
                                         androidx.compose.ui.graphics.Color.Transparent,
