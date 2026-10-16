@@ -33,6 +33,9 @@ enum class UiMode(val displayName: String, val description: String) {
     ),
     LIQUID_GLASS(
         displayName = "Liquid Glass",
-        description = "Tinted glass with an animated specular sweep, inspired by Apple's Liquid Glass look - not a literal use of the linked WebGL library, which can't run in a native Android app.",
+        description = "Real-time refraction/blur shader ported from the liquid-glass-js WebGL " +
+            "project (same edge/rim/base distortion math, Gaussian blur and gradient tint) on " +
+            "Android 13+; devices below that fall back to a tinted glass card with an animated " +
+            "specular sweep.",
     ),
 }
