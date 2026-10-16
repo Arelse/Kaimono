@@ -45,11 +45,7 @@ import tachiyomi.presentation.core.components.ScrollbarLazyColumn
 import tachiyomi.presentation.core.components.material.Scaffold
 import tachiyomi.presentation.core.i18n.pluralStringResource
 import tachiyomi.presentation.core.i18n.stringResource
-import androidx.compose.foundation.Image
-import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.foundation.layout.size
-import androidx.compose.material3.Slider
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
@@ -58,7 +54,6 @@ import tachiyomi.presentation.core.util.collectAsState
 import eu.kanade.domain.ui.UiPreferences
 import uy.kohesive.injekt.Injekt
 import uy.kohesive.injekt.api.get
-import androidx.compose.material.icons.outlined.TouchApp
 import androidx.compose.material.icons.outlined.Palette
 
 @Composable
@@ -79,7 +74,6 @@ fun MoreScreen(
 ) {
     val uriHandler = LocalUriHandler.current
     val uiPreferences = remember { Injekt.get<UiPreferences>() }
-    val fabSizeDp by uiPreferences.fabSizeDp.collectAsState()
     val profileShowRecentlyRead by uiPreferences.profileShowRecentlyRead.collectAsState()
     val profileShowGenres by uiPreferences.profileShowGenres.collectAsState()
     val uiMode by uiPreferences.uiMode.collectAsState()
@@ -144,8 +138,6 @@ fun MoreScreen(
                 onDownloadedOnlyChange = onDownloadedOnlyChange,
                 incognitoMode = incognitoMode,
                 onIncognitoModeChange = onIncognitoModeChange,
-                fabSizeDp = fabSizeDp,
-                onFabSizeDpChange = { uiPreferences.fabSizeDp.set(it) },
                 onClickDownloadQueue = onClickDownloadQueue,
                 onClickCategories = onClickCategories,
                 onClickStats = onClickStats,
@@ -279,27 +271,6 @@ fun MoreScreen(
             // App Group
             item {
                 SettingsGroup(title = "App", cardAlpha = cardAlpha, cardBorder = cardBorder, cardElevation = cardElevation, specularSweep = specularSweep, liquidGlass = liquidGlassShader) {
-                    SettingItem(
-                        title = "Switch Button Size",
-                        subtitle = "${fabSizeDp}dp",
-                        icon = Icons.Outlined.TouchApp,
-                        onClick = null,
-                        trailing = {
-                            Image(
-                                painter = painterResource(id = eu.kanade.tachiyomi.R.drawable.devil_fruit),
-                                contentDescription = null,
-                                modifier = Modifier.size(40.dp),
-                                contentScale = ContentScale.Fit
-                            )
-                        }
-                    )
-                    Slider(
-                        value = fabSizeDp.toFloat(),
-                        onValueChange = { uiPreferences.fabSizeDp.set(it.toInt()) },
-                        valueRange = 48f..96f,
-                        modifier = Modifier.padding(horizontal = 32.dp, vertical = 0.dp)
-                    )
-                    HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp), color = MaterialTheme.colorScheme.outlineVariant)
                     SettingItem(
                         title = "UI Switcher",
                         subtitle = uiMode.displayName,
