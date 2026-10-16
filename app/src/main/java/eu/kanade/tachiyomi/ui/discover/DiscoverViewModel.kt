@@ -31,6 +31,8 @@ data class DiscoverState(
     val isLoading: Boolean = true,
     val isNovel: Boolean = false,
     val sources: List<CatalogueSource> = emptyList(),
+    /** Every enabled source, manga and novel alike. Used by the Media Hub layout. */
+    val allSources: List<CatalogueSource> = emptyList(),
 )
 
 class DiscoverViewModel(
@@ -107,6 +109,47 @@ class DiscoverViewModel(
                     }
                 }
             }
+        }
+    }
+
+    init {
+        viewModelScope.launch {
+            combine(
+                combine(sourceManager.sources, jsPluginManager.jsSources) { apk, js -> apk + js },
+                jsPluginManager.isInitialized,
+                sourcePreferences.enabledLanguages.changes(),
+            ) { allApkJs, jsInitialized, enabledLanguages ->
+                if (!jsInitialized) {
+                    null
+                } else {
+                    allApkJs.filterIsInstance<CatalogueSource>()
+                        .distinctBy { it.id }
+                        .filter {
+                            it.id != tachiyomi.source.local.LocalSource.ID &&
+                                it.id != tachiyomi.source.local.LocalNovelSource.ID &&
+                                (it.lang in enabledLanguages || it.lang == "all")
+                        }
+                        .sortedBy { it.name.lowercase() }
+                }
+            }.filterNotNull().collectLatest { sources ->
+                mutableState.update { it.copy(allSources = sources) }
+            }
+        }
+    }
+
+    /** Loads a source's popular list into [popularCache] if it isn't there yet. */
+    fun prefetchPopular(source: CatalogueSource) {
+        if (popularCache.containsKey(source.id)) return
+        viewModelScope.launch {
+            popularCache[source.id] = loadSourcePopular(source)
+        }
+    }
+
+    /** Loads a source's latest-updates list into [latestCache] if it isn't there yet. */
+    fun prefetchLatest(source: CatalogueSource) {
+        if (latestCache.containsKey(source.id)) return
+        viewModelScope.launch {
+            latestCache[source.id] = loadSourceLatest(source)
         }
     }
 
