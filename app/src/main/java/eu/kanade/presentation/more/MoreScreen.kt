@@ -1,6 +1,7 @@
 package eu.kanade.presentation.more
 
 import androidx.compose.animation.core.animateFloat
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Box
@@ -30,6 +31,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.res.vectorResource
@@ -118,6 +120,9 @@ fun MoreScreen(
         else -> 0.dp
     }
     val specularSweep = uiMode == eu.kanade.domain.ui.model.UiMode.LIQUID_GLASS
+    // Real AGSL refraction shader only exists on Android 13+; older devices keep the
+    // specular-sweep approximation above even in Liquid Glass mode.
+    val liquidGlassShader = specularSweep && liquidGlassShaderSupported()
 
     var showUiSwitcher by remember { mutableStateOf(false) }
     val uiSwitcherSheetState = androidx.compose.material3.rememberModalBottomSheetState()
@@ -139,7 +144,7 @@ fun MoreScreen(
 
             // Mode Group
             item {
-                SettingsGroup(title = "Mode", cardAlpha = cardAlpha, cardBorder = cardBorder, cardElevation = cardElevation, specularSweep = specularSweep) {
+                SettingsGroup(title = "Mode", cardAlpha = cardAlpha, cardBorder = cardBorder, cardElevation = cardElevation, specularSweep = specularSweep, liquidGlass = liquidGlassShader) {
                     SettingItem(
                         title = stringResource(MR.strings.label_downloaded_only),
                         subtitle = stringResource(MR.strings.downloaded_only_summary),
@@ -164,7 +169,7 @@ fun MoreScreen(
 
             // Profile Group
             item {
-                SettingsGroup(title = "Profile", cardAlpha = cardAlpha, cardBorder = cardBorder, cardElevation = cardElevation, specularSweep = specularSweep) {
+                SettingsGroup(title = "Profile", cardAlpha = cardAlpha, cardBorder = cardBorder, cardElevation = cardElevation, specularSweep = specularSweep, liquidGlass = liquidGlassShader) {
                     SettingItem(
                         title = "Show recently read",
                         subtitle = "\"Recently Read\" row on your Profile",
@@ -195,7 +200,7 @@ fun MoreScreen(
 
             // Content Group
             item {
-                SettingsGroup(title = "Content", cardAlpha = cardAlpha, cardBorder = cardBorder, cardElevation = cardElevation, specularSweep = specularSweep) {
+                SettingsGroup(title = "Content", cardAlpha = cardAlpha, cardBorder = cardBorder, cardElevation = cardElevation, specularSweep = specularSweep, liquidGlass = liquidGlassShader) {
                     val downloadQueueState = downloadQueueStateProvider()
                     val downloadSubtitle = when (downloadQueueState) {
                         DownloadQueueState.Stopped -> null
@@ -247,7 +252,7 @@ fun MoreScreen(
 
             // App Group
             item {
-                SettingsGroup(title = "App", cardAlpha = cardAlpha, cardBorder = cardBorder, cardElevation = cardElevation, specularSweep = specularSweep) {
+                SettingsGroup(title = "App", cardAlpha = cardAlpha, cardBorder = cardBorder, cardElevation = cardElevation, specularSweep = specularSweep, liquidGlass = liquidGlassShader) {
                     SettingItem(
                         title = "Switch Button Size",
                         subtitle = "${fabSizeDp}dp",
@@ -306,6 +311,9 @@ fun SettingsGroup(
     cardBorder: androidx.compose.foundation.BorderStroke? = null,
     cardElevation: androidx.compose.ui.unit.Dp = 0.dp,
     specularSweep: Boolean = false,
+    // True only for Liquid Glass mode on Android 13+, where the real ported liquid-glass-js
+    // shader (LiquidGlassShader.kt) runs instead of the specularSweep approximation.
+    liquidGlass: Boolean = false,
     content: @Composable () -> Unit
 ) {
     Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
@@ -316,19 +324,38 @@ fun SettingsGroup(
             letterSpacing = 1.sp,
             modifier = Modifier.padding(start = 16.dp, bottom = 8.dp)
         )
-        Surface(
-            shape = RoundedCornerShape(16.dp),
-            color = MaterialTheme.colorScheme.surface.copy(alpha = cardAlpha),
-            border = cardBorder,
-            shadowElevation = cardElevation,
-            tonalElevation = cardElevation,
-        ) {
-            Box {
-                Column {
+        if (liquidGlass && android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+            LiquidGlassShaderSurface(
+                cornerRadius = 16.dp,
+                backdropColor = MaterialTheme.colorScheme.background,
+            ) {
+                Column(
+                    modifier = if (cardBorder != null) {
+                        Modifier
+                            .clip(RoundedCornerShape(16.dp))
+                            .border(cardBorder, RoundedCornerShape(16.dp))
+                    } else {
+                        Modifier
+                    },
+                ) {
                     content()
                 }
-                if (specularSweep) {
-                    LiquidGlassSpecularSweep(modifier = Modifier.matchParentSize())
+            }
+        } else {
+            Surface(
+                shape = RoundedCornerShape(16.dp),
+                color = MaterialTheme.colorScheme.surface.copy(alpha = cardAlpha),
+                border = cardBorder,
+                shadowElevation = cardElevation,
+                tonalElevation = cardElevation,
+            ) {
+                Box {
+                    Column {
+                        content()
+                    }
+                    if (specularSweep) {
+                        LiquidGlassSpecularSweep(modifier = Modifier.matchParentSize())
+                    }
                 }
             }
         }
