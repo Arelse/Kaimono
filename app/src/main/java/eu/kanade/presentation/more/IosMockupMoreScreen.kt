@@ -1,17 +1,11 @@
 package eu.kanade.presentation.more
 
 import androidx.compose.animation.animateColorAsState
-import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateDpAsState
-import androidx.compose.animation.core.animateFloat
-import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.detectHorizontalDragGestures
-import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -19,7 +13,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -34,9 +27,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -45,12 +36,7 @@ import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.layout.onSizeChanged
-import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -58,11 +44,9 @@ import androidx.compose.ui.unit.sp
 import eu.kanade.domain.ui.model.UiMode
 import eu.kanade.tachiyomi.ui.home.NavTabKeys
 import eu.kanade.tachiyomi.ui.more.DownloadQueueState
-import kotlin.math.roundToInt
 
 // Colors taken from the two reference mockups (Tailwind classes translated to hex/alpha).
 private val IosBlue = Color(0xFF0A84FF)
-private val IosGreen = Color(0xFF30D158)
 private val IosCardBg = Color(0xFF1C1C1E).copy(alpha = 0.65f)
 private val IosCardBorder = Color.White.copy(alpha = 0.08f)
 private val IosDivider = Color.White.copy(alpha = 0.06f)
@@ -171,8 +155,6 @@ fun IosMockupMoreScreen(
     onDownloadedOnlyChange: (Boolean) -> Unit,
     incognitoMode: Boolean,
     onIncognitoModeChange: (Boolean) -> Unit,
-    fabSizeDp: Int,
-    onFabSizeDpChange: (Int) -> Unit,
     onClickDownloadQueue: () -> Unit,
     onClickCategories: () -> Unit,
     onClickStats: () -> Unit,
@@ -196,7 +178,6 @@ fun IosMockupMoreScreen(
             .background(Color.Black)
             .verticalScroll(rememberScrollState()),
     ) {
-        IosDynamicIsland(vision = vision)
         IosHeroIcon(vision = vision)
 
         Column(
@@ -278,11 +259,7 @@ fun IosMockupMoreScreen(
                     }
                 } else {
                     IosCard {
-                        Column(modifier = Modifier.padding(16.dp)) {
-                            IosFabSizeBlock(fabSizeDp = fabSizeDp, onFabSizeDpChange = onFabSizeDpChange)
-                        }
-                        IosDividerLine()
-                        Column(modifier = Modifier.padding(top = 8.dp)) {
+                        Column {
                             IosAppRow(vision = false, icon = IosMockupIcons.faGear, title = "Settings", onClick = onClickSettings)
                             IosDividerLine()
                             IosAppRow(vision = false, icon = IosMockupIcons.faCircleInfo, title = "About", onClick = onClickAbout)
@@ -294,53 +271,6 @@ fun IosMockupMoreScreen(
                     }
                 }
             }
-        }
-    }
-}
-
-@Composable
-private fun IosDynamicIsland(vision: Boolean) {
-    val pulse = rememberInfiniteTransition(label = "iosIslandPulse")
-    val dotAlpha by pulse.animateFloat(
-        initialValue = 1f,
-        targetValue = 0.5f,
-        animationSpec = infiniteRepeatable(animation = tween(1000), repeatMode = RepeatMode.Reverse),
-        label = "iosIslandDot",
-    )
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(top = 12.dp),
-        horizontalArrangement = Arrangement.Center,
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Row(
-            modifier = Modifier
-                .height(28.dp)
-                .clip(CircleShape)
-                .background(Color.Black)
-                .border(1.dp, Color.White.copy(alpha = 0.10f), CircleShape)
-                .padding(horizontal = 14.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            if (vision) {
-                IosIcon(icon = IosMockupIcons.heroBolt, height = 14.dp, tint = Color.White.copy(alpha = 0.8f))
-            } else {
-                IosIcon(icon = IosMockupIcons.faFeatherPointed, height = 12.dp, tint = IosBlue)
-            }
-            Text(
-                text = "2 devices connected",
-                fontSize = 11.sp,
-                fontWeight = FontWeight.Medium,
-                color = Color.White.copy(alpha = 0.9f),
-            )
-            Box(
-                modifier = Modifier
-                    .size(6.dp)
-                    .clip(CircleShape)
-                    .background(IosGreen.copy(alpha = dotAlpha)),
-            )
         }
     }
 }
@@ -558,95 +488,6 @@ private fun IosAppRow(vision: Boolean, icon: ImageVector, title: String, onClick
     }
 }
 
-/** Default mode only: "Switch Button Size" slider with live preview, bound to fabSizeDp. */
-@Composable
-private fun IosFabSizeBlock(fabSizeDp: Int, onFabSizeDpChange: (Int) -> Unit) {
-    val fraction = ((fabSizeDp - 48f) / 48f).coerceIn(0f, 1f)
-    val previewScale = 0.8f + fraction * 0.45f
-
-    Column {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(bottom = 8.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-            ) {
-                Box(
-                    modifier = Modifier
-                        .size(32.dp)
-                        .clip(RoundedCornerShape(8.dp))
-                        .background(IosIconBoxBg),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    IosIcon(icon = IosMockupIcons.faHandPointer, height = 14.dp, tint = Color.White.copy(alpha = 0.9f))
-                }
-                Text(
-                    text = "Switch Button Size",
-                    fontSize = 15.sp,
-                    fontWeight = FontWeight.Medium,
-                    color = Color.White,
-                )
-            }
-            Text(
-                text = "${fabSizeDp}dp",
-                fontFamily = FontFamily.Monospace,
-                fontSize = 12.sp,
-                fontWeight = FontWeight.SemiBold,
-                color = IosBlue,
-                modifier = Modifier
-                    .clip(RoundedCornerShape(6.dp))
-                    .background(IosBlue.copy(alpha = 0.15f))
-                    .padding(horizontal = 8.dp, vertical = 2.dp),
-            )
-        }
-
-        IosSlider(
-            value = fabSizeDp.toFloat(),
-            range = 48f..96f,
-            onValueChange = { onFabSizeDpChange(it.roundToInt()) },
-            modifier = Modifier.fillMaxWidth(),
-        )
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clip(RoundedCornerShape(12.dp))
-                .background(Color.Black.copy(alpha = 0.5f))
-                .border(1.dp, Color.White.copy(alpha = 0.05f), RoundedCornerShape(12.dp))
-                .padding(12.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Text(
-                text = "Live scale preview:",
-                fontSize = 12.sp,
-                color = IosNeutral400,
-            )
-            Text(
-                text = "Action",
-                fontSize = 12.sp,
-                fontWeight = FontWeight.SemiBold,
-                color = Color.Black,
-                modifier = Modifier
-                    .graphicsLayer {
-                        scaleX = previewScale
-                        scaleY = previewScale
-                    }
-                    .clip(RoundedCornerShape(50))
-                    .background(Color.White)
-                    .padding(horizontal = 16.dp, vertical = 6.dp),
-            )
-        }
-    }
-}
-
 @Composable
 private fun IosSwitch(checked: Boolean, onCheckedChange: (Boolean) -> Unit) {
     val thumbOffset by animateDpAsState(
@@ -687,63 +528,6 @@ private fun IosSwitch(checked: Boolean, onCheckedChange: (Boolean) -> Unit) {
                 .size(27.dp)
                 .shadow(3.dp, CircleShape)
                 .background(Color.White, CircleShape),
-        )
-    }
-}
-
-/**
- * Horizontal slider drawn like the mockup's range input: 6dp rounded track at 15% white and a
- * 24dp white thumb. Tap or drag anywhere on the track to set the value.
- */
-@Composable
-private fun IosSlider(
-    value: Float,
-    range: ClosedFloatingPointRange<Float>,
-    onValueChange: (Float) -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    val density = LocalDensity.current
-    val thumbSize = 24.dp
-    val thumbPx = with(density) { thumbSize.toPx() }
-    var trackWidthPx by remember { mutableFloatStateOf(0f) }
-    val fraction = ((value - range.start) / (range.endInclusive - range.start)).coerceIn(0f, 1f)
-    val currentOnValueChange by rememberUpdatedState(onValueChange)
-
-    fun valueAt(x: Float): Float {
-        val usable = (trackWidthPx - thumbPx).coerceAtLeast(1f)
-        val f = ((x - thumbPx / 2f) / usable).coerceIn(0f, 1f)
-        return range.start + f * (range.endInclusive - range.start)
-    }
-
-    Box(
-        modifier = modifier
-            .height(thumbSize)
-            .onSizeChanged { trackWidthPx = it.width.toFloat() }
-            .pointerInput(range) {
-                detectTapGestures(onTap = { offset -> currentOnValueChange(valueAt(offset.x)) })
-            }
-            .pointerInput(range) {
-                detectHorizontalDragGestures(
-                    onHorizontalDrag = { change, _ -> currentOnValueChange(valueAt(change.position.x)) },
-                )
-            },
-    ) {
-        Box(
-            modifier = Modifier
-                .align(Alignment.CenterStart)
-                .fillMaxWidth()
-                .height(6.dp)
-                .clip(CircleShape)
-                .background(Color.White.copy(alpha = 0.15f)),
-        )
-        Box(
-            modifier = Modifier
-                .align(Alignment.CenterStart)
-                .offset(x = with(density) { (fraction * (trackWidthPx - thumbPx)).toDp() })
-                .size(thumbSize)
-                .shadow(4.dp, CircleShape)
-                .clip(CircleShape)
-                .background(Color.White),
         )
     }
 }
