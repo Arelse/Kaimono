@@ -113,6 +113,15 @@ object SettingsUiScreen : SearchableSettings {
                     subtitle = "Overridden by the \"Navigation bar\" toggle in More > UI Switcher",
                 ),
                 Preference.PreferenceItem.ListPreference(
+                    preference = uiPreferences.homeLayout,
+                    entries = mapOf(
+                        eu.kanade.domain.ui.model.HomeLayout.DEFAULT to "Default",
+                        eu.kanade.domain.ui.model.HomeLayout.MEDIA_HUB to "Media Hub",
+                    ),
+                    title = "Home screen layout",
+                    subtitle = "Default keeps the classic Home. Media Hub adds search, filters, and the palette, sync, trophy and account sheets",
+                ),
+                Preference.PreferenceItem.ListPreference(
                     preference = uiPreferences.homeScreenStyle,
                     entries = mapOf(
                         eu.kanade.domain.ui.model.HomeScreenStyle.CLASSIC to "Classic",
