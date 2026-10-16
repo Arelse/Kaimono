@@ -233,6 +233,7 @@ class MainActivity : BaseActivity() {
                     }
                 }
                 val accentGradientEnabled by uiPreferences.accentGradientEnabled.collectAsState()
+                val gradientWholeApp by uiPreferences.gradientWholeApp.collectAsState()
                 val accentColor by uiPreferences.accentColor.collectAsState()
                 val useCustomGradient by uiPreferences.gradientThemeEnabled.collectAsState()
                 val customGradientStart by uiPreferences.gradientColorStart.collectAsState()
@@ -241,7 +242,8 @@ class MainActivity : BaseActivity() {
                 val hasAmbientBackground = hasLiquidBackground || accentGradientEnabled
 
                 Box {
-                    if (accentGradientEnabled) {
+                    // Whole-app gradient is drawn here; when off, HomeScreen draws it behind the Home tab only.
+                    if (accentGradientEnabled && gradientWholeApp) {
                         if (useCustomGradient) {
                             eu.kanade.presentation.components.AccentGradientBackground(
                                 primary = androidx.compose.ui.graphics.Color(customGradientStart),
@@ -833,3 +835,4 @@ class MainActivity : BaseActivity() {
 private const val SPLASH_MIN_DURATION = 0 // ms
 private const val SPLASH_MAX_DURATION = 5000 // ms
 private const val SPLASH_EXIT_ANIM_DURATION = 400L // ms
+
