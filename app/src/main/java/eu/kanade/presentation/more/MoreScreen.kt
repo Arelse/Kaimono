@@ -134,6 +134,32 @@ fun MoreScreen(
         )
     }
 
+    // Default and Vision Glass render the exact iOS-style mockups instead of the generic layout below.
+    if (uiMode == eu.kanade.domain.ui.model.UiMode.DEFAULT || uiMode == eu.kanade.domain.ui.model.UiMode.ALTERNATIVE) {
+        Scaffold { contentPadding ->
+            IosMockupMoreScreen(
+                uiMode = uiMode,
+                downloadQueueState = downloadQueueStateProvider(),
+                downloadedOnly = downloadedOnly,
+                onDownloadedOnlyChange = onDownloadedOnlyChange,
+                incognitoMode = incognitoMode,
+                onIncognitoModeChange = onIncognitoModeChange,
+                fabSizeDp = fabSizeDp,
+                onFabSizeDpChange = { uiPreferences.fabSizeDp.set(it) },
+                onClickDownloadQueue = onClickDownloadQueue,
+                onClickCategories = onClickCategories,
+                onClickStats = onClickStats,
+                onClickDataAndStorage = onClickDataAndStorage,
+                onClickUiSwitcher = { showUiSwitcher = true },
+                onClickSettings = onClickSettings,
+                onClickAbout = onClickAbout,
+                onClickHelp = { uriHandler.openUri(Constants.URL_HELP) },
+                modifier = Modifier.padding(contentPadding),
+            )
+        }
+        return
+    }
+
     Scaffold { contentPadding ->
         ScrollbarLazyColumn(contentPadding = contentPadding) {
             item {
