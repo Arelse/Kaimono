@@ -60,6 +60,8 @@ import cafe.adriel.voyager.navigator.tab.LocalTabNavigator
 import cafe.adriel.voyager.navigator.tab.TabNavigator
 import eu.kanade.domain.base.BasePreferences
 import eu.kanade.domain.source.service.SourcePreferences
+import eu.kanade.presentation.more.IosMockupTabBar
+import eu.kanade.presentation.more.IosTabItem
 import eu.kanade.presentation.util.Screen
 import eu.kanade.presentation.util.isTabletUi
 import eu.kanade.tachiyomi.ui.browse.BrowseTab
@@ -126,6 +128,8 @@ object HomeScreen : Screen() {
         val uiPreferences = remember { Injekt.get<eu.kanade.domain.ui.UiPreferences>() }
         val navTabOrder by uiPreferences.navTabOrder.collectAsState()
         val navHiddenTabs by uiPreferences.navHiddenTabs.collectAsState()
+        val uiMode by uiPreferences.uiMode.collectAsState()
+        val navScope = rememberCoroutineScope()
         val baseTabs = if (isJoined || hideMangaUi) JOINED_TABS else TABS
         val orderedKeys = NavTabKeys.ordered(baseTabs.map { navTabKey(it) }, navTabOrder)
         val tabs = orderedKeys
@@ -157,7 +161,38 @@ object HomeScreen : Screen() {
                                 enter = expandVertically(),
                                 exit = shrinkVertically(),
                             ) {
-                                PillNavigationBar(tabs)
+                                if (uiMode == eu.kanade.domain.ui.model.UiMode.DEFAULT ||
+                                    uiMode == eu.kanade.domain.ui.model.UiMode.ALTERNATIVE
+                                ) {
+                                    IosMockupTabBar(
+                                        items = tabs.map { tab ->
+                                            val key = navTabKey(tab)
+                                            IosTabItem(
+                                                key = key,
+                                                label = when (key) {
+                                                    NavTabKeys.HOME -> "Home"
+                                                    NavTabKeys.NOVELS -> if (isJoined) "Library" else "Novels"
+                                                    NavTabKeys.LIBRARY -> "Library"
+                                                    NavTabKeys.HISTORY -> "History"
+                                                    NavTabKeys.BROWSE -> "Browse"
+                                                    NavTabKeys.MORE -> "More"
+                                                    else -> tab.options.title
+                                                },
+                                                selected = tabNavigator.current::class == tab::class,
+                                                onClick = {
+                                                    if (tabNavigator.current::class != tab::class) {
+                                                        tabNavigator.current = tab
+                                                    } else {
+                                                        navScope.launch { tab.onReselect(navigator) }
+                                                    }
+                                                },
+                                            )
+                                        },
+                                        uiMode = uiMode,
+                                    )
+                                } else {
+                                    PillNavigationBar(tabs)
+                                }
                             }
                         }
                     },
@@ -600,3 +635,4 @@ object HomeScreen : Screen() {
 
 
     
+            
