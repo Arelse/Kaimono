@@ -55,6 +55,7 @@ fun UiSwitcherSheet(
     val uiMode by uiPreferences.uiMode.collectAsState()
     val useUiSwitcherTheme by uiPreferences.useUiSwitcherTheme.collectAsState()
     val floatingNavBar by uiPreferences.floatingNavBar.collectAsState()
+    val navBarFromDefault by uiPreferences.navBarFromDefault.collectAsState()
 
     ModalBottomSheet(
         onDismissRequest = onDismissRequest,
@@ -165,6 +166,29 @@ fun UiSwitcherSheet(
                 androidx.compose.material3.Switch(
                     checked = floatingNavBar,
                     onCheckedChange = { uiPreferences.floatingNavBar.set(it) },
+                )
+            }
+
+            Spacer(modifier = Modifier.padding(top = 12.dp))
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(16.dp))
+                    .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.3f))
+                    .padding(16.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text("Default navigation bar everywhere", style = MaterialTheme.typography.bodyLarge)
+                    Text(
+                        "Use the Default mode's iOS tab bar in every UI, instead of each mode's own bar",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                androidx.compose.material3.Switch(
+                    checked = navBarFromDefault,
+                    onCheckedChange = { uiPreferences.navBarFromDefault.set(it) },
                 )
             }
 
