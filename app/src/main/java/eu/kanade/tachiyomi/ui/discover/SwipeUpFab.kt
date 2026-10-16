@@ -39,7 +39,6 @@ import android.os.Vibrator
 import android.os.VibratorManager
 import android.content.Context
 import androidx.compose.ui.platform.LocalContext
-import eu.kanade.domain.ui.UiPreferences
 import tachiyomi.presentation.core.util.collectAsState
 
 @Composable
@@ -63,8 +62,6 @@ fun SwipeUpFab(
             context.getSystemService(Context.VIBRATOR_SERVICE) as Vibrator
         }
     }
-    val uiPreferences = remember { Injekt.get<UiPreferences>() }
-    val fabSizeDp by uiPreferences.fabSizeDp.collectAsState()
     val animatedOffset by animateFloatAsState(targetValue = dragOffset)
 
     if (showTutorialOverlay) {
@@ -155,7 +152,7 @@ fun SwipeUpFab(
                     // Option B (Freeform Image without background/shadow):
                     Box(
                         modifier = Modifier
-                            .size(fabSizeDp.dp) // slightly larger to compensate for no background padding
+                            .size(FAB_SIZE_DP.dp) // slightly larger to compensate for no background padding
                     ) {
                         Image(
                             painter = painterResource(id = customImageRes),
@@ -260,7 +257,7 @@ fun SwipeUpFab(
                     showTutorialOverlay = true
                 }
             },
-            modifier = Modifier.size(fabSizeDp.dp),
+            modifier = Modifier.size(FAB_SIZE_DP.dp),
             elevation = FloatingActionButtonDefaults.elevation(0.dp, 0.dp, 0.dp, 0.dp),
             containerColor = Color.Transparent,
             contentColor = Color.Unspecified
@@ -274,3 +271,6 @@ fun SwipeUpFab(
         }
     }
 }
+
+/** Fixed size of the swipe-up button (the user-adjustable size option was removed). */
+private const val FAB_SIZE_DP = 68
