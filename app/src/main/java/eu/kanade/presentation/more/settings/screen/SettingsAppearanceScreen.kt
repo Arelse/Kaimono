@@ -427,6 +427,12 @@ object SettingsAppearanceScreen : SearchableSettings {
                     title = "Accent gradient background",
                     subtitle = "A slow flowing color gradient, independent of your app theme",
                 ),
+                Preference.PreferenceItem.SwitchPreference(
+                    preference = uiPreferences.gradientWholeApp,
+                    title = "Gradient covers the whole app",
+                    subtitle = "Off: the gradient only shows behind the Home tab",
+                    enabled = accentGradientEnabled,
+                ),
                 Preference.PreferenceItem.ListPreference(
                     preference = uiPreferences.accentColor,
                     entries = mapOf(
@@ -523,5 +529,6 @@ private val DateFormats = listOf(
              
 
   
+
 
   
