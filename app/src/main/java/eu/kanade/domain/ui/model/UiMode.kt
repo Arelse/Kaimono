@@ -9,11 +9,11 @@ package eu.kanade.domain.ui.model
 enum class UiMode(val displayName: String, val description: String) {
     DEFAULT(
         displayName = "Default",
-        description = "iOS 26 Vision Pro mockup: monochrome glass cards, button-size slider with live preview, floating tab bar.",
+        description = "iOS 26 Vision Pro mockup: monochrome glass cards, tab bar with a glass dock.",
     ),
     ALTERNATIVE(
         displayName = "Vision Glass",
-        description = "iOS 26 Refined mockup: monochrome glass cards with outlined icons and a tab bar, no button-size slider.",
+        description = "iOS 26 Refined mockup: monochrome glass cards with outlined icons and a tab bar.",
     ),
     TRANSLUCENT(
         displayName = "Translucent",
