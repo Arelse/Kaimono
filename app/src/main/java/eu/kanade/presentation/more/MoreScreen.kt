@@ -130,7 +130,13 @@ fun MoreScreen(
 
     // Default and Vision Glass render the exact iOS-style mockups instead of the generic layout below.
     if (uiMode == eu.kanade.domain.ui.model.UiMode.DEFAULT || uiMode == eu.kanade.domain.ui.model.UiMode.ALTERNATIVE) {
-        Scaffold { contentPadding ->
+        Scaffold(
+            containerColor = if (tachiyomi.presentation.core.components.material.LocalLiquidBackgroundActive.current) {
+                androidx.compose.ui.graphics.Color.Transparent
+            } else {
+                MaterialTheme.colorScheme.background
+            },
+        ) { contentPadding ->
             IosMockupMoreScreen(
                 uiMode = uiMode,
                 downloadQueueState = downloadQueueStateProvider(),
