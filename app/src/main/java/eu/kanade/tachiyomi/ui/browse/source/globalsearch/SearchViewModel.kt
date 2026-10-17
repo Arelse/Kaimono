@@ -193,6 +193,21 @@ abstract class SearchViewModel(
         }
     }
 
+    /** Stop button: cancels the running search. Sources still loading are shown as having no results. */
+    fun cancelSearch() {
+        searchJob?.cancel()
+        searchJob = null
+        // Let the same query be searched again after a stop.
+        lastQuery = ""
+        mutableState.update { state ->
+            state.copy(
+                items = state.items.mapValues { (_, result) ->
+                    if (result is SearchItemResult.Loading) SearchItemResult.Success(emptyList()) else result
+                },
+            )
+        }
+    }
+
     private fun updateItems(items: Map<Source, SearchItemResult>) {
         mutableState.update { state ->
             val newItems = if (items.isNotEmpty()) items else state.items
