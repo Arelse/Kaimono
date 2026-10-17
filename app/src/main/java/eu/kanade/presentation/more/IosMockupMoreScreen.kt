@@ -89,8 +89,19 @@ fun IosMockupTabBar(
         modifier = modifier
             .fillMaxWidth()
             .height(80.dp)
-            // Reference tab-bar colour; pure black only when Pure AMOLED dark mode is on.
-            .background(if (pureBlack) Color.Black else Color(0xFF1C1E2A))
+            // Follows the theme: the background with a light tint of the primary colour (about the
+            // reference #1C1E2A on the default theme). Pure black only when Pure AMOLED is on.
+            .background(
+                if (pureBlack) {
+                    Color.Black
+                } else {
+                    androidx.compose.ui.graphics.lerp(
+                        MaterialTheme.colorScheme.background,
+                        MaterialTheme.colorScheme.primary,
+                        0.08f,
+                    )
+                },
+            )
             .drawBehind {
                 drawLine(
                     color = Color.White.copy(alpha = 0.10f),
