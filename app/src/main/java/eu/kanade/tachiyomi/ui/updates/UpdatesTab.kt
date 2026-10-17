@@ -56,6 +56,13 @@ data object UpdatesTab : Tab {
 
     @Composable
     override fun Content() {
+        UpdatesContent(scheduleStyle = false)
+    }
+}
+
+/** The Updates screen. [scheduleStyle] is only turned on by [UpdatesScheduleScreen] (Media Hub). */
+@Composable
+internal fun UpdatesContent(scheduleStyle: Boolean) {
         val context = LocalContext.current
         val navigator = LocalNavigator.currentOrThrow
         val viewModel = viewModel<UpdatesViewModel>()
@@ -97,6 +104,7 @@ data object UpdatesTab : Tab {
             onToggleGroupByNovel = viewModel::toggleGroupByNovel,
             onClickNovelGroup = { mangaId -> navigator.push(MangaScreen(mangaId)) },
             onLoadMore = viewModel::loadMore,
+            scheduleStyle = scheduleStyle,
         )
 
         val onDismissDialog = { viewModel.setDialog(null) }
@@ -150,5 +158,12 @@ data object UpdatesTab : Tab {
                 viewModel.resetNewUpdatesCount()
             }
         }
+    }
+
+/** Updates opened from the Media Hub's Updates button: the same screen, in the Schedule layout. */
+data object UpdatesScheduleScreen : cafe.adriel.voyager.core.screen.Screen {
+    @Composable
+    override fun Content() {
+        UpdatesContent(scheduleStyle = true)
     }
 }
