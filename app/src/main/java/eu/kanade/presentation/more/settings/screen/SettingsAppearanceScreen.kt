@@ -412,6 +412,7 @@ object SettingsAppearanceScreen : SearchableSettings {
     ): Preference.PreferenceGroup {
         val accentGradientEnabledPref = uiPreferences.accentGradientEnabled
         val accentGradientEnabled by accentGradientEnabledPref.collectAsState()
+        val gradientStyle by uiPreferences.gradientStyle.collectAsState()
         val useCustomGradientPref = uiPreferences.gradientThemeEnabled
         val useCustomGradient by useCustomGradientPref.collectAsState()
         val gradientStartPref = uiPreferences.gradientColorStart
@@ -432,6 +433,23 @@ object SettingsAppearanceScreen : SearchableSettings {
                     title = "Gradient covers the whole app",
                     subtitle = "Off: the gradient only shows behind the Home tab",
                     enabled = accentGradientEnabled,
+                ),
+                Preference.PreferenceItem.ListPreference(
+                    preference = uiPreferences.gradientStyle,
+                    entries = mapOf(
+                        eu.kanade.domain.ui.model.GradientStyle.CLASSIC to "Classic",
+                        eu.kanade.domain.ui.model.GradientStyle.SHADER to "ShaderGradient",
+                    ),
+                    title = "Gradient style",
+                    subtitle = "Classic is the original gradient. ShaderGradient is a 3D animated gradient (Android 13+; older versions show a Classic gradient in its colors)",
+                    enabled = accentGradientEnabled,
+                ),
+                Preference.PreferenceItem.ListPreference(
+                    preference = uiPreferences.shaderGradientPreset,
+                    entries = eu.kanade.domain.ui.model.ShaderGradientPreset.entries.associateWith { it.displayName },
+                    title = "ShaderGradient preset",
+                    subtitle = "Only used when Gradient style is ShaderGradient",
+                    enabled = accentGradientEnabled && gradientStyle == eu.kanade.domain.ui.model.GradientStyle.SHADER,
                 ),
                 Preference.PreferenceItem.ListPreference(
                     preference = uiPreferences.accentColor,
