@@ -225,7 +225,8 @@ object HomeScreen : Screen() {
                             .consumeWindowInsets(contentPaddingNoBottom),
                     ) {
                         // Gradient scoped to the Home tab. When "whole app" is on, MainActivity draws it instead.
-                        if (accentGradientEnabled && !gradientWholeApp && tabNavigator.current == eu.kanade.tachiyomi.ui.discover.DiscoverTab) {
+                        // Gradient is scoped to Home and More (the More tab's screens are transparent over it).
+                        if (accentGradientEnabled && !gradientWholeApp && (tabNavigator.current == eu.kanade.tachiyomi.ui.discover.DiscoverTab || tabNavigator.current == MoreTab)) {
                             if (gradientStyle == eu.kanade.domain.ui.model.GradientStyle.SHADER) {
                                 eu.kanade.presentation.components.ShaderGradientBackground(
                                     preset = shaderGradientPreset,
@@ -671,4 +672,3 @@ object HomeScreen : Screen() {
     
 
             
-             
