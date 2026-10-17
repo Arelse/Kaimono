@@ -196,8 +196,11 @@ fun LiquidGlassShaderSurface(
                 .graphicsLayer { this.renderEffect = renderEffect }
                 .background(backdropColor),
         )
-        // Undistorted layer: the actual settings items, drawn normally on top.
-        Box(modifier = Modifier.matchParentSize()) {
+        // Undistorted layer: the actual settings items, drawn normally on top. This layer must
+        // size itself to its content (no matchParentSize): the background above is the only
+        // child that matches the parent, so using matchParentSize here collapsed every card to
+        // zero height and left only the group titles visible.
+        Box {
             content()
         }
     }
