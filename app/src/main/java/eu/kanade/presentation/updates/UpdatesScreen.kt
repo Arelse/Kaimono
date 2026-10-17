@@ -132,6 +132,18 @@ fun UpdateScreen(
                     enabled = !state.selectionMode,
                     indicatorPadding = contentPadding,
                 ) {
+                    // Schedule-style layout (day chips, calendar, timeline) for the normal list.
+                    // Grouping by novel keeps the original list below.
+                    if (!state.groupByNovel) {
+                        UpdatesScheduleContent(
+                            items = state.items,
+                            contentPadding = contentPadding,
+                            onClickUpdate = onOpenChapter,
+                            onClickCover = onClickCover,
+                        )
+                        return@PullRefresh
+                    }
+
                     val lazyListState = rememberLazyListState()
 
                     // Trigger loadMore when near end of list
