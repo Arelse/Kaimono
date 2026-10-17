@@ -1,7 +1,12 @@
 package eu.kanade.presentation.browse.components
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -13,6 +18,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -90,22 +96,34 @@ private val SearchChipActiveBorder = Color(0x59A8A8D4)
 private val SearchChipText = Color(0xFFC7C9D1)
 private val SearchChipActiveText = Color(0xFFF2F3FF)
 
-/** Soft violet glow along the bottom edge of a pill, as in the mockup. */
-internal fun DrawScope.drawSearchBottomGlow(widthFraction: Float, glowHeight: Float) {
+/**
+ * Soft violet glow along the bottom edge of a pill, as in the mockup.
+ * [height] and [overhang] are in px: the glow box sits [overhang] px below the bottom edge.
+ * [shift] (-1..1) slides the glow sideways. [intensity] brightens it (used while searching).
+ */
+internal fun DrawScope.drawSearchBottomGlow(
+    widthFraction: Float,
+    height: Float,
+    overhang: Float,
+    shift: Float = 0f,
+    intensity: Float = 1f,
+) {
     val glowWidth = size.width * widthFraction
+    val top = size.height + overhang - height
+    val left = (size.width - glowWidth) / 2f + shift * 0.18f * size.width
     drawOval(
         brush = Brush.radialGradient(
             colors = listOf(
-                Color(0xF2BAA8FF),
-                Color(0xD68066EE),
-                Color(0x7A4C41A8),
+                Color(0xFFBAA8FF).copy(alpha = (0.95f * intensity).coerceAtMost(1f)),
+                Color(0xFF8066EE).copy(alpha = (0.84f * intensity).coerceAtMost(1f)),
+                Color(0xFF4C41A8).copy(alpha = (0.48f * intensity).coerceAtMost(1f)),
                 Color.Transparent,
             ),
-            center = Offset(size.width / 2f, size.height),
+            center = Offset(left + glowWidth / 2f, top + height * 0.6f),
             radius = glowWidth / 2f,
         ),
-        topLeft = Offset((size.width - glowWidth) / 2f, size.height - glowHeight / 2f),
-        size = Size(glowWidth, glowHeight),
+        topLeft = Offset(left, top),
+        size = Size(glowWidth, height),
     )
 }
 
@@ -368,7 +386,7 @@ private fun GlowGlobalSearchToolbar(
     val query = searchQuery.orEmpty()
     val isSearching = total > 0 && progress < total
 
-    Column(modifier = Modifier.fillMaxWidth().background(SearchHeaderBackground)) {
+    Column(modifier = Modifier.fillMaxWidth().background(SearchHeaderBackground).statusBarsPadding()) {
         Column(
             modifier = Modifier.padding(start = 14.dp, top = 14.dp, end = 14.dp, bottom = 12.dp),
         ) {
@@ -495,6 +513,21 @@ private fun SearchGlowPill(
         if (query.isEmpty()) focusRequester.requestFocus()
     }
 
+    // Drifting glow, as in the mockup. Faster while a search is running.
+    val transition = rememberInfiniteTransition(label = "searchGlow")
+    val glowPhase by transition.animateFloat(
+        initialValue = -1f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(
+                durationMillis = if (isSearching) 2400 else 5200,
+                easing = FastOutSlowInEasing,
+            ),
+            repeatMode = RepeatMode.Reverse,
+        ),
+        label = "glowPhase",
+    )
+
     val pillShape = RoundedCornerShape(50)
     Row(
         modifier = Modifier
@@ -502,7 +535,15 @@ private fun SearchGlowPill(
             .height(60.dp)
             .clip(pillShape)
             .background(SearchPillFill)
-            .drawBehind { drawSearchBottomGlow(widthFraction = 0.84f, glowHeight = 56.dp.toPx()) }
+            .drawBehind {
+                drawSearchBottomGlow(
+                    widthFraction = 0.84f,
+                    height = 46.dp.toPx(),
+                    overhang = 24.dp.toPx(),
+                    shift = glowPhase,
+                    intensity = if (isSearching) 1.25f else 1f,
+                )
+            }
             .border(1.dp, SearchPillRim, pillShape)
             .padding(start = 6.dp, end = 9.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -516,7 +557,14 @@ private fun SearchGlowPill(
         }
 
         Box(
-            modifier = Modifier.weight(1f).padding(horizontal = 6.dp),
+            modifier = Modifier
+                .weight(1f)
+                .padding(horizontal = 6.dp)
+                .clickable {
+                    // Tapping anywhere on the text area opens the keyboard.
+                    focusRequester.requestFocus()
+                    keyboardController?.show()
+                },
             contentAlignment = Alignment.CenterStart,
         ) {
             if (query.isEmpty()) {
@@ -633,3 +681,5 @@ private fun SearchFilterChip(
         }
     }
 }
+
+                             
