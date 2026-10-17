@@ -170,6 +170,18 @@ class UiPreferences(
         eu.kanade.domain.ui.model.HomeLayout.DEFAULT,
     )
 
+    /** Which engine draws the accent gradient: the original Classic gradient or ShaderGradient. */
+    val gradientStyle: Preference<eu.kanade.domain.ui.model.GradientStyle> = preferenceStore.getEnum(
+        "pref_gradient_style",
+        eu.kanade.domain.ui.model.GradientStyle.CLASSIC,
+    )
+
+    /** ShaderGradient preset used when [gradientStyle] is SHADER. */
+    val shaderGradientPreset: Preference<eu.kanade.domain.ui.model.ShaderGradientPreset> = preferenceStore.getEnum(
+        "pref_shader_gradient_preset",
+        eu.kanade.domain.ui.model.ShaderGradientPreset.HALO,
+    )
+
     /** Accent color (ARGB) used by the Media Hub home layout. */
     val homeHubAccent: Preference<Int> = preferenceStore.getInt("pref_home_hub_accent", 0xFFC8B6FF.toInt())
 
