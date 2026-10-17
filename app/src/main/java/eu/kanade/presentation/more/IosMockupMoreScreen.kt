@@ -25,7 +25,12 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
+import eu.kanade.domain.ui.UiPreferences
+import tachiyomi.presentation.core.util.collectAsState
+import uy.kohesive.injekt.Injekt
+import uy.kohesive.injekt.api.get
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -76,11 +81,14 @@ fun IosMockupTabBar(
     modifier: Modifier = Modifier,
 ) {
     val vision = uiMode == UiMode.ALTERNATIVE
+    // Follows the active theme's surface color; pure black only when Pure AMOLED dark mode is on.
+    val uiPreferences = remember { Injekt.get<UiPreferences>() }
+    val pureBlack by uiPreferences.themeDarkAmoled.collectAsState()
     Row(
         modifier = modifier
             .fillMaxWidth()
             .height(80.dp)
-            .background(Color.Black.copy(alpha = 0.8f))
+            .background(if (pureBlack) Color.Black else MaterialTheme.colorScheme.surfaceContainerHigh)
             .drawBehind {
                 drawLine(
                     color = Color.White.copy(alpha = 0.10f),
