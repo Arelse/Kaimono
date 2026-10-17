@@ -33,6 +33,7 @@ import uy.kohesive.injekt.Injekt
 import uy.kohesive.injekt.api.get
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import tachiyomi.presentation.core.components.material.LocalLiquidBackgroundActive
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -88,7 +89,8 @@ fun IosMockupTabBar(
         modifier = modifier
             .fillMaxWidth()
             .height(80.dp)
-            .background(if (pureBlack) Color.Black else MaterialTheme.colorScheme.surfaceContainerHigh)
+            // Reference tab-bar colour; pure black only when Pure AMOLED dark mode is on.
+            .background(if (pureBlack) Color.Black else Color(0xFF1C1E2A))
             .drawBehind {
                 drawLine(
                     color = Color.White.copy(alpha = 0.10f),
@@ -180,10 +182,20 @@ fun IosMockupMoreScreen(
         is DownloadQueueState.Downloading -> downloadQueueState.pending
     }
 
+    // Default UI: theme background (pure black only with Pure AMOLED on), and transparent when the
+    // accent gradient is on so the gradient behind this tab shows through. Vision keeps its black.
+    val moreUiPrefs = remember { Injekt.get<UiPreferences>() }
+    val morePureBlack by moreUiPrefs.themeDarkAmoled.collectAsState()
+    val moreBackground = when {
+        vision -> Color.Black
+        LocalLiquidBackgroundActive.current -> Color.Transparent
+        morePureBlack -> Color.Black
+        else -> MaterialTheme.colorScheme.background
+    }
     Column(
         modifier = modifier
             .fillMaxSize()
-            .background(Color.Black)
+            .background(moreBackground)
             .verticalScroll(rememberScrollState()),
     ) {
         IosHeroIcon(vision = vision)
