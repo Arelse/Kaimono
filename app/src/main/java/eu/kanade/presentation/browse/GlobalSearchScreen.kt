@@ -136,7 +136,7 @@ private fun GlobalSearchMinimisePill(
         modifier = modifier
             .clip(shape)
             .background(Color.Black)
-            .drawBehind { drawSearchBottomGlow(widthFraction = 0.5f, glowHeight = 20.dp.toPx()) }
+            .drawBehind { drawSearchBottomGlow(widthFraction = 0.5f, height = 20.dp.toPx(), overhang = 12.dp.toPx()) }
             .border(1.dp, Color(0x1FFFFFFF), shape)
             .clickable(onClick = onClick)
             .height(44.dp)
@@ -206,3 +206,4 @@ internal fun GlobalSearchContent(
         }
     }
 }
+
