@@ -79,6 +79,7 @@ fun UpdateScreen(
     onToggleGroupByNovel: () -> Unit = {},
     onClickNovelGroup: (Long) -> Unit = {},
     onLoadMore: () -> Unit = {},
+    scheduleStyle: Boolean = false,
 ) {
     BackHandler(enabled = state.selectionMode) {
         onSelectAll(false)
@@ -132,9 +133,9 @@ fun UpdateScreen(
                     enabled = !state.selectionMode,
                     indicatorPadding = contentPadding,
                 ) {
-                    // Schedule-style layout (day chips, calendar, timeline) for the normal list.
-                    // Grouping by novel keeps the original list below.
-                    if (!state.groupByNovel) {
+                    // Schedule-style layout (day chips, calendar, timeline), only when opened from the
+                    // Media Hub. Grouping by novel keeps the original list below.
+                    if (scheduleStyle && !state.groupByNovel) {
                         UpdatesScheduleContent(
                             items = state.items,
                             contentPadding = contentPadding,
