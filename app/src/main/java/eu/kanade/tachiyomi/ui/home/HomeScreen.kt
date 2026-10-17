@@ -132,6 +132,8 @@ object HomeScreen : Screen() {
         val navBarFromDefault by uiPreferences.navBarFromDefault.collectAsState()
         val accentGradientEnabled by uiPreferences.accentGradientEnabled.collectAsState()
         val gradientWholeApp by uiPreferences.gradientWholeApp.collectAsState()
+        val gradientStyle by uiPreferences.gradientStyle.collectAsState()
+        val shaderGradientPreset by uiPreferences.shaderGradientPreset.collectAsState()
         val accentColor by uiPreferences.accentColor.collectAsState()
         val useCustomGradient by uiPreferences.gradientThemeEnabled.collectAsState()
         val customGradientStart by uiPreferences.gradientColorStart.collectAsState()
@@ -224,7 +226,12 @@ object HomeScreen : Screen() {
                     ) {
                         // Gradient scoped to the Home tab. When "whole app" is on, MainActivity draws it instead.
                         if (accentGradientEnabled && !gradientWholeApp && tabNavigator.current == eu.kanade.tachiyomi.ui.discover.DiscoverTab) {
-                            if (useCustomGradient) {
+                            if (gradientStyle == eu.kanade.domain.ui.model.GradientStyle.SHADER) {
+                                eu.kanade.presentation.components.ShaderGradientBackground(
+                                    preset = shaderGradientPreset,
+                                    modifier = Modifier.matchParentSize(),
+                                )
+                            } else if (useCustomGradient) {
                                 eu.kanade.presentation.components.AccentGradientBackground(
                                     primary = androidx.compose.ui.graphics.Color(customGradientStart),
                                     secondary = androidx.compose.ui.graphics.Color(customGradientEnd),
@@ -664,3 +671,4 @@ object HomeScreen : Screen() {
     
 
             
+             
