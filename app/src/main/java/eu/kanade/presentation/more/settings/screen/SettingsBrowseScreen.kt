@@ -12,6 +12,7 @@ import cafe.adriel.voyager.navigator.currentOrThrow
 import eu.kanade.domain.source.service.SourcePreferences
 import eu.kanade.presentation.more.settings.Preference
 import eu.kanade.presentation.more.settings.screen.browse.ExtensionStoresScreen
+import eu.kanade.tachiyomi.ui.browse.extension.AnimeExtensionReposScreen
 import eu.kanade.tachiyomi.ui.browse.extension.NovelExtensionReposScreen
 import eu.kanade.tachiyomi.util.system.AuthenticatorUtil.authenticate
 import mihon.domain.extension.interactor.GetExtensionStoreCountAsFlow
@@ -89,6 +90,13 @@ object SettingsBrowseScreen : SearchableSettings {
                         subtitle = stringResource(TDMR.strings.pref_novel_extension_repos_summary),
                         onClick = {
                             navigator.push(NovelExtensionReposScreen())
+                        },
+                    ),
+                    Preference.PreferenceItem.TextPreference(
+                        title = stringResource(TDMR.strings.pref_anime_extension_repos),
+                        subtitle = stringResource(TDMR.strings.pref_anime_extension_repos_summary),
+                        onClick = {
+                            navigator.push(AnimeExtensionReposScreen())
                         },
                     ),
                 ),
