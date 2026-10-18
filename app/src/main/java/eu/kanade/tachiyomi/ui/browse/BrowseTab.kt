@@ -18,7 +18,9 @@ import eu.kanade.domain.base.BasePreferences
 import eu.kanade.presentation.components.TabbedScreen
 import eu.kanade.presentation.util.Tab
 import eu.kanade.tachiyomi.R
+import eu.kanade.tachiyomi.ui.browse.extension.AnimeExtensionsViewModel
 import eu.kanade.tachiyomi.ui.browse.extension.ExtensionsViewModel
+import eu.kanade.tachiyomi.ui.browse.extension.animeExtensionsTab
 import eu.kanade.tachiyomi.ui.browse.extension.NovelExtensionsViewModel
 import eu.kanade.tachiyomi.ui.browse.extension.extensionsTab
 import eu.kanade.tachiyomi.ui.browse.extension.novelExtensionsTab
@@ -78,6 +80,9 @@ data object BrowseTab : Tab {
         val novelExtensionsViewModel = viewModel<NovelExtensionsViewModel>()
         val novelExtensionsState by novelExtensionsViewModel.state.collectAsState()
 
+        val animeExtensionsViewModel = viewModel<AnimeExtensionsViewModel>()
+        val animeExtensionsState by animeExtensionsViewModel.state.collectAsState()
+
         val tabs = if (hideMangaBrowseTabs) {
             listOf(
                 novelSourcesTab(),
@@ -98,21 +103,27 @@ data object BrowseTab : Tab {
         val novelExtensionsTabIndex = if (hideMangaBrowseTabs) 1 else 2
         val mangaExtensionsTabIndex = if (hideMangaBrowseTabs) null else 3
 
-        val state = rememberPagerState { tabs.size }
+        // Anime extensions are appended last so the existing tab indexes stay the same.
+        val allTabs = tabs + animeExtensionsTab(animeExtensionsViewModel)
+        val animeExtensionsTabIndex = allTabs.lastIndex
+
+        val state = rememberPagerState { allTabs.size }
 
         TabbedScreen(
             titleRes = MR.strings.browse,
-            tabs = tabs,
+            tabs = allTabs,
             state = state,
             searchQuery = when (state.currentPage) {
                 novelExtensionsTabIndex -> novelExtensionsState.searchQuery
                 mangaExtensionsTabIndex -> extensionsState.searchQuery
+                animeExtensionsTabIndex -> animeExtensionsState.searchQuery
                 else -> null
             },
             onChangeSearchQuery = { query ->
                 when (state.currentPage) {
                     novelExtensionsTabIndex -> novelExtensionsViewModel.search(query)
                     mangaExtensionsTabIndex -> extensionsViewModel.search(query)
+                    animeExtensionsTabIndex -> animeExtensionsViewModel.search(query)
                 }
             },
         )
