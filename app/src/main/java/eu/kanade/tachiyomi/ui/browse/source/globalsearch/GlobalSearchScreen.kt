@@ -21,6 +21,7 @@ import tachiyomi.presentation.core.screens.LoadingScreen
 class GlobalSearchScreen(
     val searchQuery: String = "",
     private val extensionFilter: String? = null,
+    private val includeNovels: Boolean = false,
 ) : Screen() {
 
     @Composable
@@ -37,6 +38,7 @@ class GlobalSearchScreen(
             extras = CreationExtras {
                 set(GlobalSearchViewModel.INITIAL_QUERY_KEY, searchQuery)
                 set(GlobalSearchViewModel.INITIAL_EXTENSION_FILTER_KEY, extensionFilter)
+                set(GlobalSearchViewModel.INCLUDE_NOVELS_KEY, includeNovels)
             },
         )
         val state by viewModel.state.collectAsState()
