@@ -1,739 +1,84 @@
-package eu.kanade.presentation.browse.components
+package eu.kanade.tachiyomi.ui.browse.source.globalsearch
 
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.core.FastOutSlowInEasing
-import androidx.compose.animation.core.RepeatMode
-import androidx.compose.animation.core.animateFloat
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.rememberInfiniteTransition
-import androidx.compose.animation.core.tween
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.horizontalScroll
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.statusBarsPadding
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.BasicTextField
-import androidx.compose.foundation.text.KeyboardActions
-import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.outlined.KeyboardArrowLeft
-import androidx.compose.material.icons.automirrored.outlined.Label
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.outlined.DoneAll
-import androidx.compose.material.icons.outlined.FilterList
-import androidx.compose.material.icons.outlined.PushPin
-import androidx.compose.material.icons.outlined.Search
-import androidx.compose.material3.FilterChip
-import androidx.compose.material3.FilterChipDefaults
-import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.LinearProgressIndicator
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBarScrollBehavior
-import androidx.compose.material3.VerticalDivider
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.drawBehind
-import androidx.compose.ui.draw.rotate
-import androidx.compose.ui.focus.FocusRequester
-import androidx.compose.ui.focus.focusRequester
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.SolidColor
-import androidx.compose.ui.graphics.drawscope.DrawScope
-import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.platform.LocalFocusManager
-import androidx.compose.ui.platform.LocalSoftwareKeyboardController
-import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.ImeAction
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import eu.kanade.presentation.components.SearchToolbar
-import eu.kanade.tachiyomi.ui.browse.source.globalsearch.SourceFilter
-import tachiyomi.i18n.MR
-import tachiyomi.presentation.core.components.material.padding
-import tachiyomi.presentation.core.i18n.stringResource
+import androidx.lifecycle.viewmodel.CreationExtras
+import androidx.lifecycle.viewmodel.compose.viewModel
+import cafe.adriel.voyager.navigator.LocalNavigator
+import cafe.adriel.voyager.navigator.currentOrThrow
+import eu.kanade.core.util.ifSourcesLoaded
+import eu.kanade.presentation.browse.GlobalSearchScreen
+import eu.kanade.presentation.util.Screen
+import eu.kanade.tachiyomi.ui.browse.source.browse.BrowseSourceScreen
+import eu.kanade.tachiyomi.ui.manga.MangaScreen
+import tachiyomi.presentation.core.screens.LoadingScreen
 
-// Colours from the Gemini black glow search mockup (glow style only).
-private val SearchHeaderBackground = Color(0xFF0B0D13)
-private val SearchPillFill = Color(0xFF000000)
-private val SearchPillRim = Color(0x21FFFFFF)
-private val SearchDivider = Color(0x14FFFFFF)
-private val SearchInputText = Color(0xFFF1F3F4)
-private val SearchPlaceholder = Color(0xFF9AA0A6)
-private val SearchChipFill = Color(0xFF0B0D13)
-private val SearchChipActiveFill = Color(0xFF474866)
-private val SearchChipBorder = Color(0x26FFFFFF)
-private val SearchChipActiveBorder = Color(0x59A8A8D4)
-private val SearchChipText = Color(0xFFC7C9D1)
-private val SearchChipActiveText = Color(0xFFF2F3FF)
+class GlobalSearchScreen(
+    val searchQuery: String = "",
+    private val extensionFilter: String? = null,
+    private val includeNovels: Boolean = false,
+) : Screen() {
 
-/**
- * Soft violet glow along the bottom edge of a pill, as in the mockup.
- * [height] and [overhang] are in px: the glow box sits [overhang] px below the bottom edge.
- * [shift] (-1..1) slides the glow sideways. [intensity] brightens it (used while searching).
- */
-internal fun DrawScope.drawSearchBottomGlow(
-    widthFraction: Float,
-    height: Float,
-    overhang: Float,
-    shift: Float = 0f,
-    intensity: Float = 1f,
-) {
-    val glowWidth = size.width * widthFraction
-    val top = size.height + overhang - height
-    val left = (size.width - glowWidth) / 2f + shift * 0.18f * size.width
-    drawOval(
-        brush = Brush.radialGradient(
-            colors = listOf(
-                Color(0xFFBAA8FF).copy(alpha = (0.95f * intensity).coerceAtMost(1f)),
-                Color(0xFF8066EE).copy(alpha = (0.84f * intensity).coerceAtMost(1f)),
-                Color(0xFF4C41A8).copy(alpha = (0.48f * intensity).coerceAtMost(1f)),
-                Color.Transparent,
-            ),
-            center = Offset(left + glowWidth / 2f, top + height * 0.6f),
-            radius = glowWidth / 2f,
-        ),
-        topLeft = Offset(left, top),
-        size = Size(glowWidth, height),
-    )
-}
-
-/**
- * One drifting glow blob from the mockup's search pill.
- * [drift] (-1..1) moves the blob by a fraction of its own width, [scale] stretches it,
- * [overhang] (px) is how far the box sits below the bottom edge, [intensity] brightens it.
- */
-private fun DrawScope.drawSearchGlowBlob(
-    widthFraction: Float,
-    height: Float,
-    overhang: Float,
-    drift: Float,
-    scale: Float,
-    intensity: Float,
-) {
-    val baseWidth = size.width * widthFraction
-    val glowWidth = baseWidth * scale
-    val glowHeight = height * scale
-    val centerX = size.width / 2f + drift * baseWidth
-    val top = size.height + overhang - glowHeight
-    drawOval(
-        brush = Brush.radialGradient(
-            colors = listOf(
-                Color(0xFFBAA8FF).copy(alpha = (0.95f * intensity).coerceAtMost(1f)),
-                Color(0xFF8066EE).copy(alpha = (0.84f * intensity).coerceAtMost(1f)),
-                Color(0xFF4C41A8).copy(alpha = (0.48f * intensity).coerceAtMost(1f)),
-                Color.Transparent,
-            ),
-            center = Offset(centerX, top + glowHeight * 0.6f),
-            radius = glowWidth / 2f,
-        ),
-        topLeft = Offset(centerX - glowWidth / 2f, top),
-        size = Size(glowWidth, glowHeight),
-    )
-}
-
-/**
- * [glowStyle] is true when a non-default home style is picked or the gradient theme is on.
- * Otherwise the original toolbar is shown unchanged.
- */
-@Composable
-fun GlobalSearchToolbar(
-    searchQuery: String?,
-    progress: Int,
-    total: Int,
-    navigateUp: () -> Unit,
-    onChangeSearchQuery: (String?) -> Unit,
-    onSearch: (String) -> Unit,
-    onCancelSearch: () -> Unit = {},
-    hideSourceFilter: Boolean,
-    sourceFilter: SourceFilter,
-    pinGroups: List<String> = emptyList(),
-    onChangeSearchFilter: (SourceFilter) -> Unit,
-    onlyShowHasResults: Boolean,
-    onToggleResults: () -> Unit,
-    showFilters: Boolean = true,
-    glowStyle: Boolean = false,
-    scrollBehavior: TopAppBarScrollBehavior,
-) {
-    if (glowStyle) {
-        GlowGlobalSearchToolbar(
-            searchQuery = searchQuery,
-            progress = progress,
-            total = total,
-            navigateUp = navigateUp,
-            onChangeSearchQuery = onChangeSearchQuery,
-            onSearch = onSearch,
-            onCancelSearch = onCancelSearch,
-            hideSourceFilter = hideSourceFilter,
-            sourceFilter = sourceFilter,
-            pinGroups = pinGroups,
-            onChangeSearchFilter = onChangeSearchFilter,
-            onlyShowHasResults = onlyShowHasResults,
-            onToggleResults = onToggleResults,
-            showFilters = showFilters,
-        )
-    } else {
-        ClassicGlobalSearchToolbar(
-            searchQuery = searchQuery,
-            progress = progress,
-            total = total,
-            navigateUp = navigateUp,
-            onChangeSearchQuery = onChangeSearchQuery,
-            onSearch = onSearch,
-            hideSourceFilter = hideSourceFilter,
-            sourceFilter = sourceFilter,
-            pinGroups = pinGroups,
-            onChangeSearchFilter = onChangeSearchFilter,
-            onlyShowHasResults = onlyShowHasResults,
-            onToggleResults = onToggleResults,
-            showFilters = showFilters,
-            scrollBehavior = scrollBehavior,
-        )
-    }
-}
-
-@Composable
-private fun ClassicGlobalSearchToolbar(
-    searchQuery: String?,
-    progress: Int,
-    total: Int,
-    navigateUp: () -> Unit,
-    onChangeSearchQuery: (String?) -> Unit,
-    onSearch: (String) -> Unit,
-    hideSourceFilter: Boolean,
-    sourceFilter: SourceFilter,
-    pinGroups: List<String>,
-    onChangeSearchFilter: (SourceFilter) -> Unit,
-    onlyShowHasResults: Boolean,
-    onToggleResults: () -> Unit,
-    showFilters: Boolean,
-    scrollBehavior: TopAppBarScrollBehavior,
-) {
-    var showGroupRow by remember { mutableStateOf(false) }
-
-    val arrowRotation by animateFloatAsState(
-        targetValue = if (showGroupRow) -90f else 0f,
-        animationSpec = tween(durationMillis = 200),
-        label = "ArrowRotation",
-    )
-
-    Column(modifier = Modifier.background(MaterialTheme.colorScheme.surface)) {
-        Box {
-            SearchToolbar(
-                searchQuery = searchQuery,
-                onChangeSearchQuery = onChangeSearchQuery,
-                onSearch = onSearch,
-                onClickCloseSearch = navigateUp,
-                navigateUp = navigateUp,
-                scrollBehavior = scrollBehavior,
-            )
-            if (progress in 1..<total) {
-                LinearProgressIndicator(
-                    progress = { progress / total.toFloat() },
-                    modifier = Modifier
-                        .align(Alignment.BottomStart)
-                        .fillMaxWidth(),
-                )
-            }
+    @Composable
+    override fun Content() {
+        if (!ifSourcesLoaded()) {
+            LoadingScreen()
+            return
         }
 
-        if (showFilters) {
-            Row(
-                modifier = Modifier
-                    .horizontalScroll(rememberScrollState())
-                    .padding(horizontal = MaterialTheme.padding.small),
-                horizontalArrangement = Arrangement.spacedBy(MaterialTheme.padding.small),
-            ) {
-                if (!hideSourceFilter) {
-                    val isPinnedOrGroup = sourceFilter == SourceFilter.PinnedOnly || sourceFilter is SourceFilter.Group
-                    val pinnedLabel = when (sourceFilter) {
-                        is SourceFilter.Group -> sourceFilter.name
-                        else -> stringResource(MR.strings.pinned_sources)
-                    }
-                    val pinnedIcon = when (sourceFilter) {
-                        is SourceFilter.Group -> Icons.AutoMirrored.Outlined.Label
-                        else -> Icons.Outlined.PushPin
-                    }
+        val navigator = LocalNavigator.currentOrThrow
 
-                    FilterChip(
-                        selected = isPinnedOrGroup,
-                        onClick = {
-                            if (!isPinnedOrGroup) {
-                                onChangeSearchFilter(SourceFilter.PinnedOnly)
-                            } else if (pinGroups.isNotEmpty()) {
-                                showGroupRow = !showGroupRow
-                            }
-                        },
-                        leadingIcon = {
-                            Icon(
-                                imageVector = pinnedIcon,
-                                contentDescription = null,
-                                modifier = Modifier.size(FilterChipDefaults.IconSize),
-                            )
-                        },
-                        trailingIcon = if (pinGroups.isNotEmpty()) {
-                            {
-                                Icon(
-                                    imageVector = Icons.AutoMirrored.Outlined.KeyboardArrowLeft,
-                                    contentDescription = null,
-                                    modifier = Modifier
-                                        .size(FilterChipDefaults.IconSize)
-                                        .rotate(arrowRotation),
-                                )
-                            }
+        val viewModel = viewModel<GlobalSearchViewModel>(
+            factory = GlobalSearchViewModel.Factory,
+            extras = CreationExtras {
+                set(GlobalSearchViewModel.INITIAL_QUERY_KEY, searchQuery)
+                set(GlobalSearchViewModel.INITIAL_EXTENSION_FILTER_KEY, extensionFilter)
+                set(GlobalSearchViewModel.INCLUDE_NOVELS_KEY, includeNovels)
+            },
+        )
+        val state by viewModel.state.collectAsState()
+        var showSingleLoadingScreen by remember {
+            mutableStateOf(searchQuery.isNotEmpty() && !extensionFilter.isNullOrEmpty() && state.total == 1)
+        }
+
+        if (showSingleLoadingScreen) {
+            LoadingScreen()
+
+            LaunchedEffect(state.items) {
+                when (val result = state.items.values.singleOrNull()) {
+                    SearchItemResult.Loading -> return@LaunchedEffect
+                    is SearchItemResult.Success -> {
+                        val manga = result.result.singleOrNull()
+                        if (manga != null) {
+                            navigator.replace(MangaScreen(manga.id, true))
                         } else {
-                            null
-                        },
-                        label = {
-                            Text(text = pinnedLabel)
-                        },
-                    )
-                    FilterChip(
-                        selected = sourceFilter == SourceFilter.All,
-                        onClick = {
-                            onChangeSearchFilter(SourceFilter.All)
-                            showGroupRow = false
-                        },
-                        leadingIcon = {
-                            Icon(
-                                imageVector = Icons.Outlined.DoneAll,
-                                contentDescription = null,
-                                modifier = Modifier.size(FilterChipDefaults.IconSize),
-                            )
-                        },
-                        label = {
-                            Text(text = stringResource(MR.strings.all))
-                        },
-                    )
-
-                    VerticalDivider()
-                }
-
-                FilterChip(
-                    selected = onlyShowHasResults,
-                    onClick = { onToggleResults() },
-                    leadingIcon = {
-                        Icon(
-                            imageVector = Icons.Outlined.FilterList,
-                            contentDescription = null,
-                            modifier = Modifier.size(FilterChipDefaults.IconSize),
-                        )
-                    },
-                    label = {
-                        Text(text = stringResource(MR.strings.has_results))
-                    },
-                )
-            }
-
-            AnimatedVisibility(visible = showGroupRow && pinGroups.isNotEmpty()) {
-                Row(
-                    modifier = Modifier
-                        .horizontalScroll(rememberScrollState())
-                        .padding(horizontal = MaterialTheme.padding.small, vertical = MaterialTheme.padding.extraSmall),
-                    horizontalArrangement = Arrangement.spacedBy(MaterialTheme.padding.small),
-                ) {
-                    pinGroups.forEach { group ->
-                        val isGroupSelected = sourceFilter == SourceFilter.Group(group)
-                        FilterChip(
-                            selected = isGroupSelected,
-                            onClick = {
-                                if (isGroupSelected) {
-                                    onChangeSearchFilter(SourceFilter.PinnedOnly)
-                                } else {
-                                    onChangeSearchFilter(SourceFilter.Group(group))
-                                }
-                            },
-                            leadingIcon = {
-                                Icon(
-                                    imageVector = Icons.AutoMirrored.Outlined.Label,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(FilterChipDefaults.IconSize),
-                                )
-                            },
-                            label = {
-                                Text(text = group)
-                            },
-                        )
-                    }
-                }
-            }
-        }
-
-        HorizontalDivider()
-    }
-}
-
-@Composable
-private fun GlowGlobalSearchToolbar(
-    searchQuery: String?,
-    progress: Int,
-    total: Int,
-    navigateUp: () -> Unit,
-    onChangeSearchQuery: (String?) -> Unit,
-    onSearch: (String) -> Unit,
-    onCancelSearch: () -> Unit,
-    hideSourceFilter: Boolean,
-    sourceFilter: SourceFilter,
-    pinGroups: List<String>,
-    onChangeSearchFilter: (SourceFilter) -> Unit,
-    onlyShowHasResults: Boolean,
-    onToggleResults: () -> Unit,
-    showFilters: Boolean,
-) {
-    var showGroupRow by remember { mutableStateOf(false) }
-
-    val arrowRotation by animateFloatAsState(
-        targetValue = if (showGroupRow) -90f else 0f,
-        animationSpec = tween(durationMillis = 200),
-        label = "ArrowRotation",
-    )
-
-    val query = searchQuery.orEmpty()
-    val isSearching = total > 0 && progress < total
-
-    Column(modifier = Modifier.fillMaxWidth().background(SearchHeaderBackground).statusBarsPadding()) {
-        Column(
-            modifier = Modifier.padding(start = 14.dp, top = 14.dp, end = 14.dp, bottom = 12.dp),
-        ) {
-            SearchGlowPill(
-                query = query,
-                isSearching = isSearching,
-                onQueryChange = onChangeSearchQuery,
-                onBack = {
-                    if (query.isNotEmpty()) onChangeSearchQuery("") else navigateUp()
-                },
-                onClear = { onChangeSearchQuery("") },
-                onSubmit = { if (query.isNotBlank()) onSearch(query) },
-                onAction = {
-                    if (isSearching) {
-                        onCancelSearch()
-                    } else if (query.isNotBlank()) {
-                        onSearch(query)
-                    }
-                },
-            )
-
-            if (showFilters) {
-                Spacer(modifier = Modifier.height(14.dp))
-
-                Row(
-                    modifier = Modifier.horizontalScroll(rememberScrollState()),
-                    horizontalArrangement = Arrangement.spacedBy(10.dp),
-                ) {
-                    if (!hideSourceFilter) {
-                        val isPinnedOrGroup = sourceFilter == SourceFilter.PinnedOnly || sourceFilter is SourceFilter.Group
-                        val pinnedLabel = when (sourceFilter) {
-                            is SourceFilter.Group -> sourceFilter.name
-                            else -> stringResource(MR.strings.pinned_sources)
-                        }
-                        val pinnedIcon: ImageVector = when (sourceFilter) {
-                            is SourceFilter.Group -> Icons.AutoMirrored.Outlined.Label
-                            else -> Icons.Outlined.PushPin
-                        }
-
-                        SearchFilterChip(
-                            label = pinnedLabel,
-                            icon = pinnedIcon,
-                            selected = isPinnedOrGroup,
-                            trailingRotation = if (pinGroups.isNotEmpty()) arrowRotation else null,
-                            onClick = {
-                                if (!isPinnedOrGroup) {
-                                    onChangeSearchFilter(SourceFilter.PinnedOnly)
-                                } else if (pinGroups.isNotEmpty()) {
-                                    showGroupRow = !showGroupRow
-                                }
-                            },
-                        )
-                        SearchFilterChip(
-                            label = stringResource(MR.strings.all),
-                            icon = Icons.Outlined.DoneAll,
-                            selected = sourceFilter == SourceFilter.All,
-                            onClick = {
-                                onChangeSearchFilter(SourceFilter.All)
-                                showGroupRow = false
-                            },
-                        )
-                    }
-
-                    SearchFilterChip(
-                        label = stringResource(MR.strings.has_results),
-                        icon = Icons.Outlined.FilterList,
-                        selected = onlyShowHasResults,
-                        onClick = onToggleResults,
-                    )
-                }
-
-                AnimatedVisibility(visible = showGroupRow && pinGroups.isNotEmpty()) {
-                    Row(
-                        modifier = Modifier
-                            .horizontalScroll(rememberScrollState())
-                            .padding(top = 10.dp),
-                        horizontalArrangement = Arrangement.spacedBy(10.dp),
-                    ) {
-                        pinGroups.forEach { group ->
-                            val isGroupSelected = sourceFilter == SourceFilter.Group(group)
-                            SearchFilterChip(
-                                label = group,
-                                icon = Icons.AutoMirrored.Outlined.Label,
-                                selected = isGroupSelected,
-                                onClick = {
-                                    if (isGroupSelected) {
-                                        onChangeSearchFilter(SourceFilter.PinnedOnly)
-                                    } else {
-                                        onChangeSearchFilter(SourceFilter.Group(group))
-                                    }
-                                },
-                            )
+                            // Backoff to result screen
+                            showSingleLoadingScreen = false
                         }
                     }
+                    else -> showSingleLoadingScreen = false
                 }
             }
-        }
-
-        if (isSearching) {
-            LinearProgressIndicator(
-                progress = { progress / total.toFloat() },
-                modifier = Modifier.fillMaxWidth(),
-            )
-        }
-        HorizontalDivider(color = SearchDivider)
-    }
-}
-
-@Composable
-private fun SearchGlowPill(
-    query: String,
-    isSearching: Boolean,
-    onQueryChange: (String?) -> Unit,
-    onBack: () -> Unit,
-    onClear: () -> Unit,
-    onSubmit: () -> Unit,
-    onAction: () -> Unit,
-) {
-    val focusRequester = remember { FocusRequester() }
-    val focusManager = LocalFocusManager.current
-    val keyboardController = LocalSoftwareKeyboardController.current
-
-    LaunchedEffect(Unit) {
-        if (query.isEmpty()) focusRequester.requestFocus()
-    }
-
-    // Two drifting glow layers, timed as in the mockup (5.2s / 6.8s, or 2.4s / 3.1s while searching).
-    val transition = rememberInfiniteTransition(label = "searchGlow")
-    val primaryPhase by transition.animateFloat(
-        initialValue = 0f,
-        targetValue = 1f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(
-                durationMillis = if (isSearching) 2400 else 5200,
-                easing = FastOutSlowInEasing,
-            ),
-            repeatMode = RepeatMode.Reverse,
-        ),
-        label = "glowPrimary",
-    )
-    val secondaryPhase by transition.animateFloat(
-        initialValue = 0f,
-        targetValue = 1f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(
-                durationMillis = if (isSearching) 3100 else 6800,
-                easing = FastOutSlowInEasing,
-            ),
-            repeatMode = RepeatMode.Reverse,
-        ),
-        label = "glowSecondary",
-    )
-
-    val pillShape = RoundedCornerShape(50)
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(60.dp)
-            .clip(pillShape)
-            .background(SearchPillFill)
-            .drawBehind {
-                val intensity = if (isSearching) 1.25f else 1f
-                // Primary: 84% wide, drifts -18%..18% and scales 0.95..1.18.
-                drawSearchGlowBlob(
-                    widthFraction = 0.84f,
-                    height = 46.dp.toPx(),
-                    overhang = 24.dp.toPx(),
-                    drift = -0.18f + 0.36f * primaryPhase,
-                    scale = 0.95f + 0.23f * primaryPhase,
-                    intensity = intensity,
-                )
-                // Secondary: 68% wide, drifts the opposite way, scales 1.05..0.9.
-                drawSearchGlowBlob(
-                    widthFraction = 0.68f,
-                    height = 42.dp.toPx(),
-                    overhang = 26.dp.toPx(),
-                    drift = 0.22f - 0.44f * secondaryPhase,
-                    scale = 1.05f - 0.15f * secondaryPhase,
-                    intensity = intensity,
-                )
-            }
-            .border(1.dp, SearchPillRim, pillShape)
-            .padding(start = 6.dp, end = 9.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        IconButton(onClick = onBack, modifier = Modifier.size(40.dp)) {
-            Icon(
-                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                contentDescription = null,
-                tint = Color(0xFFE3E3E6),
-            )
-        }
-
-        Box(
-            modifier = Modifier
-                .weight(1f)
-                .padding(horizontal = 6.dp)
-                .clickable {
-                    // Tapping anywhere on the text area opens the keyboard.
-                    focusRequester.requestFocus()
-                    keyboardController?.show()
+        } else {
+            GlobalSearchScreen(
+                state = state,
+                navigateUp = navigator::pop,
+                onChangeSearchQuery = viewModel::updateSearchQuery,
+                onSearch = { viewModel.search() },
+                onCancelSearch = viewModel::cancelSearch,
+                getManga = { viewModel.getManga(it) },
+                onChangeSearchFilter = viewModel::setSourceFilter,
+                onToggleResults = viewModel::toggleFilterResults,
+                onClickSource = {
+                    navigator.push(BrowseSourceScreen(it.id, state.searchQuery))
                 },
-            contentAlignment = Alignment.CenterStart,
-        ) {
-            if (query.isEmpty()) {
-                Text(
-                    text = "Search...",
-                    color = SearchPlaceholder,
-                    fontSize = 17.sp,
-                    maxLines = 1,
-                )
-            }
-            BasicTextField(
-                value = query,
-                onValueChange = onQueryChange,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .focusRequester(focusRequester),
-                textStyle = TextStyle(color = SearchInputText, fontSize = 17.sp),
-                cursorBrush = SolidColor(Color(0xFFA594F9)),
-                singleLine = true,
-                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
-                keyboardActions = KeyboardActions(
-                    onSearch = {
-                        keyboardController?.hide()
-                        focusManager.clearFocus()
-                        onSubmit()
-                    },
-                ),
-            )
-        }
-
-        if (query.isNotEmpty()) {
-            IconButton(onClick = onClear, modifier = Modifier.size(32.dp)) {
-                Icon(
-                    imageVector = Icons.Filled.Close,
-                    contentDescription = null,
-                    tint = SearchPlaceholder,
-                    modifier = Modifier.size(16.dp),
-                )
-            }
-            Spacer(modifier = Modifier.width(6.dp))
-        }
-
-        Box(
-            modifier = Modifier
-                .size(42.dp)
-                .clip(CircleShape)
-                .background(MaterialTheme.colorScheme.primary)
-                .clickable(onClick = onAction),
-            contentAlignment = Alignment.Center,
-        ) {
-            if (isSearching) {
-                // Stop square while a search is running.
-                Box(
-                    modifier = Modifier
-                        .size(14.dp)
-                        .border(2.dp, MaterialTheme.colorScheme.onPrimary, RoundedCornerShape(3.5.dp)),
-                )
-            } else {
-                Icon(
-                    imageVector = Icons.Outlined.Search,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onPrimary,
-                    modifier = Modifier.size(19.dp),
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun SearchFilterChip(
-    label: String,
-    icon: ImageVector,
-    selected: Boolean,
-    onClick: () -> Unit,
-    trailingRotation: Float? = null,
-) {
-    val shape = RoundedCornerShape(9.dp)
-    val textColor = if (selected) SearchChipActiveText else SearchChipText
-    Row(
-        modifier = Modifier
-            .height(35.dp)
-            .clip(shape)
-            .background(if (selected) SearchChipActiveFill else SearchChipFill)
-            .border(1.dp, if (selected) SearchChipActiveBorder else SearchChipBorder, shape)
-            .clickable(onClick = onClick)
-            .padding(horizontal = 13.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = null,
-            tint = textColor,
-            modifier = Modifier.size(16.dp),
-        )
-        Spacer(modifier = Modifier.width(7.dp))
-        Text(
-            text = label,
-            fontSize = 13.5.sp,
-            fontWeight = FontWeight.Medium,
-            color = textColor,
-            maxLines = 1,
-        )
-        if (trailingRotation != null) {
-            Spacer(modifier = Modifier.width(4.dp))
-            Icon(
-                imageVector = Icons.AutoMirrored.Outlined.KeyboardArrowLeft,
-                contentDescription = null,
-                tint = textColor,
-                modifier = Modifier
-                    .size(16.dp)
-                    .rotate(trailingRotation),
+                onClickItem = { navigator.push(MangaScreen(it.id, true)) },
+                onLongClickItem = { navigator.push(MangaScreen(it.id, true)) },
             )
         }
     }
