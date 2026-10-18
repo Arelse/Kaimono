@@ -9,17 +9,20 @@ import eu.kanade.tachiyomi.source.isNovelSource
 class GlobalSearchViewModel(
     initialQuery: String,
     initialExtensionFilter: String?,
+    private val includeNovels: Boolean = false,
 ) : SearchViewModel(State(searchQuery = initialQuery)) {
 
     companion object {
         val INITIAL_QUERY_KEY = CreationExtras.Key<String>()
         val INITIAL_EXTENSION_FILTER_KEY = CreationExtras.Key<String?>()
+        val INCLUDE_NOVELS_KEY = CreationExtras.Key<Boolean>()
 
         val Factory = viewModelFactory {
             initializer {
                 GlobalSearchViewModel(
                     initialQuery = get(INITIAL_QUERY_KEY)!!,
                     initialExtensionFilter = get(INITIAL_EXTENSION_FILTER_KEY),
+                    includeNovels = get(INCLUDE_NOVELS_KEY) ?: false,
                 )
             }
         }
@@ -39,7 +42,8 @@ class GlobalSearchViewModel(
     override fun getEnabledSources(): List<Source> {
         val filter = state.value.sourceFilter
         return super.getEnabledSources()
-            .filterNot { it.isNovelSource() } // Exclude novel sources from manga global search
+            // Manga search skips novel sources, unless the caller asked for all sources (Media Hub).
+            .filter { includeNovels || !it.isNovelSource() }
             .filter {
                 when (filter) {
                     SourceFilter.All -> true
