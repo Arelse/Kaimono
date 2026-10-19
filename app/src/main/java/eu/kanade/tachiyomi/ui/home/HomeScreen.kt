@@ -130,6 +130,7 @@ object HomeScreen : Screen() {
         val navHiddenTabs by uiPreferences.navHiddenTabs.collectAsState()
         val uiMode by uiPreferences.uiMode.collectAsState()
         val navBarFromDefault by uiPreferences.navBarFromDefault.collectAsState()
+        val floatingNavBar by uiPreferences.floatingNavBar.collectAsState()
         val accentGradientEnabled by uiPreferences.accentGradientEnabled.collectAsState()
         val gradientWholeApp by uiPreferences.gradientWholeApp.collectAsState()
         val gradientStyle by uiPreferences.gradientStyle.collectAsState()
@@ -170,10 +171,18 @@ object HomeScreen : Screen() {
                                 enter = expandVertically(),
                                 exit = shrinkVertically(),
                             ) {
-                                if (navBarFromDefault ||
-                                    uiMode == eu.kanade.domain.ui.model.UiMode.DEFAULT ||
-                                    uiMode == eu.kanade.domain.ui.model.UiMode.ALTERNATIVE
-                                ) {
+                                // Docked iOS bar when "Default nav bar everywhere" is on, or when Default /
+                                // Vision Glass use the docked bar. With Floating Pill on, those modes keep
+                                // the floating pill.
+                                val useDockedIosBar = navBarFromDefault ||
+                                    (
+                                        !floatingNavBar &&
+                                            (
+                                                uiMode == eu.kanade.domain.ui.model.UiMode.DEFAULT ||
+                                                    uiMode == eu.kanade.domain.ui.model.UiMode.ALTERNATIVE
+                                                )
+                                        )
+                                if (useDockedIosBar) {
                                     IosMockupTabBar(
                                         items = tabs.map { tab ->
                                             val key = navTabKey(tab)
@@ -217,7 +226,9 @@ object HomeScreen : Screen() {
                         start = contentPadding.calculateStartPadding(layoutDirection),
                         top = contentPadding.calculateTopPadding(),
                         end = contentPadding.calculateEndPadding(layoutDirection),
-                        bottom = 0.dp,
+                        // Keep the bar's height as bottom padding so content can scroll past the
+                        // last item instead of hiding it behind the bar.
+                        bottom = contentPadding.calculateBottomPadding(),
                     )
                     Box(
                         modifier = Modifier
@@ -320,21 +331,22 @@ object HomeScreen : Screen() {
         // present, opaque-ish look, so only the floating pill gets the bleed-through treatment.
         val translucentNav = floatingNavBar
         val navBarMargin by uiPreferences.navBarMargin.collectAsState()
-        // Home Screen Switcher: when a non-Classic style is picked, it re-skins this bar too
-        // (container tint + selected-tab accent), not just the Home tab's own content.
-        val homeScreenStyleSelection by uiPreferences.homeScreenStyle.collectAsState()
+        // Home Style Nav Bar: when a non-Classic style is picked, it re-skins this bar only
+        // (container tint + selected-tab accent). The Home tab style no longer affects it.
+        val navBarStyleSelection by uiPreferences.homeStyleNavBar.collectAsState()
         val homeTokens: eu.kanade.domain.ui.model.HomeStyleTokens? =
-            if (homeScreenStyleSelection == eu.kanade.domain.ui.model.HomeScreenStyle.CLASSIC) {
+            if (navBarStyleSelection == eu.kanade.domain.ui.model.HomeScreenStyle.CLASSIC) {
                 null
             } else {
-                homeScreenStyleSelection.tokens
+                navBarStyleSelection.tokens
             }
         // All tabs render inline in list order. Home (DiscoverTab) is first in TABS, so it
         // sits leftmost and behaves exactly like the other tabs - no raised/floating button.
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = navBarMargin.dp, vertical = 12.dp)
+                // Bottom padding is larger than the top so the pill sits higher off the screen edge.
+                .padding(start = navBarMargin.dp, top = 12.dp, end = navBarMargin.dp, bottom = 24.dp)
                 .clip(RoundedCornerShape(32.dp))
                 .background(
                     when {
