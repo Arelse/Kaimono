@@ -81,6 +81,11 @@ class UiPreferences(
     val homeScreenStyle: Preference<HomeScreenStyle> =
         preferenceStore.getEnum("pref_home_screen_style", HomeScreenStyle.CLASSIC)
 
+    // Home Style Nav Bar: re-skins only the floating nav bar. Separate from homeScreenStyle,
+    // so changing the Home tab's style no longer changes the nav bar. CLASSIC = app theme.
+    val homeStyleNavBar: Preference<HomeScreenStyle> =
+        preferenceStore.getEnum("pref_home_style_nav_bar", HomeScreenStyle.CLASSIC)
+
     // Comma-separated tab keys in display order, e.g. "home,library,history,browse,more".
     // Empty means default order.
     val navTabOrder: Preference<String> = preferenceStore.getString("pref_nav_tab_order", "")
