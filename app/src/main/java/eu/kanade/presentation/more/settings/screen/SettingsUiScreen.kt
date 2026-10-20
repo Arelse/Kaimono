@@ -116,10 +116,10 @@ object SettingsUiScreen : SearchableSettings {
                     preference = uiPreferences.homeLayout,
                     entries = mapOf(
                         eu.kanade.domain.ui.model.HomeLayout.DEFAULT to "Default",
-                        eu.kanade.domain.ui.model.HomeLayout.MEDIA_HUB to "Media Hub",
+                        eu.kanade.domain.ui.model.HomeLayout.MEDIA_HUB to "Featured",
                     ),
                     title = "Home screen layout",
-                    subtitle = "Default keeps the classic Home. Media Hub adds search, filters, and the palette, sync, trophy and account sheets",
+                    subtitle = "Default keeps the classic Home. Featured adds search, filters, and the palette, sync, trophy and account sheets",
                 ),
                 Preference.PreferenceItem.ListPreference(
                     preference = uiPreferences.homeScreenStyle,
