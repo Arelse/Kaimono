@@ -30,11 +30,15 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.foundation.border
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import eu.kanade.presentation.components.atsuGlass
+import eu.kanade.presentation.components.liquidGlass
 import androidx.compose.ui.util.fastForEachIndexed
 import androidx.compose.ui.window.Dialog
 import eu.kanade.presentation.components.dialogProperties
@@ -44,15 +48,31 @@ import kotlinx.coroutines.launch
 import tachiyomi.presentation.core.util.collectAsState
 
 /**
- * Translucent, pill-segmented-tab bottom sheet for the reader settings, used whenever the control
- * theme is not [ReaderControlTheme.DEFAULT] (i.e. [ReaderControlTheme.TRANSLUCENT] or
- * [ReaderControlTheme.IOS26]). The [ReaderControlTheme.DEFAULT] path in ReaderSettingsDialog.kt is
- * untouched by this file.
+ * Surface for the reader settings sheet, matched to the selected control theme:
+ * Translucent gets a light tint, Liquid Glass the glass gradient and rim, Atsu the Atsu surface.
+ * Only non-Default themes reach this sheet.
+ */
+private fun Modifier.settingsSheetGlass(theme: ReaderControlTheme, shape: RoundedCornerShape, tint: Color): Modifier =
+    when (theme) {
+        ReaderControlTheme.TRANSLUCENT -> this
+            .clip(shape)
+            .background(tint.copy(alpha = 0.6f))
+            .border(width = 1.dp, color = Color.White.copy(alpha = 0.12f), shape = shape)
+        ReaderControlTheme.IOS26 -> liquidGlass(shape, tint, tintAlpha = 0.6f)
+        ReaderControlTheme.ATSU -> atsuGlass(shape, tint, scrolling = false)
+        ReaderControlTheme.DEFAULT -> this
+    }
+
+/**
+ * Pill-segmented-tab bottom sheet for the reader settings, used whenever the control theme is not
+ * [ReaderControlTheme.DEFAULT]. The sheet surface follows [controlTheme]. The DEFAULT path in
+ * ReaderSettingsDialog.kt is untouched by this file.
  */
 @Composable
 internal fun IosReaderSettingsSheet(
     tabLabels: List<String>,
     pagerState: PagerState,
+    controlTheme: ReaderControlTheme,
     onDismissRequest: () -> Unit,
     content: @Composable ColumnScope.(Int) -> Unit,
 ) {
@@ -66,13 +86,16 @@ internal fun IosReaderSettingsSheet(
             modifier = Modifier.fillMaxWidth(),
             contentAlignment = Alignment.BottomCenter,
         ) {
+            val sheetShape = RoundedCornerShape(28.dp)
             Surface(
                 modifier = Modifier
                     .widthIn(max = 460.dp)
                     .heightIn(max = maxHeight * 0.85f)
-                    .padding(horizontal = 8.dp, vertical = 16.dp),
-                shape = RoundedCornerShape(28.dp),
-                color = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.85f),
+                    .padding(horizontal = 8.dp, vertical = 16.dp)
+                    .settingsSheetGlass(controlTheme, sheetShape, MaterialTheme.colorScheme.surfaceContainerHigh),
+                shape = sheetShape,
+                color = Color.Transparent,
+                contentColor = MaterialTheme.colorScheme.onSurface,
             ) {
                 Column {
                     // Grab handle
