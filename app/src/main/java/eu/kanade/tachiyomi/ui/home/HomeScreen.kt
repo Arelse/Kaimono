@@ -60,6 +60,7 @@ import cafe.adriel.voyager.navigator.tab.LocalTabNavigator
 import cafe.adriel.voyager.navigator.tab.TabNavigator
 import eu.kanade.domain.base.BasePreferences
 import eu.kanade.domain.source.service.SourcePreferences
+import eu.kanade.presentation.components.liquidGlass
 import eu.kanade.presentation.more.IosMockupTabBar
 import eu.kanade.presentation.more.IosTabItem
 import eu.kanade.presentation.util.Screen
@@ -222,13 +223,18 @@ object HomeScreen : Screen() {
                     contentWindowInsets = WindowInsets(0),
                 ) { contentPadding ->
                     val layoutDirection = LocalLayoutDirection.current
+                    val homeLayout by uiPreferences.homeLayout.collectAsState()
+                    // Featured (Media Hub) pads its own list, so its content runs under the floating
+                    // bar as glass and still scrolls to the last item.
+                    val featuredFullBleed = tabNavigator.current == eu.kanade.tachiyomi.ui.discover.DiscoverTab &&
+                        homeLayout == eu.kanade.domain.ui.model.HomeLayout.MEDIA_HUB
                     val contentPaddingNoBottom = PaddingValues(
                         start = contentPadding.calculateStartPadding(layoutDirection),
                         top = contentPadding.calculateTopPadding(),
                         end = contentPadding.calculateEndPadding(layoutDirection),
                         // Keep the bar's height as bottom padding so content can scroll past the
                         // last item instead of hiding it behind the bar.
-                        bottom = contentPadding.calculateBottomPadding(),
+                        bottom = if (featuredFullBleed) 0.dp else contentPadding.calculateBottomPadding(),
                     )
                     Box(
                         modifier = Modifier
@@ -347,26 +353,16 @@ object HomeScreen : Screen() {
                 .fillMaxWidth()
                 // Bottom padding is larger than the top so the pill sits higher off the screen edge.
                 .padding(start = navBarMargin.dp, top = 12.dp, end = navBarMargin.dp, bottom = 24.dp)
-                .clip(RoundedCornerShape(32.dp))
-                .background(
-                    when {
-                        homeTokens != null -> homeTokens.surface.copy(
-                            alpha = if (translucentNav) homeTokens.navTranslucentAlpha else homeTokens.navOpaqueAlpha,
-                        )
-                        else -> MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = if (translucentNav) 0.3f else 1f)
+                .liquidGlass(
+                    shape = RoundedCornerShape(32.dp),
+                    tint = homeTokens?.surface ?: MaterialTheme.colorScheme.surfaceContainerHigh,
+                    tintAlpha = when {
+                        !translucentNav -> 1f
+                        homeTokens != null -> homeTokens.navTranslucentAlpha
+                        else -> 0.42f
                     },
+                    rimAlpha = homeTokens?.borderAlpha ?: 0.28f,
                 )
-                .let {
-                    if (homeTokens != null) {
-                        it.border(
-                            width = 1.dp,
-                            color = Color.White.copy(alpha = homeTokens.borderAlpha),
-                            shape = RoundedCornerShape(32.dp),
-                        )
-                    } else {
-                        it
-                    }
-                }
                 .padding(vertical = 6.dp, horizontal = 4.dp),
             horizontalArrangement = Arrangement.SpaceAround,
             verticalAlignment = Alignment.CenterVertically,
@@ -684,3 +680,4 @@ object HomeScreen : Screen() {
     
 
             
+ 
