@@ -7,6 +7,8 @@ import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.CubicBezierEasing
+import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -61,7 +63,11 @@ import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.layout.matchParentSize
+import androidx.compose.ui.draw.blur
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.drawscope.withTransform
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -86,7 +92,6 @@ private val SearchHeaderBackground = Color(0xFF0B0D13)
 private val SearchPillFill = Color(0xFF000000)
 private val SearchPillRim = Color(0x21FFFFFF)
 private val SearchDivider = Color(0x14FFFFFF)
-private val SearchActionBlue = Color(0xFF0A4999)
 private val SearchInputText = Color(0xFFF1F3F4)
 private val SearchPlaceholder = Color(0xFF9AA0A6)
 private val SearchChipFill = Color(0xFF0B0D13)
@@ -125,6 +130,54 @@ internal fun DrawScope.drawSearchBottomGlow(
         topLeft = Offset(left, top),
         size = Size(glowWidth, height),
     )
+}
+
+/**
+ * One glow layer from the mockup's search pill, drawn like its CSS: an elliptical radial gradient
+ * (origin 50% 60%), scaled X and Y separately, translated, and faded.
+ * [drift] moves it by a fraction of its own width; [overhang] (px) is how far its box sits below
+ * the bottom edge; [translateY] is a vertical nudge in px; [alpha] is the mockup's opacity keyframe.
+ */
+private fun DrawScope.drawSearchGlowLayer(
+    widthFraction: Float,
+    height: Float,
+    overhang: Float,
+    drift: Float,
+    scaleX: Float,
+    scaleY: Float,
+    translateY: Float,
+    alpha: Float,
+    intensity: Float,
+) {
+    val boxWidth = size.width * widthFraction
+    val boxTop = size.height + overhang - height
+    // The box is scaled about its own centre, like a CSS transform.
+    val centerX = size.width / 2f + drift * boxWidth
+    val centerY = boxTop + height / 2f + translateY
+    val radiusX = boxWidth / 2f * scaleX
+    val radiusY = height / 2f * scaleY
+    val a = alpha * intensity
+    // Gradient radius reaches past the box edge, so the falloff matches the mockup's farthest-corner ellipse.
+    val gradientRadius = radiusY * 1.25f
+    withTransform({
+        translate(left = centerX, top = centerY)
+        scale(scaleX = radiusX / radiusY, scaleY = 1f, pivot = Offset.Zero)
+    }) {
+        drawCircle(
+            brush = Brush.radialGradient(
+                colors = listOf(
+                    Color(0xFFBAA8FF).copy(alpha = (0.95f * a).coerceAtMost(1f)),
+                    Color(0xFF8066EE).copy(alpha = (0.84f * a).coerceAtMost(1f)),
+                    Color(0xFF4C41A8).copy(alpha = (0.48f * a).coerceAtMost(1f)),
+                    Color.Transparent,
+                ),
+                center = Offset(0f, radiusY * 0.2f),
+                radius = gradientRadius,
+            ),
+            radius = gradientRadius,
+            center = Offset.Zero,
+        )
+    }
 }
 
 /**
@@ -513,41 +566,109 @@ private fun SearchGlowPill(
         if (query.isEmpty()) focusRequester.requestFocus()
     }
 
-    // Drifting glow, as in the mockup. Faster while a search is running.
+    // Glow loops follow the mockup's CSS keyframes: a full cycle of 5.2s and 6.8s (2.4s and 3.1s
+    // while searching), eased in and out. Reverse repeat runs each half in half the cycle.
+    val glowEase = CubicBezierEasing(0.42f, 0f, 0.58f, 1f)
     val transition = rememberInfiniteTransition(label = "searchGlow")
-    val glowPhase by transition.animateFloat(
-        initialValue = -1f,
+    val primaryPhase by transition.animateFloat(
+        initialValue = 0f,
         targetValue = 1f,
         animationSpec = infiniteRepeatable(
-            animation = tween(
-                durationMillis = if (isSearching) 2400 else 5200,
-                easing = FastOutSlowInEasing,
-            ),
+            animation = tween(durationMillis = if (isSearching) 1200 else 2600, easing = glowEase),
             repeatMode = RepeatMode.Reverse,
         ),
-        label = "glowPhase",
+        label = "glowPrimary",
+    )
+    val secondaryPhase by transition.animateFloat(
+        initialValue = 0f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = if (isSearching) 1550 else 3400, easing = glowEase),
+            repeatMode = RepeatMode.Reverse,
+        ),
+        label = "glowSecondary",
+    )
+    // The glow boxes grow a little while searching, over 0.3s like the mockup's transition.
+    val primaryHeight by animateDpAsState(
+        targetValue = if (isSearching) 58.dp else 46.dp,
+        animationSpec = tween(durationMillis = 300),
+        label = "glowPrimaryHeight",
+    )
+    val secondaryHeight by animateDpAsState(
+        targetValue = if (isSearching) 52.dp else 42.dp,
+        animationSpec = tween(durationMillis = 300),
+        label = "glowSecondaryHeight",
     )
 
     val pillShape = RoundedCornerShape(50)
-    Row(
+    val intensity = if (isSearching) 1.25f else 1f
+    Box(
         modifier = Modifier
             .fillMaxWidth()
             .height(60.dp)
             .clip(pillShape)
             .background(SearchPillFill)
-            .drawBehind {
-                drawSearchBottomGlow(
-                    widthFraction = 0.84f,
-                    height = 46.dp.toPx(),
-                    overhang = 24.dp.toPx(),
-                    shift = glowPhase,
-                    intensity = if (isSearching) 1.25f else 1f,
-                )
-            }
-            .border(1.dp, SearchPillRim, pillShape)
-            .padding(start = 6.dp, end = 9.dp),
-        verticalAlignment = Alignment.CenterVertically,
+            .border(1.dp, SearchPillRim, pillShape),
     ) {
+        // Primary glow: 84% wide, 24px below the edge, blurred 11px, drifts -18%..18%, scales X 0.95..1.18
+        // and Y 1..1.15, opacity 0.85..1, nudges up 3px at its far point.
+        Canvas(modifier = Modifier.matchParentSize().blur(11.dp)) {
+            drawSearchGlowLayer(
+                widthFraction = 0.84f,
+                height = primaryHeight.toPx(),
+                overhang = (if (isSearching) 20.dp else 24.dp).toPx(),
+                drift = -0.18f + 0.36f * primaryPhase,
+                scaleX = 0.95f + 0.23f * primaryPhase,
+                scaleY = 1f + 0.15f * primaryPhase,
+                translateY = -3.dp.toPx() * primaryPhase,
+                alpha = 0.85f + 0.15f * primaryPhase,
+                intensity = intensity,
+            )
+        }
+        // Secondary glow: 68% wide, blurred 13px, drifts the opposite way (+22%..-22%), scales X 1.05..0.9,
+        // opacity 0.7..0.98.
+        Canvas(modifier = Modifier.matchParentSize().blur(13.dp)) {
+            drawSearchGlowLayer(
+                widthFraction = 0.68f,
+                height = secondaryHeight.toPx(),
+                overhang = 26.dp.toPx(),
+                drift = 0.22f - 0.44f * secondaryPhase,
+                scaleX = 1.05f - 0.15f * secondaryPhase,
+                scaleY = 1f,
+                translateY = (2f - 4f * secondaryPhase).dp.toPx(),
+                alpha = 0.7f + 0.28f * secondaryPhase,
+                intensity = intensity,
+            )
+        }
+        // Top vignette (the mockup's ::before): pure black at the top so only the bottom glows,
+        // plus a faint violet inner shadow along the bottom edge.
+        Canvas(modifier = Modifier.matchParentSize()) {
+            drawRect(
+                brush = Brush.verticalGradient(
+                    colorStops = arrayOf(
+                        0f to Color.Black,
+                        0.44f to Color.Black.copy(alpha = 0.94f),
+                        0.76f to Color.Black.copy(alpha = 0.24f),
+                        1f to Color.Transparent,
+                    ),
+                ),
+            )
+            drawRect(
+                brush = Brush.verticalGradient(
+                    colorStops = arrayOf(
+                        0.6f to Color.Transparent,
+                        1f to Color(0xFF826CF5).copy(alpha = 0.34f),
+                    ),
+                ),
+            )
+        }
+
+        Row(
+            modifier = Modifier
+                .matchParentSize()
+                .padding(start = 6.dp, end = 9.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
         IconButton(onClick = onBack, modifier = Modifier.size(40.dp)) {
             Icon(
                 imageVector = Icons.AutoMirrored.Filled.ArrowBack,
@@ -611,7 +732,7 @@ private fun SearchGlowPill(
             modifier = Modifier
                 .size(42.dp)
                 .clip(CircleShape)
-                .background(SearchActionBlue)
+                .background(MaterialTheme.colorScheme.primary)
                 .clickable(onClick = onAction),
             contentAlignment = Alignment.Center,
         ) {
@@ -620,16 +741,17 @@ private fun SearchGlowPill(
                 Box(
                     modifier = Modifier
                         .size(14.dp)
-                        .border(2.dp, Color.White, RoundedCornerShape(3.5.dp)),
+                        .border(2.dp, MaterialTheme.colorScheme.onPrimary, RoundedCornerShape(3.5.dp)),
                 )
             } else {
                 Icon(
                     imageVector = Icons.Outlined.Search,
                     contentDescription = null,
-                    tint = Color.White,
+                    tint = MaterialTheme.colorScheme.onPrimary,
                     modifier = Modifier.size(19.dp),
                 )
             }
+        }
         }
     }
 }
@@ -682,4 +804,4 @@ private fun SearchFilterChip(
     }
 }
 
-                             
+                    
