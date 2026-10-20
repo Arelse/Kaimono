@@ -184,7 +184,7 @@ private fun Modifier.clickableNoRipple(onClick: () -> Unit): Modifier = this.cli
 private fun ReaderControlTheme.label(): String = when (this) {
     ReaderControlTheme.DEFAULT -> "Default"
     ReaderControlTheme.TRANSLUCENT -> "Translucent"
-    ReaderControlTheme.IOS26 -> "iOS 26"
+    ReaderControlTheme.IOS26 -> "Liquid Glass"
 }
 
 /**
