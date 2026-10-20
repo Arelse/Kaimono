@@ -51,6 +51,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import eu.kanade.presentation.components.liquidGlass
 import eu.kanade.tachiyomi.R
 import eu.kanade.tachiyomi.ui.reader.setting.ReaderOrientation
 import eu.kanade.tachiyomi.ui.reader.setting.ReadingMode
@@ -90,7 +91,8 @@ fun IosReaderAppBars(
     onClickCropBorder: () -> Unit,
     onClickSettings: () -> Unit,
 ) {
-    val pillColor = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.55f)
+    // Liquid Glass surfaces: tint only, the liquidGlass modifier adds the sheen and rim.
+    val pillColor = MaterialTheme.colorScheme.surfaceContainerHigh
     val onPillColor = MaterialTheme.colorScheme.onSurface
 
     Box(modifier = Modifier.fillMaxHeight()) {
@@ -120,7 +122,7 @@ fun IosReaderAppBars(
                     modifier = Modifier
                         .weight(1f)
                         .clip(RoundedCornerShape(24.dp))
-                        .background(pillColor)
+                        .liquidGlass(RoundedCornerShape(24.dp), pillColor)
                         .clickable(onClick = onClickChapterList)
                         .padding(horizontal = 16.dp, vertical = 10.dp),
                     verticalAlignment = Alignment.CenterVertically,
@@ -195,7 +197,7 @@ fun IosReaderAppBars(
                         modifier = Modifier
                             .weight(1f)
                             .clip(RoundedCornerShape(24.dp))
-                            .background(pillColor)
+                            .liquidGlass(RoundedCornerShape(24.dp), pillColor)
                             .padding(horizontal = 14.dp),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(10.dp),
@@ -235,7 +237,7 @@ fun IosReaderAppBars(
                     modifier = Modifier
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(24.dp))
-                        .background(pillColor)
+                        .liquidGlass(RoundedCornerShape(24.dp), pillColor)
                         .padding(vertical = 6.dp),
                     horizontalArrangement = Arrangement.SpaceEvenly,
                     verticalAlignment = Alignment.CenterVertically,
@@ -279,8 +281,7 @@ private fun IosCircleIconButton(
     Box(
         modifier = Modifier
             .size(44.dp)
-            .clip(CircleShape)
-            .background(pillColor)
+            .liquidGlass(CircleShape, pillColor)
             .clickable(enabled = enabled, onClick = onClick),
         contentAlignment = Alignment.Center,
     ) {
@@ -305,12 +306,11 @@ fun IosZoomControlPill(
     onSpeedDecrease: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val pillColor = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.55f)
+    val pillColor = MaterialTheme.colorScheme.surfaceContainerHigh
     Column(
         modifier = modifier
             .widthIn(min = 52.dp)
-            .clip(RoundedCornerShape(26.dp))
-            .background(pillColor)
+            .liquidGlass(RoundedCornerShape(26.dp), pillColor)
             .padding(vertical = 6.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(4.dp),
