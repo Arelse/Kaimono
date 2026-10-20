@@ -45,12 +45,15 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import eu.kanade.presentation.components.atsuGlass
 import eu.kanade.presentation.components.liquidGlass
 import eu.kanade.tachiyomi.R
 import eu.kanade.tachiyomi.ui.reader.setting.ReaderOrientation
@@ -61,8 +64,15 @@ private val iosBarsSlideSpec = tween<IntOffset>(200)
 private val iosBarsFadeSpec = tween<Float>(150)
 
 /**
+ * Glass surface for the reader chrome. [atsu] selects the Atsu surface (which reacts to
+ * [scrolling]); otherwise the Liquid Glass surface is used.
+ */
+private fun Modifier.readerGlass(shape: Shape, tint: Color, atsu: Boolean, scrolling: Boolean): Modifier =
+    if (atsu) atsuGlass(shape, tint, scrolling) else liquidGlass(shape, tint)
+
+/**
  * Translucent "iOS 26" skin for the reader's top/bottom chrome. Only used when
- * ReaderPreferences.controlTheme == IOS26; the Default path (ReaderAppBars) is untouched.
+ * ReaderPreferences.controlTheme is not DEFAULT; the Default path (ReaderAppBars) is untouched.
  * Only supports the common horizontal chapter-navigator layout — for the vertical left/right
  * slider configuration (a rarely used setting), the caller should fall back to ReaderAppBars.
  */
@@ -90,8 +100,10 @@ fun IosReaderAppBars(
     cropEnabled: Boolean,
     onClickCropBorder: () -> Unit,
     onClickSettings: () -> Unit,
+    atsu: Boolean = false,
+    scrolling: Boolean = false,
 ) {
-    // Liquid Glass surfaces: tint only, the liquidGlass modifier adds the sheen and rim.
+    // Glass surfaces: tint only, the glass modifier adds the sheen and rim.
     val pillColor = MaterialTheme.colorScheme.surfaceContainerHigh
     val onPillColor = MaterialTheme.colorScheme.onSurface
 
@@ -115,6 +127,8 @@ fun IosReaderAppBars(
                     icon = Icons.AutoMirrored.Outlined.ArrowBack,
                     contentDescription = null,
                     pillColor = pillColor,
+                    atsu = atsu,
+                    scrolling = scrolling,
                     onClick = navigateUp,
                 )
 
@@ -122,7 +136,7 @@ fun IosReaderAppBars(
                     modifier = Modifier
                         .weight(1f)
                         .clip(RoundedCornerShape(24.dp))
-                        .liquidGlass(RoundedCornerShape(24.dp), pillColor)
+                        .readerGlass(RoundedCornerShape(24.dp), pillColor, atsu, scrolling)
                         .clickable(onClick = onClickChapterList)
                         .padding(horizontal = 16.dp, vertical = 10.dp),
                     verticalAlignment = Alignment.CenterVertically,
@@ -155,6 +169,8 @@ fun IosReaderAppBars(
                     icon = if (bookmarked) Icons.Outlined.Bookmark else Icons.Outlined.BookmarkBorder,
                     contentDescription = null,
                     pillColor = pillColor,
+                    atsu = atsu,
+                    scrolling = scrolling,
                     onClick = onToggleBookmarked,
                 )
 
@@ -162,6 +178,8 @@ fun IosReaderAppBars(
                     icon = Icons.Outlined.Settings,
                     contentDescription = null,
                     pillColor = pillColor,
+                    atsu = atsu,
+                    scrolling = scrolling,
                     onClick = onClickSettings,
                 )
             }
@@ -190,6 +208,8 @@ fun IosReaderAppBars(
                         contentDescription = null,
                         pillColor = pillColor,
                         enabled = currentPage > 0,
+                        atsu = atsu,
+                        scrolling = scrolling,
                         onClick = { onPageIndexChange((currentPage - 1).coerceAtLeast(0)); onPageIndexChangeFinished() },
                     )
 
@@ -197,7 +217,7 @@ fun IosReaderAppBars(
                         modifier = Modifier
                             .weight(1f)
                             .clip(RoundedCornerShape(24.dp))
-                            .liquidGlass(RoundedCornerShape(24.dp), pillColor)
+                            .readerGlass(RoundedCornerShape(24.dp), pillColor, atsu, scrolling)
                             .padding(horizontal = 14.dp),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(10.dp),
@@ -229,6 +249,8 @@ fun IosReaderAppBars(
                         contentDescription = null,
                         pillColor = pillColor,
                         enabled = currentPage < totalPages - 1,
+                        atsu = atsu,
+                        scrolling = scrolling,
                         onClick = { onPageIndexChange((currentPage + 1).coerceAtMost(totalPages - 1)); onPageIndexChangeFinished() },
                     )
                 }
@@ -237,7 +259,7 @@ fun IosReaderAppBars(
                     modifier = Modifier
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(24.dp))
-                        .liquidGlass(RoundedCornerShape(24.dp), pillColor)
+                        .readerGlass(RoundedCornerShape(24.dp), pillColor, atsu, scrolling)
                         .padding(vertical = 6.dp),
                     horizontalArrangement = Arrangement.SpaceEvenly,
                     verticalAlignment = Alignment.CenterVertically,
@@ -277,11 +299,13 @@ private fun IosCircleIconButton(
     pillColor: androidx.compose.ui.graphics.Color,
     onClick: () -> Unit,
     enabled: Boolean = true,
+    atsu: Boolean = false,
+    scrolling: Boolean = false,
 ) {
     Box(
         modifier = Modifier
             .size(44.dp)
-            .liquidGlass(CircleShape, pillColor)
+            .readerGlass(CircleShape, pillColor, atsu, scrolling)
             .clickable(enabled = enabled, onClick = onClick),
         contentAlignment = Alignment.Center,
     ) {
@@ -304,13 +328,15 @@ fun IosZoomControlPill(
     onToggleAutoScroll: () -> Unit,
     onSpeedIncrease: () -> Unit,
     onSpeedDecrease: () -> Unit,
+    atsu: Boolean = false,
+    scrolling: Boolean = false,
     modifier: Modifier = Modifier,
 ) {
     val pillColor = MaterialTheme.colorScheme.surfaceContainerHigh
     Column(
         modifier = modifier
             .widthIn(min = 52.dp)
-            .liquidGlass(RoundedCornerShape(26.dp), pillColor)
+            .readerGlass(RoundedCornerShape(26.dp), pillColor, atsu, scrolling)
             .padding(vertical = 6.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(4.dp),
@@ -332,7 +358,7 @@ fun IosZoomControlPill(
         }
         IconButton(onClick = onSpeedDecrease, modifier = Modifier.size(52.dp)) {
             Text(
-                text = "\u2212",
+                text = "−",
                 color = MaterialTheme.colorScheme.onSurface,
                 fontWeight = FontWeight.Bold,
                 fontSize = 26.sp,
