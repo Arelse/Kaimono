@@ -82,16 +82,14 @@ private fun BaseTachiyomiTheme(
     val uiMode by Injekt.get<UiPreferences>().uiMode.collectAsState()
     val useUiSwitcherTheme by Injekt.get<UiPreferences>().useUiSwitcherTheme.collectAsState()
     val typography = remember(appFont) { typographyFor(appFont) }
-    // Spatial UI's lever is the shape theme rather than color: any Card/Surface/Button using
-    // default MaterialTheme.shapes tokens (most of the app) picks up rounder, more "floating
-    // panel" corners automatically - same cascading trick as colorScheme below, just for shape
-    // instead of color. Only active when Spatial is actually selected; every other mode (and the
-    // legacy AppTheme picker) keeps Material's normal default shapes untouched.
+    // Rounded shape theme: any Card/Surface/Button using default MaterialTheme.shapes tokens picks
+    // up rounder corners automatically, same cascading trick as colorScheme below but for shape.
+    // Only active for the modes listed below; every other mode (and the legacy AppTheme picker)
+    // keeps Material's normal default shapes untouched.
     val shapes = remember(uiMode, useUiSwitcherTheme) {
         // Neumorphism and Liquid Glass use the same app-wide corner treatment: their cards and
         // surfaces are the shape-bearing components, so this cascades to every Card/Surface app-wide.
         val roundedModes = setOf(
-            eu.kanade.domain.ui.model.UiMode.SPATIAL,
             eu.kanade.domain.ui.model.UiMode.NEUMORPHISM,
             eu.kanade.domain.ui.model.UiMode.LIQUID_GLASS,
         )
@@ -140,20 +138,6 @@ private fun BaseTachiyomiTheme(
                         primaryContainer = base.primaryContainer.copy(alpha = 0.55f),
                         secondaryContainer = base.secondaryContainer.copy(alpha = 0.55f),
                         tertiaryContainer = base.tertiaryContainer.copy(alpha = 0.45f),
-                    )
-                } else if (uiMode == eu.kanade.domain.ui.model.UiMode.SPATIAL) {
-                    // More opaque than Glassmorphism on purpose - Spatial's identity is depth
-                    // and rounded floating panels (see the shapes override above and the
-                    // elevation Claude added on the More screen), not see-through-ness. A light
-                    // translucency here still lets it read as "layered" rather than flat/solid.
-                    base.copy(
-                        surface = base.surface.copy(alpha = 0.72f),
-                        surfaceVariant = base.surfaceVariant.copy(alpha = 0.72f),
-                        surfaceContainerLowest = base.surfaceContainerLowest.copy(alpha = 0.60f),
-                        surfaceContainerLow = base.surfaceContainerLow.copy(alpha = 0.66f),
-                        surfaceContainer = base.surfaceContainer.copy(alpha = 0.72f),
-                        surfaceContainerHigh = base.surfaceContainerHigh.copy(alpha = 0.80f),
-                        surfaceContainerHighest = base.surfaceContainerHighest.copy(alpha = 0.88f),
                     )
                 } else if (uiMode == eu.kanade.domain.ui.model.UiMode.NEUMORPHISM) {
                     // Opaque, not translucent - that's the point. Neumorphism's identity is
