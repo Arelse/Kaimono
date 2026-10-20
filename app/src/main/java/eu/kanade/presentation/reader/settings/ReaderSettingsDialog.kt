@@ -71,6 +71,7 @@ private fun MangaReaderSettingsDialog(
         IosReaderSettingsSheet(
             tabLabels = tabTitleStrings,
             pagerState = pagerState,
+            controlTheme = controlTheme,
             onDismissRequest = {
                 onDismissRequest()
                 onShowMenus()
