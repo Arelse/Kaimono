@@ -17,6 +17,7 @@ import eu.kanade.tachiyomi.ui.reader.setting.ReaderPreferences
 import eu.kanade.tachiyomi.ui.reader.setting.ReaderPreferences.ReaderControlTheme
 import tachiyomi.presentation.core.util.collectAsState
 import uy.kohesive.injekt.Injekt
+import uy.kohesive.injekt.api.get
 
 private val chapterRowShape = RoundedCornerShape(16.dp)
 
@@ -69,4 +70,3 @@ fun Modifier.chapterRowSurface(theme: ReaderControlTheme?): Modifier {
         ReaderControlTheme.ATSU -> atsuGlass(chapterRowShape, tint, scrolling = false)
     }
 }
-
