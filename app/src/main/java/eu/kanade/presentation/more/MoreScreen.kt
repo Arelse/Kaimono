@@ -85,13 +85,11 @@ fun MoreScreen(
         eu.kanade.domain.ui.model.UiMode.ALTERNATIVE -> 0.22f
         eu.kanade.domain.ui.model.UiMode.TRANSLUCENT -> 0.10f
         eu.kanade.domain.ui.model.UiMode.GLASSMORPHISM -> 0.16f
-        eu.kanade.domain.ui.model.UiMode.SPATIAL -> 0.55f
         eu.kanade.domain.ui.model.UiMode.NEUMORPHISM -> 1f
         eu.kanade.domain.ui.model.UiMode.LIQUID_GLASS -> 0.40f
     }
-    // Glassmorphism: thin light border - what sells "glass" over just "see-through". Spatial:
-    // shadow elevation instead - what sells "floating panel" over just "rounder corners" (the
-    // shape change is global, see TachiyomiTheme.kt's `shapes` override). Neumorphism: no
+    // Atsu UI (Glassmorphism): thin light border - what sells "glass" over just "see-through".
+    // Neumorphism: no
     // border, soft shadow only - a border would fight the "surface barely differs from
     // background" premise. Liquid Glass: a blue-tinted border plus elevation plus the animated
     // specular sweep below - all three per-mode flourishes are currently only built out here on
@@ -108,7 +106,6 @@ fun MoreScreen(
         else -> null
     }
     val cardElevation = when (uiMode) {
-        eu.kanade.domain.ui.model.UiMode.SPATIAL -> 12.dp
         eu.kanade.domain.ui.model.UiMode.NEUMORPHISM -> 8.dp
         eu.kanade.domain.ui.model.UiMode.LIQUID_GLASS -> 4.dp
         else -> 0.dp
@@ -455,4 +452,4 @@ fun SettingItem(
     }
 }
 
-          
+            
