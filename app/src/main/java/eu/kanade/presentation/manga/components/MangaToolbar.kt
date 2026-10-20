@@ -1,12 +1,11 @@
 package eu.kanade.presentation.manga.components
 
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.ArrowDownward
-import androidx.compose.material.icons.outlined.ArrowUpward
 import androidx.compose.material.icons.outlined.Bookmark
 import androidx.compose.material.icons.outlined.Download
 import androidx.compose.material.icons.outlined.FilterList
 import androidx.compose.material.icons.outlined.FlipToBack
+import androidx.compose.material.icons.outlined.Palette
 import androidx.compose.material.icons.outlined.SelectAll
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
@@ -51,6 +50,7 @@ fun MangaToolbar(
     onClickScrollToTop: (() -> Unit)? = null,
     onClickScrollToLastRead: (() -> Unit)? = null,
     onClickScrollToBottom: (() -> Unit)? = null,
+    onClickControlTheme: (() -> Unit)? = null,
 
     // For action mode
     actionModeCounter: Int,
@@ -116,12 +116,12 @@ fun MangaToolbar(
                             ),
                         )
                     }
-                    if (onClickScrollToTop != null) {
+                    if (onClickControlTheme != null) {
                         add(
                             AppBar.Action(
-                                title = stringResource(TDMR.strings.action_scroll_to_top),
-                                icon = Icons.Outlined.ArrowUpward,
-                                onClick = onClickScrollToTop,
+                                title = "Control theme",
+                                icon = Icons.Outlined.Palette,
+                                onClick = onClickControlTheme,
                             ),
                         )
                     }
@@ -131,15 +131,6 @@ fun MangaToolbar(
                                 title = stringResource(MR.strings.last_read_chapter),
                                 icon = Icons.Outlined.Bookmark,
                                 onClick = onClickScrollToLastRead,
-                            ),
-                        )
-                    }
-                    if (onClickScrollToBottom != null) {
-                        add(
-                            AppBar.Action(
-                                title = stringResource(TDMR.strings.action_scroll_to_bottom),
-                                icon = Icons.Outlined.ArrowDownward,
-                                onClick = onClickScrollToBottom,
                             ),
                         )
                     }
