@@ -64,7 +64,7 @@ import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.layout.matchParentSize
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.drawscope.withTransform
@@ -612,7 +612,7 @@ private fun SearchGlowPill(
     ) {
         // Primary glow: 84% wide, 24px below the edge, blurred 11px, drifts -18%..18%, scales X 0.95..1.18
         // and Y 1..1.15, opacity 0.85..1, nudges up 3px at its far point.
-        Canvas(modifier = Modifier.matchParentSize().blur(11.dp)) {
+        Canvas(modifier = Modifier.fillMaxSize().blur(11.dp)) {
             drawSearchGlowLayer(
                 widthFraction = 0.84f,
                 height = primaryHeight.toPx(),
@@ -627,7 +627,7 @@ private fun SearchGlowPill(
         }
         // Secondary glow: 68% wide, blurred 13px, drifts the opposite way (+22%..-22%), scales X 1.05..0.9,
         // opacity 0.7..0.98.
-        Canvas(modifier = Modifier.matchParentSize().blur(13.dp)) {
+        Canvas(modifier = Modifier.fillMaxSize().blur(13.dp)) {
             drawSearchGlowLayer(
                 widthFraction = 0.68f,
                 height = secondaryHeight.toPx(),
@@ -642,7 +642,7 @@ private fun SearchGlowPill(
         }
         // Top vignette (the mockup's ::before): pure black at the top so only the bottom glows,
         // plus a faint violet inner shadow along the bottom edge.
-        Canvas(modifier = Modifier.matchParentSize()) {
+        Canvas(modifier = Modifier.fillMaxSize()) {
             drawRect(
                 brush = Brush.verticalGradient(
                     colorStops = arrayOf(
@@ -665,7 +665,7 @@ private fun SearchGlowPill(
 
         Row(
             modifier = Modifier
-                .matchParentSize()
+                .fillMaxSize()
                 .padding(start = 6.dp, end = 9.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
@@ -804,4 +804,4 @@ private fun SearchFilterChip(
     }
 }
 
-                    
+                        
