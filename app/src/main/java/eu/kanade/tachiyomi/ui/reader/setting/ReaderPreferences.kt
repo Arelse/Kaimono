@@ -24,6 +24,9 @@ class ReaderPreferences(
         ReaderControlTheme.DEFAULT,
     )
 
+    val controlThemeOnChapterList: Preference<Boolean> =
+        preferenceStore.getBoolean("pref_reader_control_theme_chapter_list", false)
+
     val pageTransitions: Preference<Boolean> = preferenceStore.getBoolean("pref_enable_transitions_key", true)
 
     val autoScroll: Preference<Boolean> = preferenceStore.getBoolean("pref_reader_auto_scroll", false)
@@ -422,7 +425,7 @@ class ReaderPreferences(
         "pref_novel_tts_enable_highlight",
         true,
     )
-    val novelTtsKeepHighlightInView: Preference<Boolean> = preferenceStore.getBoolean(
+    val novelTtsKeepHighlightInView: Preference<Boolean> = preference<Boolean> = preferenceStore.getBoolean(
         "pref_novel_tts_keep_highlight_in_view",
         true,
     )
