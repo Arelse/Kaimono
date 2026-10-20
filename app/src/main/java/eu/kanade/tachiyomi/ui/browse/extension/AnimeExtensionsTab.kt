@@ -23,7 +23,7 @@ import eu.kanade.presentation.components.TabContent
 import eu.kanade.tachiyomi.extension.anime.model.AnimeExtension
 import tachiyomi.i18n.novel.TDMR
 import tachiyomi.presentation.core.i18n.stringResource
-import tachiyomi.presentation.core.util.collectAsState
+import androidx.compose.runtime.collectAsState
 
 @Composable
 fun animeExtensionsTab(
