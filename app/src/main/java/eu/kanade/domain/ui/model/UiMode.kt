@@ -20,12 +20,8 @@ enum class UiMode(val displayName: String, val description: String) {
         description = "Expands the glass effect across the whole app, not just cards.",
     ),
     GLASSMORPHISM(
-        displayName = "Glassmorphism",
+        displayName = "Atsu UI",
         description = "See-through frosted surfaces everywhere, via the color scheme itself - not just a few screens.",
-    ),
-    SPATIAL(
-        displayName = "Spatial UI",
-        description = "Rounder floating panels with real depth/shadow, app-wide via the shape theme - less see-through, more layered.",
     ),
     NEUMORPHISM(
         displayName = "Neumorphism",
