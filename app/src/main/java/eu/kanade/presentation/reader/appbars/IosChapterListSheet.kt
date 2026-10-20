@@ -56,6 +56,7 @@ fun IosChapterListSheet(
     onChapterClick: (Long) -> Unit,
     onDismissRequest: () -> Unit,
     sheetState: SheetState,
+    glass: Boolean = false,
 ) {
     var query by remember { mutableStateOf("") }
     var isGridMode by remember { mutableStateOf(false) }
@@ -71,7 +72,7 @@ fun IosChapterListSheet(
     ModalBottomSheet(
         onDismissRequest = onDismissRequest,
         sheetState = sheetState,
-        containerColor = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.9f),
+        containerColor = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = if (glass) 0.5f else 0.9f),
     ) {
         Column(
             modifier = Modifier
