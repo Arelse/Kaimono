@@ -42,4 +42,35 @@ fun Modifier.liquidGlass(
         ),
         shape = shape,
     )
+
+/**
+ * Default UI nav bar: solid and opaque with a hairline rim, so nothing shows through it.
+ */
+fun Modifier.solidNavSurface(shape: Shape, tint: Color): Modifier = this
+    .clip(shape)
+    .background(tint)
+    .border(width = 1.dp, color = Color.White.copy(alpha = 0.08f), shape = shape)
+
+/**
+ * Translucent UI nav bar: a light tint over the content, with a faint rim and no sheen.
+ */
+fun Modifier.translucentNavSurface(shape: Shape, tint: Color): Modifier = this
+    .clip(shape)
+    .background(tint.copy(alpha = 0.22f))
+    .border(width = 1.dp, color = Color.White.copy(alpha = 0.12f), shape = shape)
+
+/**
+ * Glassmorphism nav bar: a frosted white wash over a darker tint, with a bright rim.
+ */
+fun Modifier.frostedNavSurface(shape: Shape, tint: Color): Modifier = this
+    .clip(shape)
+    .background(
+        Brush.verticalGradient(
+            colors = listOf(
+                Color.White.copy(alpha = 0.18f),
+                tint.copy(alpha = 0.45f),
+            ),
+        ),
+    )
+    .border(width = 1.dp, color = Color.White.copy(alpha = 0.35f), shape = shape)
     
