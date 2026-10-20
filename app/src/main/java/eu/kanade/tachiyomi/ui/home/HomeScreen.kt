@@ -60,7 +60,11 @@ import cafe.adriel.voyager.navigator.tab.LocalTabNavigator
 import cafe.adriel.voyager.navigator.tab.TabNavigator
 import eu.kanade.domain.base.BasePreferences
 import eu.kanade.domain.source.service.SourcePreferences
+import eu.kanade.presentation.components.frostedNavSurface
 import eu.kanade.presentation.components.liquidGlass
+import eu.kanade.presentation.components.solidNavSurface
+import eu.kanade.presentation.components.translucentNavSurface
+import tachiyomi.presentation.core.components.material.LocalFloatingBottomBarInset
 import eu.kanade.presentation.more.IosMockupTabBar
 import eu.kanade.presentation.more.IosTabItem
 import eu.kanade.presentation.util.Screen
@@ -226,6 +230,15 @@ object HomeScreen : Screen() {
                     val homeLayout by uiPreferences.homeLayout.collectAsState()
                     // Featured (Media Hub) pads its own list, so its content runs under the floating
                     // bar as glass and still scrolls to the last item.
+                    // Translucent, Glassmorphism and Liquid Glass draw the floating bar over the content:
+                    // content runs under it, and each tab pads its own last item through
+                    // LocalFloatingBottomBarInset so it can still scroll above the bar.
+                    val seeThroughBar = !navBarFromDefault && uiMode in setOf(
+                        eu.kanade.domain.ui.model.UiMode.TRANSLUCENT,
+                        eu.kanade.domain.ui.model.UiMode.GLASSMORPHISM,
+                        eu.kanade.domain.ui.model.UiMode.LIQUID_GLASS,
+                    )
+                    val floatingInset = if (seeThroughBar) contentPadding.calculateBottomPadding() else 0.dp
                     val featuredFullBleed = tabNavigator.current == eu.kanade.tachiyomi.ui.discover.DiscoverTab &&
                         homeLayout == eu.kanade.domain.ui.model.HomeLayout.MEDIA_HUB
                     val contentPaddingNoBottom = PaddingValues(
@@ -234,7 +247,7 @@ object HomeScreen : Screen() {
                         end = contentPadding.calculateEndPadding(layoutDirection),
                         // Keep the bar's height as bottom padding so content can scroll past the
                         // last item instead of hiding it behind the bar.
-                        bottom = if (featuredFullBleed) 0.dp else contentPadding.calculateBottomPadding(),
+                        bottom = if (featuredFullBleed || seeThroughBar) 0.dp else contentPadding.calculateBottomPadding(),
                     )
                     Box(
                         modifier = Modifier
@@ -271,7 +284,9 @@ object HomeScreen : Screen() {
                             label = "tabContent",
                         ) {
                             tabNavigator.saveableState(key = "currentTab", it) {
-                                it.Content()
+                                CompositionLocalProvider(LocalFloatingBottomBarInset provides floatingInset) {
+                                    it.Content()
+                                }
                             }
                         }
                     }
@@ -328,6 +343,7 @@ object HomeScreen : Screen() {
         // the Default/Vision Glass reference mockups. Overrides the manual picker in
         // Settings > UI Settings while this is read from here, same as that screen's subtitle says.
         val floatingNavBar by uiPreferences.floatingNavBar.collectAsState()
+        val uiMode by uiPreferences.uiMode.collectAsState()
         val navBarStyle = if (floatingNavBar) {
             eu.kanade.domain.ui.model.NavBarStyle.DYNAMIC_PILL
         } else {
@@ -353,15 +369,34 @@ object HomeScreen : Screen() {
                 .fillMaxWidth()
                 // Bottom padding is larger than the top so the pill sits higher off the screen edge.
                 .padding(start = navBarMargin.dp, top = 12.dp, end = navBarMargin.dp, bottom = 24.dp)
-                .liquidGlass(
-                    shape = RoundedCornerShape(32.dp),
-                    tint = homeTokens?.surface ?: MaterialTheme.colorScheme.surfaceContainerHigh,
-                    tintAlpha = when {
-                        !translucentNav -> 1f
-                        homeTokens != null -> homeTokens.navTranslucentAlpha
-                        else -> 0.42f
+                .then(
+                    when (uiMode) {
+                        // Default and Vision Glass: solid pill, so it reads differently from Liquid Glass.
+                        eu.kanade.domain.ui.model.UiMode.DEFAULT,
+                        eu.kanade.domain.ui.model.UiMode.ALTERNATIVE,
+                        -> Modifier.solidNavSurface(
+                            shape = RoundedCornerShape(32.dp),
+                            tint = homeTokens?.surface ?: MaterialTheme.colorScheme.surfaceContainerHigh,
+                        )
+                        eu.kanade.domain.ui.model.UiMode.TRANSLUCENT -> Modifier.translucentNavSurface(
+                            shape = RoundedCornerShape(32.dp),
+                            tint = homeTokens?.surface ?: MaterialTheme.colorScheme.surfaceContainerHigh,
+                        )
+                        eu.kanade.domain.ui.model.UiMode.GLASSMORPHISM -> Modifier.frostedNavSurface(
+                            shape = RoundedCornerShape(32.dp),
+                            tint = homeTokens?.surface ?: MaterialTheme.colorScheme.surfaceContainerHigh,
+                        )
+                        else -> Modifier.liquidGlass(
+                            shape = RoundedCornerShape(32.dp),
+                            tint = homeTokens?.surface ?: MaterialTheme.colorScheme.surfaceContainerHigh,
+                            tintAlpha = when {
+                                !translucentNav -> 1f
+                                homeTokens != null -> homeTokens.navTranslucentAlpha
+                                else -> 0.42f
+                            },
+                            rimAlpha = homeTokens?.borderAlpha ?: 0.28f,
+                        )
                     },
-                    rimAlpha = homeTokens?.borderAlpha ?: 0.28f,
                 )
                 .padding(vertical = 6.dp, horizontal = 4.dp),
             horizontalArrangement = Arrangement.SpaceAround,
