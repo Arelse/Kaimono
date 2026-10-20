@@ -45,6 +45,7 @@ import eu.kanade.presentation.components.dialogProperties
 import eu.kanade.tachiyomi.ui.reader.setting.ReaderPreferences.ReaderControlTheme
 import eu.kanade.tachiyomi.ui.reader.setting.ReaderSettingsViewModel
 import kotlinx.coroutines.launch
+import tachiyomi.presentation.core.components.CheckboxItem
 import tachiyomi.presentation.core.util.collectAsState
 
 /**
@@ -207,7 +208,7 @@ private fun Modifier.clickableNoRipple(onClick: () -> Unit): Modifier = this.cli
 private fun ReaderControlTheme.label(): String = when (this) {
     ReaderControlTheme.DEFAULT -> "Default"
     ReaderControlTheme.TRANSLUCENT -> "Translucent"
-    ReaderControlTheme.IOS26 -> "Liquid Glass"
+    ReaderControlTheme.IOS26 -> "Flvetsu"
     ReaderControlTheme.ATSU -> "Atsu"
 }
 
@@ -227,6 +228,11 @@ internal fun IosControlThemeRow(viewModel: ReaderSettingsViewModel) {
         onPreferenceClick = { showDialog = true },
     )
 
+    CheckboxItem(
+        label = "Apply control theme to chapter list",
+        pref = viewModel.preferences.controlThemeOnChapterList,
+    )
+
     if (showDialog) {
         ControlThemeDialog(
             current = controlTheme,
@@ -240,7 +246,7 @@ internal fun IosControlThemeRow(viewModel: ReaderSettingsViewModel) {
 }
 
 @Composable
-private fun ControlThemeDialog(
+internal fun ControlThemeDialog(
     current: ReaderControlTheme,
     onDismissRequest: () -> Unit,
     onConfirm: (ReaderControlTheme) -> Unit,
