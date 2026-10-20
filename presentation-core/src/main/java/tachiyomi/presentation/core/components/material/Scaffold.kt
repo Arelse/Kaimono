@@ -273,7 +273,10 @@ private fun ScaffoldLayout(
                     },
                     // Tachiyomi: Also take account of fab height when providing inner padding
                     bottom = if (bottomBarPlaceables.isEmpty() || bottomBarHeightPx == 0) {
-                        max(insets.calculateBottomPadding(), fabOffsetDp)
+                        max(
+                            max(insets.calculateBottomPadding(), fabOffsetDp),
+                            LocalFloatingBottomBarInset.current,
+                        )
                     } else {
                         max(bottomBarHeightPx.toDp(), fabOffsetDp)
                     },
