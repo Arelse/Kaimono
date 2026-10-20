@@ -62,6 +62,8 @@ import eu.kanade.domain.base.BasePreferences
 import eu.kanade.domain.source.service.SourcePreferences
 import eu.kanade.presentation.components.frostedNavSurface
 import eu.kanade.presentation.components.liquidGlass
+import eu.kanade.presentation.components.neumorphNavSurface
+import eu.kanade.presentation.components.outlinedNavSurface
 import eu.kanade.presentation.components.solidNavSurface
 import eu.kanade.presentation.components.translucentNavSurface
 import tachiyomi.presentation.core.components.material.LocalFloatingBottomBarInset
@@ -371,10 +373,13 @@ object HomeScreen : Screen() {
                 .padding(start = navBarMargin.dp, top = 12.dp, end = navBarMargin.dp, bottom = 24.dp)
                 .then(
                     when (uiMode) {
-                        // Default and Vision Glass: solid pill, so it reads differently from Liquid Glass.
-                        eu.kanade.domain.ui.model.UiMode.DEFAULT,
-                        eu.kanade.domain.ui.model.UiMode.ALTERNATIVE,
-                        -> Modifier.solidNavSurface(
+                        // Default: solid pill.
+                        eu.kanade.domain.ui.model.UiMode.DEFAULT -> Modifier.solidNavSurface(
+                            shape = RoundedCornerShape(32.dp),
+                            tint = homeTokens?.surface ?: MaterialTheme.colorScheme.surfaceContainerHigh,
+                        )
+                        // Vision Glass: outlined pill.
+                        eu.kanade.domain.ui.model.UiMode.ALTERNATIVE -> Modifier.outlinedNavSurface(
                             shape = RoundedCornerShape(32.dp),
                             tint = homeTokens?.surface ?: MaterialTheme.colorScheme.surfaceContainerHigh,
                         )
@@ -386,15 +391,16 @@ object HomeScreen : Screen() {
                             shape = RoundedCornerShape(32.dp),
                             tint = homeTokens?.surface ?: MaterialTheme.colorScheme.surfaceContainerHigh,
                         )
-                        else -> Modifier.liquidGlass(
+                        // Neumorphism: dark raised pill with a soft shadow.
+                        eu.kanade.domain.ui.model.UiMode.NEUMORPHISM -> Modifier.neumorphNavSurface(
+                            shape = RoundedCornerShape(32.dp),
+                        )
+                        // Liquid Glass: always translucent (never solid), with a bright rim.
+                        eu.kanade.domain.ui.model.UiMode.LIQUID_GLASS -> Modifier.liquidGlass(
                             shape = RoundedCornerShape(32.dp),
                             tint = homeTokens?.surface ?: MaterialTheme.colorScheme.surfaceContainerHigh,
-                            tintAlpha = when {
-                                !translucentNav -> 1f
-                                homeTokens != null -> homeTokens.navTranslucentAlpha
-                                else -> 0.42f
-                            },
-                            rimAlpha = homeTokens?.borderAlpha ?: 0.28f,
+                            tintAlpha = homeTokens?.navTranslucentAlpha ?: 0.22f,
+                            rimAlpha = homeTokens?.borderAlpha ?: 0.45f,
                         )
                     },
                 )
@@ -715,4 +721,3 @@ object HomeScreen : Screen() {
     
 
             
- 
