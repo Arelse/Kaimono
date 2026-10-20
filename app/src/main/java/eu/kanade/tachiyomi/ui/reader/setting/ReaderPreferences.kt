@@ -218,6 +218,7 @@ class ReaderPreferences(
         DEFAULT,
         TRANSLUCENT,
         IOS26,
+        ATSU,
     }
 
     enum class FlashColor {
