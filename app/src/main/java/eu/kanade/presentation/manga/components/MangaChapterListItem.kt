@@ -47,6 +47,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import eu.kanade.tachiyomi.data.download.model.Download
+import eu.kanade.tachiyomi.ui.reader.setting.ReaderPreferences.ReaderControlTheme
 import me.saket.swipe.SwipeableActionsBox
 import tachiyomi.domain.library.service.LibraryPreferences
 import tachiyomi.i18n.MR
@@ -75,6 +76,7 @@ fun MangaChapterListItem(
     onClick: () -> Unit,
     onDownloadClick: ((ChapterDownloadAction) -> Unit)?,
     onChapterSwipe: (LibraryPreferences.ChapterSwipeAction) -> Unit,
+    glassTheme: ReaderControlTheme? = null,
     modifier: Modifier = Modifier,
 ) {
     val start = getSwipeAction(
@@ -126,7 +128,7 @@ fun MangaChapterListItem(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(16.dp))
-                    .background(MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.6f))
+                    .chapterRowSurface(glassTheme)
                     .selectedBackground(selected)
                     .combinedClickable(
                         onClick = onClick,
