@@ -185,6 +185,7 @@ private fun ReaderControlTheme.label(): String = when (this) {
     ReaderControlTheme.DEFAULT -> "Default"
     ReaderControlTheme.TRANSLUCENT -> "Translucent"
     ReaderControlTheme.IOS26 -> "Liquid Glass"
+    ReaderControlTheme.ATSU -> "Atsu"
 }
 
 /**
