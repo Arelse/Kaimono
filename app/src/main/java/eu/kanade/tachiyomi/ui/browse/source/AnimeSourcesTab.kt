@@ -1,6 +1,7 @@
 package eu.kanade.tachiyomi.ui.browse.source
 
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -28,10 +29,14 @@ import androidx.compose.ui.res.imageResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.core.graphics.drawable.toBitmap
+import cafe.adriel.voyager.navigator.LocalNavigator
+import cafe.adriel.voyager.navigator.currentOrThrow
 import eu.kanade.presentation.components.AppBar
 import eu.kanade.presentation.components.TabContent
 import eu.kanade.tachiyomi.R
+import eu.kanade.tachiyomi.animesource.AnimeCatalogueSource
 import eu.kanade.tachiyomi.animesource.AnimeSource
+import eu.kanade.tachiyomi.ui.browse.anime.AnimeBrowseScreen
 import eu.kanade.tachiyomi.ui.browse.extension.AnimeExtensionsViewModel
 import eu.kanade.tachiyomi.util.system.LocaleHelper
 import tachiyomi.i18n.novel.TDMR
@@ -42,15 +47,13 @@ import tachiyomi.presentation.core.util.plus
 
 /**
  * "Anime Sources" browse tab. Lists the sources provided by installed anime extensions, grouped
- * by language, in the same layout as the Manga Sources tab.
- *
- * Browsing an anime source (its "Latest" feed) is not built yet, so the Latest label is shown
- * but disabled.
+ * by language. Tapping a source opens its popular list; "Latest" opens its latest updates.
  */
 @Composable
 fun animeSourcesTab(
     animeExtensionsViewModel: AnimeExtensionsViewModel,
 ): TabContent {
+    val navigator = LocalNavigator.currentOrThrow
     val extState by animeExtensionsViewModel.state.collectAsState()
     val context = LocalContext.current
     var nsfwOnly by remember { mutableStateOf(false) }
@@ -102,7 +105,15 @@ fun animeSourcesTab(
                             )
                         }
                         items(rowsInGroup, key = { "anime-source-${it.source.id}" }) { row ->
-                            AnimeSourceRow(row)
+                            AnimeSourceRow(
+                                row = row,
+                                onOpen = {
+                                    navigator.push(AnimeBrowseScreen(sourceId = row.source.id))
+                                },
+                                onLatest = {
+                                    navigator.push(AnimeBrowseScreen(sourceId = row.source.id, startLatest = true))
+                                },
+                            )
                         }
                     }
                 }
@@ -118,14 +129,20 @@ private data class AnimeSourceRowData(
 )
 
 @Composable
-private fun AnimeSourceRow(row: AnimeSourceRowData) {
+private fun AnimeSourceRow(
+    row: AnimeSourceRowData,
+    onOpen: () -> Unit,
+    onLatest: () -> Unit,
+) {
     val context = LocalContext.current
+    val browsable = row.source is AnimeCatalogueSource
     val langLabel = row.source.lang.takeIf { it.isNotBlank() }
         ?.let { LocaleHelper.getSourceDisplayName(it, context) }
 
     Row(
         modifier = Modifier
             .fillMaxWidth()
+            .clickable(enabled = browsable, onClick = onOpen)
             .padding(horizontal = 16.dp, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -149,7 +166,9 @@ private fun AnimeSourceRow(row: AnimeSourceRowData) {
                         color = MaterialTheme.colorScheme.error,
                         style = MaterialTheme.typography.bodySmall,
                     )
-                    if (langLabel != null) Text(text = "  ", style = MaterialTheme.typography.bodySmall)
+                }
+                if (row.nsfw && langLabel != null) {
+                    Text(text = " · ", style = MaterialTheme.typography.bodySmall)
                 }
                 if (langLabel != null) {
                     Text(
@@ -165,8 +184,9 @@ private fun AnimeSourceRow(row: AnimeSourceRowData) {
 
         Text(
             text = "Latest",
-            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.38f),
+            color = MaterialTheme.colorScheme.primary.copy(alpha = if (browsable) 1f else 0.38f),
             style = MaterialTheme.typography.labelLarge,
+            modifier = Modifier.clickable(enabled = browsable, onClick = onLatest),
         )
     }
 }
