@@ -7,6 +7,7 @@ import androidx.compose.foundation.border
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.composed
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
@@ -63,7 +64,7 @@ fun Modifier.translucentNavSurface(shape: Shape, tint: Color): Modifier = this
     .border(width = 1.dp, color = Color.White.copy(alpha = 0.12f), shape = shape)
 
 /**
- * Glassmorphism nav bar: a frosted white wash over a darker tint, with a bright rim.
+ * Atsu UI nav bar: a frosted white wash over a darker tint, with a bright rim.
  */
 fun Modifier.frostedNavSurface(shape: Shape, tint: Color): Modifier = this
     .clip(shape)
@@ -76,6 +77,24 @@ fun Modifier.frostedNavSurface(shape: Shape, tint: Color): Modifier = this
         ),
     )
     .border(width = 1.dp, color = Color.White.copy(alpha = 0.35f), shape = shape)
+
+/**
+ * Vision Glass nav bar: a near-opaque tint with a clear outline, so it reads as an outlined pill
+ * rather than a fill or a glass surface.
+ */
+fun Modifier.outlinedNavSurface(shape: Shape, tint: Color): Modifier = this
+    .clip(shape)
+    .background(tint.copy(alpha = 0.85f))
+    .border(width = 1.5.dp, color = Color.White.copy(alpha = 0.35f), shape = shape)
+
+/**
+ * Neumorphism nav bar: a dark, near-black surface with a soft drop shadow and no bright rim.
+ */
+fun Modifier.neumorphNavSurface(shape: Shape): Modifier = this
+    .shadow(elevation = 10.dp, shape = shape, clip = false)
+    .clip(shape)
+    .background(Color(0xFF0D0D0D))
+    .border(width = 1.dp, color = Color.White.copy(alpha = 0.04f), shape = shape)
 
 /**
  * Atsu reader surface: a deeper tint with a two-tone rim (bright top edge, faint bottom edge).
