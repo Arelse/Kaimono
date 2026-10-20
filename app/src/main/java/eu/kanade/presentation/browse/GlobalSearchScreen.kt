@@ -77,6 +77,8 @@ fun GlobalSearchScreen(
     val homeScreenStyle by uiPreferences.homeScreenStyle.collectAsState()
     val glowStyle = homeScreenStyle != HomeScreenStyle.CLASSIC || LocalLiquidBackgroundActive.current
 
+    // Glow look: a solid dark background (the mockup's #0b0d13), so the app-wide gradient doesn't show behind it.
+    Box(modifier = Modifier.fillMaxSize().background(if (glowStyle) Color(0xFF0B0D13) else Color.Transparent)) {
     Scaffold(
         topBar = { scrollBehavior ->
             GlobalSearchToolbar(
@@ -122,6 +124,7 @@ fun GlobalSearchScreen(
                     .padding(bottom = 16.dp),
             )
         }
+    }
     }
 }
 
@@ -206,4 +209,3 @@ internal fun GlobalSearchContent(
         }
     }
 }
-
