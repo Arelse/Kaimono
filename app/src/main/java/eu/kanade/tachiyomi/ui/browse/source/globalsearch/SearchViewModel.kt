@@ -274,7 +274,8 @@ abstract class SearchViewModel(
     data class State(
         val from: Manga? = null,
         val searchQuery: String? = null,
-        val sourceFilter: SourceFilter = SourceFilter.PinnedOnly,
+        // All by default: "Pinned" showed nothing until the user had pinned a source.
+        val sourceFilter: SourceFilter = SourceFilter.All,
         val pinGroups: List<String> = emptyList(),
         val onlyShowHasResults: Boolean = false,
         val items: Map<Source, SearchItemResult> = mapOf(),
