@@ -28,6 +28,7 @@ import eu.kanade.tachiyomi.ui.browse.migration.sources.migrateSourceTab
 import eu.kanade.tachiyomi.ui.browse.migration.sources.novelMigrateSourceTab
 import eu.kanade.tachiyomi.ui.browse.source.globalsearch.GlobalSearchScreen
 import eu.kanade.tachiyomi.ui.browse.source.globalsearch.NovelGlobalSearchScreen
+import eu.kanade.tachiyomi.ui.browse.source.animeSourcesTab
 import eu.kanade.tachiyomi.ui.browse.source.novelSourcesTab
 import eu.kanade.tachiyomi.ui.browse.source.sourcesTab
 import eu.kanade.tachiyomi.ui.main.MainActivity
@@ -104,7 +105,7 @@ data object BrowseTab : Tab {
         val mangaExtensionsTabIndex = if (hideMangaBrowseTabs) null else 3
 
         // Anime extensions are appended last so the existing tab indexes stay the same.
-        val allTabs = tabs + animeExtensionsTab(animeExtensionsViewModel)
+        val allTabs = tabs + animeSourcesTab(animeExtensionsViewModel) + animeExtensionsTab(animeExtensionsViewModel)
         val animeExtensionsTabIndex = allTabs.lastIndex
 
         val state = rememberPagerState { allTabs.size }
