@@ -1,8 +1,11 @@
 package eu.kanade.presentation.components
 
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.composed
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -73,4 +76,40 @@ fun Modifier.frostedNavSurface(shape: Shape, tint: Color): Modifier = this
         ),
     )
     .border(width = 1.dp, color = Color.White.copy(alpha = 0.35f), shape = shape)
-    
+
+/**
+ * Atsu reader surface: a deeper tint with a two-tone rim (bright top edge, faint bottom edge).
+ * While [scrolling] is true (auto-scroll running) the surface eases to a lighter, more
+ * see-through state, and returns to full strength when scrolling stops.
+ *
+ * This is a tint, not a true backdrop blur; content behind it is visible but not blurred.
+ */
+fun Modifier.atsuGlass(shape: Shape, tint: Color, scrolling: Boolean): Modifier = composed {
+    val strength by animateFloatAsState(
+        targetValue = if (scrolling) 0.6f else 1f,
+        animationSpec = tween(durationMillis = 450),
+        label = "atsuGlassStrength",
+    )
+    this
+        .clip(shape)
+        .background(
+            Brush.verticalGradient(
+                colors = listOf(
+                    Color.White.copy(alpha = 0.14f * strength),
+                    tint.copy(alpha = 0.55f * strength),
+                    tint.copy(alpha = 0.70f * strength),
+                ),
+            ),
+        )
+        .border(
+            width = 1.dp,
+            brush = Brush.verticalGradient(
+                colors = listOf(
+                    Color.White.copy(alpha = 0.45f),
+                    Color.White.copy(alpha = 0.06f),
+                    Color.White.copy(alpha = 0.18f),
+                ),
+            ),
+            shape = shape,
+        )
+}
