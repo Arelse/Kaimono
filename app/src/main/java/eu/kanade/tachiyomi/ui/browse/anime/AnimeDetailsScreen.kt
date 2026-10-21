@@ -68,6 +68,7 @@ import eu.kanade.tachiyomi.animesource.model.SAnime
 import eu.kanade.tachiyomi.animesource.model.SEpisode
 import eu.kanade.tachiyomi.extension.anime.AnimeExtensionManager
 import eu.kanade.tachiyomi.ui.browse.source.isUsableAnimeSource
+import eu.kanade.tachiyomi.ui.player.AnimePlayerScreen
 import eu.kanade.tachiyomi.source.CatalogueSource
 import eu.kanade.tachiyomi.source.isNovelSource
 import kotlinx.coroutines.Dispatchers
@@ -114,27 +115,21 @@ data class AnimeDetailsScreen(
         val statusText = statusLabel(anime?.status ?: 0)
         val metaLine = if (episodeCount > 0) "$episodeCount episodes · $statusText" else statusText
 
-        val scope = rememberCoroutineScope()
         val playbackUnavailable: () -> Unit = {
             Toast.makeText(context, "No episodes to play yet", Toast.LENGTH_SHORT).show()
         }
         // Resolves the episode's stream from the source and hands it to an installed video app.
         // No in-app player yet: the user picks the app (MX Player, VLC, the system player, ...).
         val playEpisode: (SEpisode) -> Unit = { episode ->
-            scope.launch {
-                val url = viewModel.streamUrlFor(episode)
-                if (url == null) {
-                    Toast.makeText(context, "No playable stream found for this episode", Toast.LENGTH_SHORT).show()
-                } else {
-                    val intent = Intent(Intent.ACTION_VIEW).apply {
-                        setDataAndType(Uri.parse(url), "video/*")
-                    }
-                    runCatching { context.startActivity(Intent.createChooser(intent, "Open episode in")) }
-                        .onFailure {
-                            Toast.makeText(context, "No video app installed", Toast.LENGTH_SHORT).show()
-                        }
-                }
-            }
+            navigator.push(
+                AnimePlayerScreen(
+                    sourceId = sourceId,
+                    animeUrl = animeUrl,
+                    title = displayTitle,
+                    thumbnailUrl = thumbnailUrl,
+                    initialEpisodeUrl = episode.url,
+                ),
+            )
         }
         val libraryUnavailable: () -> Unit = {
             Toast.makeText(context, "Anime library isn't available yet", Toast.LENGTH_SHORT).show()
