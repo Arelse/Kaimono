@@ -201,9 +201,8 @@ class DiscoverViewModel(
                 return@withContext newList
             } catch (e: Exception) {
                 logcat(LogPriority.ERROR, e) { "Failed to load popular manga for source ${source.name}" }
-                if (!popularCache.containsKey(source.id)) {
-                    popularCache[source.id] = emptyList()
-                }
+                // Don't cache the failure: release the session flag so a later visit retries.
+                sessionPopularFetched.remove(source.id)
                 return@withContext returnList
             }
         }
@@ -250,9 +249,8 @@ class DiscoverViewModel(
                 return@withContext newList
             } catch (e: Exception) {
                 logcat(LogPriority.ERROR, e) { "Failed to load latest manga for source ${source.name}" }
-                if (!latestCache.containsKey(source.id)) {
-                    latestCache[source.id] = emptyList()
-                }
+                // Don't cache the failure: release the session flag so a later visit retries.
+                sessionLatestFetched.remove(source.id)
                 return@withContext returnList
             }
         }
