@@ -62,6 +62,8 @@ import eu.kanade.domain.base.BasePreferences
 import eu.kanade.domain.source.service.SourcePreferences
 import eu.kanade.presentation.components.frostedNavSurface
 import eu.kanade.presentation.components.liquidGlass
+import dev.chrisbanes.haze.hazeSource
+import dev.chrisbanes.haze.rememberHazeState
 import eu.kanade.presentation.components.neumorphNavSurface
 import eu.kanade.presentation.components.outlinedNavSurface
 import eu.kanade.presentation.components.solidNavSurface
@@ -144,6 +146,8 @@ object HomeScreen : Screen() {
         val shaderGradientPreset by uiPreferences.shaderGradientPreset.collectAsState()
         val accentColor by uiPreferences.accentColor.collectAsState()
         val useCustomGradient by uiPreferences.gradientThemeEnabled.collectAsState()
+        // Captured content behind the Liquid Glass nav bar, so the bar can blur it.
+        val hazeState = rememberHazeState()
         val customGradientStart by uiPreferences.gradientColorStart.collectAsState()
         val customGradientEnd by uiPreferences.gradientColorEnd.collectAsState()
         val navScope = rememberCoroutineScope()
@@ -221,7 +225,7 @@ object HomeScreen : Screen() {
                                         },
                                     )
                                 } else {
-                                    PillNavigationBar(tabs)
+                                    PillNavigationBar(tabs, hazeState)
                                 }
                             }
                         }
@@ -254,7 +258,8 @@ object HomeScreen : Screen() {
                     Box(
                         modifier = Modifier
                             .padding(contentPaddingNoBottom)
-                            .consumeWindowInsets(contentPaddingNoBottom),
+                            .consumeWindowInsets(contentPaddingNoBottom)
+                            .hazeSource(state = hazeState),
                     ) {
                         // Gradient scoped to the Home tab. When "whole app" is on, MainActivity draws it instead.
                         // Gradient is scoped to Home and More (the More tab's screens are transparent over it).
@@ -338,13 +343,26 @@ object HomeScreen : Screen() {
     // rather than wherever Home happens to fall in the tabs list order. Selected regular tabs
     // show a small pink-to-blue gradient underline instead of the default filled indicator pill.
     @Composable
-    private fun PillNavigationBar(tabs: List<eu.kanade.presentation.util.Tab>) {
+    private fun PillNavigationBar(
+        tabs: List<eu.kanade.presentation.util.Tab>,
+        hazeState: dev.chrisbanes.haze.HazeState,
+    ) {
         val uiPreferences = remember { Injekt.get<eu.kanade.domain.ui.UiPreferences>() }
         // "Navigation bar" choice in the UI Switcher sheet (More screen) - direct user control,
         // not auto-derived from uiMode: floating pill (current default) vs a docked bar matching
         // the Default/Vision Glass reference mockups. Overrides the manual picker in
         // Settings > UI Settings while this is read from here, same as that screen's subtitle says.
         val floatingNavBar by uiPreferences.floatingNavBar.collectAsState()
+        val uiMode by uiPreferences.uiMode.collectAsState()
+        val navBarStyle = if (floatingNavBar) {
+            eu.kanade.domain.ui.model.NavBarStyle.DYNAMIC_PILL
+        } else {
+            eu.kanade.domain.ui.model.NavBarStyle.CLASSIC
+        }
+        // The docked (non-floating) bar is the one meant to match the mockups' consistently
+        // present, opaque-ish look, so only the floating pill gets the bleed-through treatment.
+        val translucentNav = floatingNavBar
+        val navBarMargin by uiPreferences.navBarMargin.collectAsState()
         val uiMode by uiPreferences.uiMode.collectAsState()
         val navBarStyle = if (floatingNavBar) {
             eu.kanade.domain.ui.model.NavBarStyle.DYNAMIC_PILL
@@ -401,6 +419,7 @@ object HomeScreen : Screen() {
                             tint = homeTokens?.surface ?: MaterialTheme.colorScheme.surfaceContainerHigh,
                             tintAlpha = homeTokens?.navTranslucentAlpha ?: 0.22f,
                             rimAlpha = homeTokens?.borderAlpha ?: 0.45f,
+                            hazeState = hazeState,
                         )
                     },
                 )
