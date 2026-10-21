@@ -54,7 +54,8 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import eu.kanade.presentation.components.atsuGlass
-import eu.kanade.presentation.components.liquidGlass
+import eu.kanade.presentation.components.flvetsuGlass
+import eu.kanade.presentation.components.translucentReaderGlass
 import eu.kanade.tachiyomi.R
 import eu.kanade.tachiyomi.ui.reader.setting.ReaderOrientation
 import eu.kanade.tachiyomi.ui.reader.setting.ReadingMode
@@ -63,12 +64,19 @@ import kotlin.math.roundToInt
 private val iosBarsSlideSpec = tween<IntOffset>(200)
 private val iosBarsFadeSpec = tween<Float>(150)
 
+/** Glass material for each reader control theme. */
+enum class ReaderGlassStyle { TRANSLUCENT, IOS26, ATSU }
+
 /**
- * Glass surface for the reader chrome. [atsu] selects the Atsu surface (which reacts to
- * [scrolling]); otherwise the Liquid Glass surface is used.
+ * Glass surface for the reader chrome: ATSU reacts to [scrolling], IOS26 (Flvetsu) is the AnymeX
+ * iOS 26 smoked glass, and TRANSLUCENT is a flat see-through tint.
  */
-private fun Modifier.readerGlass(shape: Shape, tint: Color, atsu: Boolean, scrolling: Boolean): Modifier =
-    if (atsu) atsuGlass(shape, tint, scrolling) else liquidGlass(shape, tint)
+private fun Modifier.readerGlass(shape: Shape, tint: Color, style: ReaderGlassStyle, scrolling: Boolean): Modifier =
+    when (style) {
+        ReaderGlassStyle.ATSU -> atsuGlass(shape, tint, scrolling)
+        ReaderGlassStyle.IOS26 -> flvetsuGlass(shape)
+        ReaderGlassStyle.TRANSLUCENT -> translucentReaderGlass(shape, tint)
+    }
 
 /**
  * Translucent "iOS 26" skin for the reader's top/bottom chrome. Only used when
@@ -100,7 +108,7 @@ fun IosReaderAppBars(
     cropEnabled: Boolean,
     onClickCropBorder: () -> Unit,
     onClickSettings: () -> Unit,
-    atsu: Boolean = false,
+    style: ReaderGlassStyle = ReaderGlassStyle.IOS26,
     scrolling: Boolean = false,
 ) {
     // Glass surfaces: tint only, the glass modifier adds the sheen and rim.
@@ -127,7 +135,7 @@ fun IosReaderAppBars(
                     icon = Icons.AutoMirrored.Outlined.ArrowBack,
                     contentDescription = null,
                     pillColor = pillColor,
-                    atsu = atsu,
+                    style = style,
                     scrolling = scrolling,
                     onClick = navigateUp,
                 )
@@ -136,7 +144,7 @@ fun IosReaderAppBars(
                     modifier = Modifier
                         .weight(1f)
                         .clip(RoundedCornerShape(24.dp))
-                        .readerGlass(RoundedCornerShape(24.dp), pillColor, atsu, scrolling)
+                        .readerGlass(RoundedCornerShape(24.dp), pillColor, style, scrolling)
                         .clickable(onClick = onClickChapterList)
                         .padding(horizontal = 16.dp, vertical = 10.dp),
                     verticalAlignment = Alignment.CenterVertically,
@@ -169,7 +177,7 @@ fun IosReaderAppBars(
                     icon = if (bookmarked) Icons.Outlined.Bookmark else Icons.Outlined.BookmarkBorder,
                     contentDescription = null,
                     pillColor = pillColor,
-                    atsu = atsu,
+                    style = style,
                     scrolling = scrolling,
                     onClick = onToggleBookmarked,
                 )
@@ -178,7 +186,7 @@ fun IosReaderAppBars(
                     icon = Icons.Outlined.Settings,
                     contentDescription = null,
                     pillColor = pillColor,
-                    atsu = atsu,
+                    style = style,
                     scrolling = scrolling,
                     onClick = onClickSettings,
                 )
@@ -208,7 +216,7 @@ fun IosReaderAppBars(
                         contentDescription = null,
                         pillColor = pillColor,
                         enabled = currentPage > 0,
-                        atsu = atsu,
+                        style = style,
                         scrolling = scrolling,
                         onClick = { onPageIndexChange((currentPage - 1).coerceAtLeast(0)); onPageIndexChangeFinished() },
                     )
@@ -217,7 +225,7 @@ fun IosReaderAppBars(
                         modifier = Modifier
                             .weight(1f)
                             .clip(RoundedCornerShape(24.dp))
-                            .readerGlass(RoundedCornerShape(24.dp), pillColor, atsu, scrolling)
+                            .readerGlass(RoundedCornerShape(24.dp), pillColor, style, scrolling)
                             .padding(horizontal = 14.dp),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(10.dp),
@@ -249,7 +257,7 @@ fun IosReaderAppBars(
                         contentDescription = null,
                         pillColor = pillColor,
                         enabled = currentPage < totalPages - 1,
-                        atsu = atsu,
+                        style = style,
                         scrolling = scrolling,
                         onClick = { onPageIndexChange((currentPage + 1).coerceAtMost(totalPages - 1)); onPageIndexChangeFinished() },
                     )
@@ -259,7 +267,7 @@ fun IosReaderAppBars(
                     modifier = Modifier
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(24.dp))
-                        .readerGlass(RoundedCornerShape(24.dp), pillColor, atsu, scrolling)
+                        .readerGlass(RoundedCornerShape(24.dp), pillColor, style, scrolling)
                         .padding(vertical = 6.dp),
                     horizontalArrangement = Arrangement.SpaceEvenly,
                     verticalAlignment = Alignment.CenterVertically,
@@ -299,13 +307,13 @@ private fun IosCircleIconButton(
     pillColor: androidx.compose.ui.graphics.Color,
     onClick: () -> Unit,
     enabled: Boolean = true,
-    atsu: Boolean = false,
+    style: ReaderGlassStyle = ReaderGlassStyle.IOS26,
     scrolling: Boolean = false,
 ) {
     Box(
         modifier = Modifier
             .size(44.dp)
-            .readerGlass(CircleShape, pillColor, atsu, scrolling)
+            .readerGlass(CircleShape, pillColor, style, scrolling)
             .clickable(enabled = enabled, onClick = onClick),
         contentAlignment = Alignment.Center,
     ) {
@@ -328,7 +336,7 @@ fun IosZoomControlPill(
     onToggleAutoScroll: () -> Unit,
     onSpeedIncrease: () -> Unit,
     onSpeedDecrease: () -> Unit,
-    atsu: Boolean = false,
+    style: ReaderGlassStyle = ReaderGlassStyle.IOS26,
     scrolling: Boolean = false,
     modifier: Modifier = Modifier,
 ) {
@@ -336,7 +344,7 @@ fun IosZoomControlPill(
     Column(
         modifier = modifier
             .widthIn(min = 52.dp)
-            .readerGlass(RoundedCornerShape(26.dp), pillColor, atsu, scrolling)
+            .readerGlass(RoundedCornerShape(26.dp), pillColor, style, scrolling)
             .padding(vertical = 6.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(4.dp),
