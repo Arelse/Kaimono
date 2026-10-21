@@ -66,6 +66,10 @@ class AnimeExtensionsViewModel : ViewModel() {
         AnimeExtensionManager.uninstall(app, extension)
     }
 
+    fun uninstallUntrusted(extension: AnimeExtension.Untrusted) {
+        AnimeExtensionManager.uninstallPackage(app, extension.pkgName)
+    }
+
     fun trust(extension: AnimeExtension.Untrusted) {
         AnimeExtensionManager.trust(extension)
         refresh()
