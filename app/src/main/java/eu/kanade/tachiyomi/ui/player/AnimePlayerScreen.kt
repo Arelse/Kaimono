@@ -35,6 +35,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.LockOpen
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -72,6 +73,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import androidx.media3.common.C
+import androidx.media3.ui.AspectRatioFrameLayout
 import androidx.media3.ui.PlayerView
 import cafe.adriel.voyager.navigator.LocalNavigator
 import cafe.adriel.voyager.navigator.currentOrThrow
@@ -86,7 +88,11 @@ private enum class PlayerSheet { EPISODES, QUALITY, AUDIO, SUBTITLES, SPEED, OPT
 
 private val playerSpeeds = listOf(0.5f, 0.75f, 1f, 1.25f, 1.5f, 2f)
 
-private val resizeModes = listOf(PlayerView.RESIZE_MODE_FIT, PlayerView.RESIZE_MODE_FILL, PlayerView.RESIZE_MODE_ZOOM)
+private val resizeModes = listOf(
+    AspectRatioFrameLayout.RESIZE_MODE_FIT,
+    AspectRatioFrameLayout.RESIZE_MODE_FILL,
+    AspectRatioFrameLayout.RESIZE_MODE_ZOOM,
+)
 private val resizeLabels = listOf("Fit", "Fill", "Zoom")
 
 /**
@@ -778,5 +784,3 @@ private fun openExternal(context: Context, url: String?) {
 private fun toast(context: Context, message: String) {
     Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
 }
-
-                      
