@@ -16,6 +16,8 @@ import androidx.compose.material.icons.filled.Dangerous
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.GetApp
 import androidx.compose.material.icons.outlined.VerifiedUser
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.AlertDialogDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -25,7 +27,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -33,23 +37,31 @@ import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.imageResource
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.core.graphics.drawable.toBitmap
 import cafe.adriel.voyager.navigator.LocalNavigator
 import cafe.adriel.voyager.navigator.currentOrThrow
+import coil3.compose.AsyncImage
+import eu.kanade.domain.ui.UiPreferences
+import eu.kanade.domain.ui.model.UiMode
 import eu.kanade.presentation.browse.components.BaseBrowseItem
 import eu.kanade.presentation.components.AppBar
 import eu.kanade.presentation.components.TabContent
 import eu.kanade.tachiyomi.R
 import eu.kanade.tachiyomi.extension.anime.model.AnimeExtension
+import tachiyomi.i18n.MR
 import tachiyomi.i18n.novel.TDMR
 import tachiyomi.presentation.core.components.FastScrollLazyColumn
 import tachiyomi.presentation.core.components.material.padding
 import tachiyomi.presentation.core.components.material.topSmallPaddingValues
 import tachiyomi.presentation.core.i18n.stringResource
 import tachiyomi.presentation.core.theme.header
+import tachiyomi.presentation.core.util.collectAsState as collectPrefAsState
 import tachiyomi.presentation.core.util.plus
+import uy.kohesive.injekt.Injekt
+import uy.kohesive.injekt.api.get
 
 @Composable
 fun animeExtensionsTab(
@@ -82,6 +94,7 @@ fun animeExtensionsTab(
                 onOpenRepos = { navigator.push(AnimeExtensionReposScreen()) },
                 onInstall = viewModel::install,
                 onUninstall = viewModel::uninstall,
+                onUninstallUntrusted = viewModel::uninstallUntrusted,
                 onTrust = viewModel::trust,
             )
         },
@@ -95,10 +108,12 @@ private fun AnimeExtensionList(
     onOpenRepos: () -> Unit,
     onInstall: (AnimeExtension.Available) -> Unit,
     onUninstall: (AnimeExtension.Installed) -> Unit,
+    onUninstallUntrusted: (AnimeExtension.Untrusted) -> Unit,
     onTrust: (AnimeExtension.Untrusted) -> Unit,
 ) {
     val available = state.available.filterNot { it.pkgName in state.installedPkgNames }
     val isEmpty = state.installed.isEmpty() && state.untrusted.isEmpty() && available.isEmpty()
+    var trustTarget by remember { mutableStateOf<AnimeExtension.Untrusted?>(null) }
 
     if (isEmpty) {
         Column(
@@ -153,8 +168,9 @@ private fun AnimeExtensionList(
                     details = "${ext.versionName} · Signature not trusted yet",
                     warning = "UNTRUSTED",
                     installedPkgName = null,
+                    onClickItem = { trustTarget = ext },
                     action = {
-                        IconButton(onClick = { onTrust(ext) }) {
+                        IconButton(onClick = { trustTarget = ext }) {
                             Icon(imageVector = Icons.Outlined.VerifiedUser, contentDescription = "Trust")
                         }
                     },
@@ -174,6 +190,7 @@ private fun AnimeExtensionList(
                     ).joinToString(" · "),
                     warning = if (ext.isNsfw) "18+" else null,
                     installedPkgName = null,
+                    iconUrl = ext.iconUrl,
                     onClickItem = { onInstall(ext) },
                     action = {
                         IconButton(onClick = { onInstall(ext) }) {
@@ -184,6 +201,60 @@ private fun AnimeExtensionList(
             }
         }
     }
+
+    trustTarget?.let { ext ->
+        AnimeUntrustedDialog(
+            onConfirm = {
+                onTrust(ext)
+                trustTarget = null
+            },
+            onUninstall = {
+                onUninstallUntrusted(ext)
+                trustTarget = null
+            },
+            onDismiss = { trustTarget = null },
+        )
+    }
+}
+
+/**
+ * Same wording and buttons as the Manga extensions "Untrusted extension" dialog. Under Atsu UI and
+ * Liquid Glass the panel uses a frosted, semi-transparent surface. A Compose dialog cannot blur the
+ * content behind it, so this is an approximation of the frosted look.
+ */
+@Composable
+private fun AnimeUntrustedDialog(
+    onConfirm: () -> Unit,
+    onUninstall: () -> Unit,
+    onDismiss: () -> Unit,
+) {
+    val uiMode by Injekt.get<UiPreferences>().uiMode.collectPrefAsState()
+    val frosted = uiMode == UiMode.GLASSMORPHISM || uiMode == UiMode.LIQUID_GLASS
+
+    AlertDialog(
+        containerColor = if (frosted) {
+            MaterialTheme.colorScheme.surface.copy(alpha = 0.78f)
+        } else {
+            AlertDialogDefaults.containerColor
+        },
+        title = {
+            Text(text = stringResource(MR.strings.untrusted_extension))
+        },
+        text = {
+            Text(text = stringResource(MR.strings.untrusted_extension_message))
+        },
+        confirmButton = {
+            TextButton(onClick = onConfirm) {
+                Text(text = stringResource(MR.strings.ext_trust))
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onUninstall) {
+                Text(text = stringResource(MR.strings.ext_uninstall))
+            }
+        },
+        onDismissRequest = onDismiss,
+    )
 }
 
 @Composable
@@ -204,8 +275,8 @@ private fun AnimeSectionHeader(title: String) {
 
 /**
  * Row styled like the Manga extensions list: app icon on the left, name with a muted detail line,
- * and an action icon on the right. [installedPkgName] is set for installed extensions so their
- * real app icon can be shown; available and untrusted rows use the placeholder icon.
+ * and an action icon on the right. Installed rows use the real app icon, available rows use the
+ * icon from the repo ([iconUrl]), and untrusted rows show the warning icon.
  */
 @Composable
 private fun AnimeExtensionRow(
@@ -214,6 +285,7 @@ private fun AnimeExtensionRow(
     warning: String?,
     installedPkgName: String?,
     action: @Composable RowScope.() -> Unit,
+    iconUrl: String? = null,
     onClickItem: () -> Unit = {},
 ) {
     BaseBrowseItem(
@@ -223,6 +295,7 @@ private fun AnimeExtensionRow(
                 AnimeExtensionIcon(
                     installedPkgName = installedPkgName,
                     untrusted = installedPkgName == null && warning == "UNTRUSTED",
+                    iconUrl = iconUrl,
                     modifier = Modifier.size(40.dp),
                 )
             }
@@ -266,6 +339,7 @@ private fun AnimeExtensionRow(
 private fun AnimeExtensionIcon(
     installedPkgName: String?,
     untrusted: Boolean,
+    iconUrl: String?,
     modifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current
@@ -289,6 +363,14 @@ private fun AnimeExtensionIcon(
         appIcon != null -> Image(
             bitmap = appIcon,
             contentDescription = null,
+            modifier = modifier.clip(shape),
+        )
+        iconUrl != null -> AsyncImage(
+            model = iconUrl,
+            contentDescription = null,
+            placeholder = painterResource(id = R.mipmap.ic_default_source),
+            error = painterResource(id = R.mipmap.ic_default_source),
+            fallback = painterResource(id = R.mipmap.ic_default_source),
             modifier = modifier.clip(shape),
         )
         else -> Image(
