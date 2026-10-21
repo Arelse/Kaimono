@@ -198,8 +198,9 @@ fun IosMockupMoreScreen(
     val moreUiPrefs = remember { Injekt.get<UiPreferences>() }
     val morePureBlack by moreUiPrefs.themeDarkAmoled.collectAsState()
     val moreBackground = when {
-        vision -> Color.Black
+        // The accent gradient must win over Vision Glass's black, otherwise it never shows.
         LocalLiquidBackgroundActive.current -> Color.Transparent
+        vision -> Color.Black
         morePureBlack -> Color.Black
         else -> MaterialTheme.colorScheme.background
     }
