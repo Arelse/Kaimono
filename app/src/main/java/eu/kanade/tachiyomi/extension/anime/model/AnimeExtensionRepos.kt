@@ -120,6 +120,7 @@ object AnimeExtensionRepos {
                     isNsfw = entry.nsfw == 1,
                     apkUrl = "$apkBase/apk/${entry.apk}",
                     sourceNames = entry.sources.map { it.name },
+                    iconUrl = entry.icon.takeIf { it.isNotBlank() }?.let { "$apkBase/icon/$it" },
                 )
             }
         } catch (e: Exception) {
@@ -133,6 +134,7 @@ object AnimeExtensionRepos {
         val name: String,
         val pkg: String,
         val apk: String,
+        val icon: String = "",
         val lang: String = "",
         val code: Long = 0,
         val version: String = "",
