@@ -334,6 +334,7 @@ dependencies {
     implementation(libs.swipe)
     implementation(libs.composeWebview)
     implementation(libs.composeGrid)
+    implementation(libs.haze)
     implementation(libs.reorderable)
     implementation(libs.bundles.markdown)
     implementation(libs.materialKolor)
