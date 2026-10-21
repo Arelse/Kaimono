@@ -94,7 +94,15 @@ object AnimeExtensionManager {
      * Opens the system uninstall prompt for the package.
      */
     fun uninstall(context: Context, extension: AnimeExtension.Installed) {
-        val intent = Intent(Intent.ACTION_DELETE, Uri.parse("package:${extension.pkgName}"))
+        uninstallPackage(context, extension.pkgName)
+    }
+
+    /**
+     * Opens the system uninstall prompt for a package. Used for untrusted extensions too, which
+     * are not in the installed list.
+     */
+    fun uninstallPackage(context: Context, pkgName: String) {
+        val intent = Intent(Intent.ACTION_DELETE, Uri.parse("package:$pkgName"))
             .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         context.startActivity(intent)
     }
