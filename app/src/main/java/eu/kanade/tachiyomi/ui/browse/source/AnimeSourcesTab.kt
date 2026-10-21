@@ -59,7 +59,9 @@ fun animeSourcesTab(
     var nsfwOnly by remember { mutableStateOf(false) }
 
     val rows = extState.installed.flatMap { ext ->
-        ext.sources.map { AnimeSourceRowData(source = it, pkgName = ext.pkgName, nsfw = ext.isNsfw) }
+        ext.sources
+            .filter { isUsableAnimeSource(it) }
+            .map { AnimeSourceRowData(source = it, pkgName = ext.pkgName, nsfw = ext.isNsfw) }
     }
     val groups = rows
         .filter { !nsfwOnly || it.nsfw }
@@ -104,7 +106,7 @@ fun animeSourcesTab(
                                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
                             )
                         }
-                        items(rowsInGroup, key = { "anime-source-${it.source.id}" }) { row ->
+                        items(rowsInGroup, key = { "anime-source-${it.pkgName}-${rowsInGroup.indexOf(it)}" }) { row ->
                             AnimeSourceRow(
                                 row = row,
                                 onOpen = {
@@ -121,6 +123,13 @@ fun animeSourcesTab(
         },
     )
 }
+
+/**
+ * Some anime extensions throw when their basic fields are read (for example a null name). Those
+ * sources are left out of the list instead of crashing the screen.
+ */
+fun isUsableAnimeSource(source: AnimeSource): Boolean =
+    runCatching { listOf(source.id, source.name, source.lang) }.isSuccess
 
 private data class AnimeSourceRowData(
     val source: AnimeSource,
