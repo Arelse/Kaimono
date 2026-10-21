@@ -363,16 +363,6 @@ object HomeScreen : Screen() {
         // present, opaque-ish look, so only the floating pill gets the bleed-through treatment.
         val translucentNav = floatingNavBar
         val navBarMargin by uiPreferences.navBarMargin.collectAsState()
-        val uiMode by uiPreferences.uiMode.collectAsState()
-        val navBarStyle = if (floatingNavBar) {
-            eu.kanade.domain.ui.model.NavBarStyle.DYNAMIC_PILL
-        } else {
-            eu.kanade.domain.ui.model.NavBarStyle.CLASSIC
-        }
-        // The docked (non-floating) bar is the one meant to match the mockups' consistently
-        // present, opaque-ish look, so only the floating pill gets the bleed-through treatment.
-        val translucentNav = floatingNavBar
-        val navBarMargin by uiPreferences.navBarMargin.collectAsState()
         // Home Style Nav Bar: when a non-Classic style is picked, it re-skins this bar only
         // (container tint + selected-tab accent). The Home tab style no longer affects it.
         val navBarStyleSelection by uiPreferences.homeStyleNavBar.collectAsState()
