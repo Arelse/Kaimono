@@ -43,8 +43,8 @@ fun Modifier.liquidGlass(
                     state = hazeState,
                     style = HazeStyle(
                         backgroundColor = Color.Transparent,
-                        tint = HazeTint(Color.White.copy(alpha = 0.16f)),
-                        blurRadius = 28.dp,
+                        tint = HazeTint(Color.White.copy(alpha = 0.10f)),
+                        blurRadius = 24.dp,
                     ),
                 )
             } else {
@@ -54,7 +54,8 @@ fun Modifier.liquidGlass(
         .background(
             Brush.verticalGradient(
                 colors = if (frosted) {
-                    listOf(Color.White.copy(alpha = 0.26f), Color.White.copy(alpha = 0.12f))
+                    // Liquid glass specular: a brighter sheen at the top, nearly clear below.
+                    listOf(Color.White.copy(alpha = 0.20f), Color.White.copy(alpha = 0.04f))
                 } else {
                     listOf(
                         Color.White.copy(alpha = 0.10f),
@@ -161,3 +162,24 @@ fun Modifier.atsuGlass(shape: Shape, tint: Color, scrolling: Boolean): Modifier 
             shape = shape,
         )
 }
+
+/**
+ * Flvetsu (AnymeX iOS 26 player theme): smoked dark glass, a 1dp white hairline and a soft black
+ * shadow. Values come from AnymeX's ios26_player_control_theme: fill 0x66181818, border white
+ * 18-20%, shadow black 30-35%. Native manga views can't be blurred behind, so no backdrop blur.
+ */
+fun Modifier.flvetsuGlass(shape: Shape): Modifier = this
+    .shadow(elevation = 14.dp, shape = shape, clip = false)
+    .clip(shape)
+    .background(Color(0x66181818))
+    .border(width = 1.dp, color = Color.White.copy(alpha = 0.20f), shape = shape)
+
+/**
+ * Translucent reader chrome: a flat, see-through tint with a faint hairline. No blur, gradient or
+ * shadow, so it reads as clear glass and differs from Atsu (gradient rim) and Flvetsu (smoked fill).
+ */
+fun Modifier.translucentReaderGlass(shape: Shape, tint: Color): Modifier = this
+    .clip(shape)
+    .background(tint.copy(alpha = 0.30f))
+    .border(width = 1.dp, color = Color.White.copy(alpha = 0.10f), shape = shape)
+    
