@@ -1,6 +1,7 @@
 package eu.kanade.tachiyomi.ui.browse.anime
 
 import android.content.Intent
+import android.net.Uri
 import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -40,6 +41,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -112,8 +114,27 @@ data class AnimeDetailsScreen(
         val statusText = statusLabel(anime?.status ?: 0)
         val metaLine = if (episodeCount > 0) "$episodeCount episodes · $statusText" else statusText
 
+        val scope = rememberCoroutineScope()
         val playbackUnavailable: () -> Unit = {
-            Toast.makeText(context, "Episode playback isn't available yet", Toast.LENGTH_SHORT).show()
+            Toast.makeText(context, "No episodes to play yet", Toast.LENGTH_SHORT).show()
+        }
+        // Resolves the episode's stream from the source and hands it to an installed video app.
+        // No in-app player yet: the user picks the app (MX Player, VLC, the system player, ...).
+        val playEpisode: (SEpisode) -> Unit = { episode ->
+            scope.launch {
+                val url = viewModel.streamUrlFor(episode)
+                if (url == null) {
+                    Toast.makeText(context, "No playable stream found for this episode", Toast.LENGTH_SHORT).show()
+                } else {
+                    val intent = Intent(Intent.ACTION_VIEW).apply {
+                        setDataAndType(Uri.parse(url), "video/*")
+                    }
+                    runCatching { context.startActivity(Intent.createChooser(intent, "Open episode in")) }
+                        .onFailure {
+                            Toast.makeText(context, "No video app installed", Toast.LENGTH_SHORT).show()
+                        }
+                }
+            }
         }
         val libraryUnavailable: () -> Unit = {
             Toast.makeText(context, "Anime library isn't available yet", Toast.LENGTH_SHORT).show()
@@ -145,7 +166,9 @@ data class AnimeDetailsScreen(
                         }
                         context.startActivity(Intent.createChooser(intent, null))
                     },
-                    onWatch = playbackUnavailable,
+                    onWatch = {
+                        state.episodes.firstOrNull()?.let(playEpisode) ?: playbackUnavailable()
+                    },
                     onMyList = libraryUnavailable,
                 )
             }
@@ -190,7 +213,7 @@ data class AnimeDetailsScreen(
                 items(state.episodes, key = { it.url }) { episode ->
                     EpisodeRow(
                         episode = episode,
-                        onClick = playbackUnavailable,
+                        onClick = { playEpisode(episode) },
                         modifier = Modifier.padding(horizontal = 20.dp),
                     )
                 }
@@ -573,6 +596,14 @@ class AnimeDetailsViewModel(
 
     private val _state = MutableStateFlow(State(anime = seed))
     val state: StateFlow<State> = _state.asStateFlow()
+
+    /** The first playable stream URL the source offers for this episode, or null if none. */
+    suspend fun streamUrlFor(episode: SEpisode): String? {
+        val src = source ?: return null
+        return withContext(Dispatchers.IO) {
+            src.getVideoList(episode).firstOrNull { it.videoUrl.isNotBlank() }?.videoUrl
+        }
+    }
 
     init {
         load(animeUrl)
