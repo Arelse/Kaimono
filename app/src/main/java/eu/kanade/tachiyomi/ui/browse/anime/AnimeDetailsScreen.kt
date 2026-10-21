@@ -65,6 +65,7 @@ import eu.kanade.tachiyomi.animesource.AnimeCatalogueSource
 import eu.kanade.tachiyomi.animesource.model.SAnime
 import eu.kanade.tachiyomi.animesource.model.SEpisode
 import eu.kanade.tachiyomi.extension.anime.AnimeExtensionManager
+import eu.kanade.tachiyomi.ui.browse.source.isUsableAnimeSource
 import eu.kanade.tachiyomi.source.CatalogueSource
 import eu.kanade.tachiyomi.source.isNovelSource
 import kotlinx.coroutines.Dispatchers
@@ -553,7 +554,7 @@ class AnimeDetailsViewModel(
 
     private val source: AnimeCatalogueSource? = AnimeExtensionManager.installedSources()
         .filterIsInstance<AnimeCatalogueSource>()
-        .firstOrNull { it.id == sourceId }
+        .firstOrNull { isUsableAnimeSource(it) && it.id == sourceId }
 
     private val seed: SAnime = SAnime.create().apply {
         url = animeUrl
