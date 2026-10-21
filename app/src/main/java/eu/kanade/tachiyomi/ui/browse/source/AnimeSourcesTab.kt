@@ -12,6 +12,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined._18UpRating
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -31,6 +32,7 @@ import androidx.compose.ui.unit.dp
 import androidx.core.graphics.drawable.toBitmap
 import cafe.adriel.voyager.navigator.LocalNavigator
 import cafe.adriel.voyager.navigator.currentOrThrow
+import eu.kanade.presentation.browse.components.BaseBrowseItem
 import eu.kanade.presentation.components.AppBar
 import eu.kanade.presentation.components.TabContent
 import eu.kanade.tachiyomi.R
@@ -41,6 +43,7 @@ import eu.kanade.tachiyomi.ui.browse.extension.AnimeExtensionsViewModel
 import eu.kanade.tachiyomi.util.system.LocaleHelper
 import tachiyomi.i18n.novel.TDMR
 import tachiyomi.presentation.core.components.FastScrollLazyColumn
+import tachiyomi.presentation.core.components.material.padding
 import tachiyomi.presentation.core.components.material.topSmallPaddingValues
 import tachiyomi.presentation.core.theme.header
 import tachiyomi.presentation.core.util.plus
@@ -148,36 +151,34 @@ private fun AnimeSourceRow(
     val langLabel = row.source.lang.takeIf { it.isNotBlank() }
         ?.let { LocaleHelper.getSourceDisplayName(it, context) }
 
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(enabled = browsable, onClick = onOpen)
-            .padding(horizontal = 16.dp, vertical = 10.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        AnimeSourceIcon(pkgName = row.pkgName, modifier = Modifier.size(48.dp))
-
-        Column(
-            modifier = Modifier
-                .weight(1f)
-                .padding(start = 16.dp),
-        ) {
-            Text(
-                text = row.source.name,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                style = MaterialTheme.typography.bodyLarge,
-            )
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                if (row.nsfw) {
+    // Same row as the Manga Sources tab: icon, name and language, then a primary "Latest" action.
+    BaseBrowseItem(
+        onClickItem = { if (browsable) onOpen() },
+        icon = {
+            AnimeSourceIcon(pkgName = row.pkgName, modifier = Modifier.size(40.dp))
+        },
+        content = {
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .padding(horizontal = MaterialTheme.padding.medium),
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
-                        text = "18+",
-                        color = MaterialTheme.colorScheme.error,
-                        style = MaterialTheme.typography.bodySmall,
+                        text = row.source.name,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        style = MaterialTheme.typography.bodyMedium,
+                        modifier = Modifier.weight(1f, fill = false),
                     )
-                }
-                if (row.nsfw && langLabel != null) {
-                    Text(text = " · ", style = MaterialTheme.typography.bodySmall)
+                    if (row.nsfw) {
+                        Text(
+                            text = "18+",
+                            color = MaterialTheme.colorScheme.error,
+                            style = MaterialTheme.typography.bodySmall,
+                            modifier = Modifier.padding(start = 6.dp),
+                        )
+                    }
                 }
                 if (langLabel != null) {
                     Text(
@@ -189,15 +190,19 @@ private fun AnimeSourceRow(
                     )
                 }
             }
-        }
-
-        Text(
-            text = "Latest",
-            color = MaterialTheme.colorScheme.primary.copy(alpha = if (browsable) 1f else 0.38f),
-            style = MaterialTheme.typography.labelLarge,
-            modifier = Modifier.clickable(enabled = browsable, onClick = onLatest),
-        )
-    }
+        },
+        action = {
+            if (browsable) {
+                TextButton(onClick = onLatest) {
+                    Text(
+                        text = "Latest",
+                        style = MaterialTheme.typography.labelLarge,
+                        color = MaterialTheme.colorScheme.primary,
+                    )
+                }
+            }
+        },
+    )
 }
 
 @Composable
