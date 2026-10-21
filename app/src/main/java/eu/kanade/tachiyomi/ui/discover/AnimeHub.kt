@@ -49,6 +49,7 @@ import coil3.compose.AsyncImage
 import eu.kanade.tachiyomi.animesource.AnimeCatalogueSource
 import eu.kanade.tachiyomi.animesource.model.SAnime
 import eu.kanade.tachiyomi.extension.anime.AnimeExtensionManager
+import eu.kanade.tachiyomi.ui.browse.source.isUsableAnimeSource
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
@@ -78,7 +79,9 @@ fun rememberAnimeHubData(): AnimeHubData {
     var data by remember { mutableStateOf(AnimeHubData()) }
     LaunchedEffect(Unit) {
         val sources = withContext(Dispatchers.IO) {
-            AnimeExtensionManager.installedSources().filterIsInstance<AnimeCatalogueSource>()
+            AnimeExtensionManager.installedSources()
+                .filterIsInstance<AnimeCatalogueSource>()
+                .filter { isUsableAnimeSource(it) }
         }
         val loaded = withContext(Dispatchers.IO) {
             coroutineScope {
