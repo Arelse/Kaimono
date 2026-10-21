@@ -31,41 +31,50 @@ fun Modifier.liquidGlass(
     tintAlpha: Float = 0.42f,
     rimAlpha: Float = 0.28f,
     hazeState: HazeState? = null,
-): Modifier = this
-    .clip(shape)
-    .then(
-        if (hazeState != null) {
-            Modifier.hazeEffect(
-                state = hazeState,
-                style = HazeStyle(
-                    backgroundColor = tint,
-                    tint = HazeTint(tint.copy(alpha = tintAlpha * 0.6f)),
-                    blurRadius = 28.dp,
+): Modifier {
+    // With blur, the bar is a light frosted pane over the blurred content (like the reference).
+    // Without blur, it keeps the older tinted glass.
+    val frosted = hazeState != null
+    return this
+        .clip(shape)
+        .then(
+            if (hazeState != null) {
+                Modifier.hazeEffect(
+                    state = hazeState,
+                    style = HazeStyle(
+                        backgroundColor = Color.Transparent,
+                        tint = HazeTint(Color.White.copy(alpha = 0.16f)),
+                        blurRadius = 28.dp,
+                    ),
+                )
+            } else {
+                Modifier
+            },
+        )
+        .background(
+            Brush.verticalGradient(
+                colors = if (frosted) {
+                    listOf(Color.White.copy(alpha = 0.26f), Color.White.copy(alpha = 0.12f))
+                } else {
+                    listOf(
+                        Color.White.copy(alpha = 0.10f),
+                        tint.copy(alpha = tintAlpha),
+                        tint.copy(alpha = (tintAlpha + 0.12f).coerceAtMost(1f)),
+                    )
+                },
+            ),
+        )
+        .border(
+            width = 1.dp,
+            brush = Brush.verticalGradient(
+                colors = listOf(
+                    Color.White.copy(alpha = rimAlpha),
+                    Color.White.copy(alpha = rimAlpha * 0.2f),
                 ),
-            )
-        } else {
-            Modifier
-        },
-    )
-    .background(
-        Brush.verticalGradient(
-            colors = listOf(
-                Color.White.copy(alpha = 0.10f),
-                tint.copy(alpha = tintAlpha),
-                tint.copy(alpha = (tintAlpha + 0.12f).coerceAtMost(1f)),
             ),
-        ),
-    )
-    .border(
-        width = 1.dp,
-        brush = Brush.verticalGradient(
-            colors = listOf(
-                Color.White.copy(alpha = rimAlpha),
-                Color.White.copy(alpha = rimAlpha * 0.2f),
-            ),
-        ),
-        shape = shape,
-    )
+            shape = shape,
+        )
+}
 
 /**
  * Default UI nav bar: solid and opaque with a hairline rim, so nothing shows through it.
