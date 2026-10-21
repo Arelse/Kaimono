@@ -13,21 +13,40 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.unit.dp
+import dev.chrisbanes.haze.HazeState
+import dev.chrisbanes.haze.HazeStyle
+import dev.chrisbanes.haze.HazeTint
+import dev.chrisbanes.haze.hazeEffect
 
 /**
  * Liquid-glass surface: a translucent tint that is brighter at the top, with a light rim that is
  * stronger along the top edge. Content underneath stays visible through it.
  *
- * Note: this tints what is behind the surface rather than blurring it. A live blur of scrolling
- * content needs a backdrop-capture library, which this project does not use.
+ * When [hazeState] is given (the content behind the surface is captured with `hazeSource`), the
+ * content is genuinely blurred behind the glass, then the tint and rim are drawn on top.
  */
 fun Modifier.liquidGlass(
     shape: Shape,
     tint: Color,
     tintAlpha: Float = 0.42f,
     rimAlpha: Float = 0.28f,
+    hazeState: HazeState? = null,
 ): Modifier = this
     .clip(shape)
+    .then(
+        if (hazeState != null) {
+            Modifier.hazeEffect(
+                state = hazeState,
+                style = HazeStyle(
+                    backgroundColor = tint,
+                    tint = HazeTint(tint.copy(alpha = tintAlpha * 0.6f)),
+                    blurRadius = 28.dp,
+                ),
+            )
+        } else {
+            Modifier
+        },
+    )
     .background(
         Brush.verticalGradient(
             colors = listOf(
