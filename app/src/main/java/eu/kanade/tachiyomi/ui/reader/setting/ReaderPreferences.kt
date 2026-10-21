@@ -425,7 +425,7 @@ class ReaderPreferences(
         "pref_novel_tts_enable_highlight",
         true,
     )
-    val novelTtsKeepHighlightInView: Preference<Boolean> = preference<Boolean> = preferenceStore.getBoolean(
+    val novelTtsKeepHighlightInView: Preference<Boolean> = preferenceStore.getBoolean(
         "pref_novel_tts_keep_highlight_in_view",
         true,
     )
