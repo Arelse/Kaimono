@@ -47,5 +47,6 @@ sealed class AnimeExtension {
         override val isNsfw: Boolean,
         val apkUrl: String,
         val sourceNames: List<String>,
+        val iconUrl: String? = null,
     ) : AnimeExtension()
 }
