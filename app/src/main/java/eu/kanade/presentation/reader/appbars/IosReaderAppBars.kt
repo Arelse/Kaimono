@@ -113,7 +113,8 @@ fun IosReaderAppBars(
 ) {
     // Glass surfaces: tint only, the glass modifier adds the sheen and rim.
     val pillColor = MaterialTheme.colorScheme.surfaceContainerHigh
-    val onPillColor = MaterialTheme.colorScheme.onSurface
+    // Flvetsu uses pure white text and icons on the smoked glass, like AnymeX's iOS 26 player.
+    val onPillColor = if (style == ReaderGlassStyle.IOS26) Color.White else MaterialTheme.colorScheme.onSurface
 
     Box(modifier = Modifier.fillMaxHeight()) {
         // Top bar: back circle, title/subtitle pill, bookmark + settings circles.
@@ -244,8 +245,8 @@ fun IosReaderAppBars(
                             },
                             onValueChangeFinished = onPageIndexChangeFinished,
                             colors = SliderDefaults.colors(
-                                thumbColor = MaterialTheme.colorScheme.primary,
-                                activeTrackColor = MaterialTheme.colorScheme.primary,
+                                thumbColor = if (style == ReaderGlassStyle.IOS26) Color.White else MaterialTheme.colorScheme.primary,
+                                activeTrackColor = if (style == ReaderGlassStyle.IOS26) Color.White else MaterialTheme.colorScheme.primary,
                                 inactiveTrackColor = onPillColor.copy(alpha = 0.2f),
                             ),
                         )
@@ -320,7 +321,11 @@ private fun IosCircleIconButton(
         Icon(
             imageVector = icon,
             contentDescription = contentDescription,
-            tint = MaterialTheme.colorScheme.onSurface.copy(alpha = if (enabled) 1f else 0.3f),
+            tint = if (style == ReaderGlassStyle.IOS26) {
+                Color.White.copy(alpha = if (enabled) 0.95f else 0.35f)
+            } else {
+                MaterialTheme.colorScheme.onSurface.copy(alpha = if (enabled) 1f else 0.3f)
+            },
         )
     }
 }
