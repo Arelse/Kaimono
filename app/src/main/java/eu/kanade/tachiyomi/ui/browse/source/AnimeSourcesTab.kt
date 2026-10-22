@@ -1,19 +1,17 @@
 package eu.kanade.tachiyomi.ui.browse.source
 
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined._18UpRating
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -39,6 +37,7 @@ import eu.kanade.tachiyomi.R
 import eu.kanade.tachiyomi.animesource.AnimeCatalogueSource
 import eu.kanade.tachiyomi.animesource.AnimeSource
 import eu.kanade.tachiyomi.ui.browse.anime.AnimeBrowseScreen
+import eu.kanade.tachiyomi.ui.browse.anime.AnimeSourceFeedScreen
 import eu.kanade.tachiyomi.ui.browse.extension.AnimeExtensionsViewModel
 import eu.kanade.tachiyomi.util.system.LocaleHelper
 import tachiyomi.i18n.novel.TDMR
@@ -49,8 +48,9 @@ import tachiyomi.presentation.core.theme.header
 import tachiyomi.presentation.core.util.plus
 
 /**
- * "Anime Sources" browse tab. Lists the sources provided by installed anime extensions, grouped
- * by language. Tapping a source opens its popular list; "Latest" opens its latest updates.
+ * "Anime Sources" browse tab. Lists every source from installed anime extensions, grouped by
+ * language, in the same layout as the Manga Sources tab. Tapping a source opens its popular list;
+ * "Latest" opens its latest updates.
  */
 @Composable
 fun animeSourcesTab(
@@ -61,15 +61,24 @@ fun animeSourcesTab(
     val context = LocalContext.current
     var nsfwOnly by remember { mutableStateOf(false) }
 
+    // Every source of every installed extension is listed. Some extensions throw when a field is
+    // read, so each field is read on its own and falls back to the extension's own value.
     val rows = extState.installed.flatMap { ext ->
-        ext.sources
-            .filter { isUsableAnimeSource(it) }
-            .map { AnimeSourceRowData(source = it, pkgName = ext.pkgName, nsfw = ext.isNsfw, extName = ext.name, extLang = ext.lang) }
+        ext.sources.map { source ->
+            AnimeSourceRowData(
+                source = source,
+                sourceId = runCatching { source.id }.getOrNull(),
+                sourceName = runCatching { source.name }.getOrNull()?.takeIf { it.isNotBlank() } ?: ext.name,
+                sourceLang = runCatching { source.lang }.getOrNull()?.takeIf { it.isNotBlank() } ?: ext.lang,
+                pkgName = ext.pkgName,
+                nsfw = ext.isNsfw,
+            )
+        }
     }
     val groups = rows
         .filter { !nsfwOnly || it.nsfw }
         .groupBy { row ->
-            row.extLang.takeIf { it.isNotBlank() }
+            row.sourceLang.takeIf { it.isNotBlank() }
                 ?.let { LocaleHelper.getSourceDisplayName(it, context) }
                 ?: "Other"
         }
@@ -113,10 +122,12 @@ fun animeSourcesTab(
                             AnimeSourceRow(
                                 row = row,
                                 onOpen = {
-                                    navigator.push(AnimeBrowseScreen(sourceId = row.source.id))
+                                    row.sourceId?.let { id -> navigator.push(AnimeSourceFeedScreen(sourceId = id)) }
                                 },
                                 onLatest = {
-                                    navigator.push(AnimeBrowseScreen(sourceId = row.source.id, startLatest = true))
+                                    row.sourceId?.let { id ->
+                                        navigator.push(AnimeBrowseScreen(sourceId = id, startLatest = true))
+                                    }
                                 },
                             )
                         }
@@ -128,18 +139,20 @@ fun animeSourcesTab(
 }
 
 /**
- * Some anime extensions throw when their basic fields are read (for example a null name). Those
- * sources are left out of the list instead of crashing the screen.
+ * Used by screens that need a single working source (details, player, hub). A source whose id
+ * can't be read is skipped there so the screen doesn't crash.
  */
 fun isUsableAnimeSource(source: AnimeSource): Boolean =
     runCatching { source.id }.isSuccess
 
 private data class AnimeSourceRowData(
     val source: AnimeSource,
+    /** Null when the extension can't provide an id, so the source can't be opened. */
+    val sourceId: Long?,
+    val sourceName: String,
+    val sourceLang: String,
     val pkgName: String,
     val nsfw: Boolean,
-    val extName: String,
-    val extLang: String,
 )
 
 @Composable
@@ -149,13 +162,13 @@ private fun AnimeSourceRow(
     onLatest: () -> Unit,
 ) {
     val context = LocalContext.current
-    val browsable = row.source is AnimeCatalogueSource
-    val langLabel = row.extLang.takeIf { it.isNotBlank() }
+    val canOpen = row.sourceId != null && row.source is AnimeCatalogueSource
+    val langLabel = row.sourceLang.takeIf { it.isNotBlank() }
         ?.let { LocaleHelper.getSourceDisplayName(it, context) }
 
     // Same row as the Manga Sources tab: icon, name and language, then a primary "Latest" action.
     BaseBrowseItem(
-        onClickItem = { if (browsable) onOpen() },
+        onClickItem = { if (canOpen) onOpen() },
         icon = {
             AnimeSourceIcon(pkgName = row.pkgName, modifier = Modifier.size(40.dp))
         },
@@ -167,7 +180,7 @@ private fun AnimeSourceRow(
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
-                        text = row.extName,
+                        text = row.sourceName,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                         style = MaterialTheme.typography.bodyMedium,
@@ -182,7 +195,15 @@ private fun AnimeSourceRow(
                         )
                     }
                 }
-                if (langLabel != null) {
+                if (row.sourceId == null) {
+                    Text(
+                        text = "Can't be opened: this extension is incompatible with the app",
+                        color = MaterialTheme.colorScheme.error,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
+                        style = MaterialTheme.typography.bodySmall,
+                    )
+                } else if (langLabel != null) {
                     Text(
                         text = langLabel,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -194,7 +215,7 @@ private fun AnimeSourceRow(
             }
         },
         action = {
-            if (browsable) {
+            if (canOpen) {
                 TextButton(onClick = onLatest) {
                     Text(
                         text = "Latest",
