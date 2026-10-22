@@ -187,7 +187,7 @@ object AnimeExtensionLoader {
      * Returns the SHA256 digests of the package signatures, or null if it's not signed.
      */
     @Suppress("DEPRECATION")
-    private fun getSignatures(pkgInfo: PackageInfo): List<String>? {
+    internal fun getSignatures(pkgInfo: PackageInfo): List<String>? {
         return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
             val signingInfo = pkgInfo.signingInfo ?: return null
             if (signingInfo.hasMultipleSigners()) {
