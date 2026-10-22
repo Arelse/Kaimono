@@ -70,6 +70,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.drawscope.withTransform
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.drawscope.DrawScope
@@ -87,19 +88,6 @@ import tachiyomi.i18n.MR
 import tachiyomi.presentation.core.components.material.padding
 import tachiyomi.presentation.core.i18n.stringResource
 
-// Colours from the Gemini black glow search mockup (glow style only).
-private val SearchHeaderBackground = Color(0xFF0B0D13)
-private val SearchPillFill = Color(0xFF000000)
-private val SearchPillRim = Color(0x21FFFFFF)
-private val SearchDivider = Color(0x14FFFFFF)
-private val SearchInputText = Color(0xFFF1F3F4)
-private val SearchPlaceholder = Color(0xFF9AA0A6)
-private val SearchChipFill = Color(0xFF0B0D13)
-private val SearchChipActiveFill = Color(0xFF474866)
-private val SearchChipBorder = Color(0x26FFFFFF)
-private val SearchChipActiveBorder = Color(0x59A8A8D4)
-private val SearchChipText = Color(0xFFC7C9D1)
-private val SearchChipActiveText = Color(0xFFF2F3FF)
 
 /**
  * Soft violet glow along the bottom edge of a pill, as in the mockup.
@@ -112,6 +100,7 @@ internal fun DrawScope.drawSearchBottomGlow(
     overhang: Float,
     shift: Float = 0f,
     intensity: Float = 1f,
+    primary: Color,
 ) {
     val glowWidth = size.width * widthFraction
     val top = size.height + overhang - height
@@ -119,9 +108,9 @@ internal fun DrawScope.drawSearchBottomGlow(
     drawOval(
         brush = Brush.radialGradient(
             colors = listOf(
-                Color(0xFFBAA8FF).copy(alpha = (0.95f * intensity).coerceAtMost(1f)),
-                Color(0xFF8066EE).copy(alpha = (0.84f * intensity).coerceAtMost(1f)),
-                Color(0xFF4C41A8).copy(alpha = (0.48f * intensity).coerceAtMost(1f)),
+                glowLight(primary).copy(alpha = (0.95f * intensity).coerceAtMost(1f)),
+                glowMid(primary).copy(alpha = (0.84f * intensity).coerceAtMost(1f)),
+                glowDeep(primary).copy(alpha = (0.48f * intensity).coerceAtMost(1f)),
                 Color.Transparent,
             ),
             center = Offset(left + glowWidth / 2f, top + height * 0.6f),
@@ -148,6 +137,7 @@ private fun DrawScope.drawSearchGlowLayer(
     translateY: Float,
     alpha: Float,
     intensity: Float,
+    primary: Color,
 ) {
     val boxWidth = size.width * widthFraction
     val boxTop = size.height + overhang - height
@@ -166,9 +156,9 @@ private fun DrawScope.drawSearchGlowLayer(
         drawCircle(
             brush = Brush.radialGradient(
                 colors = listOf(
-                    Color(0xFFBAA8FF).copy(alpha = (0.95f * a).coerceAtMost(1f)),
-                    Color(0xFF8066EE).copy(alpha = (0.84f * a).coerceAtMost(1f)),
-                    Color(0xFF4C41A8).copy(alpha = (0.48f * a).coerceAtMost(1f)),
+                    glowLight(primary).copy(alpha = (0.95f * a).coerceAtMost(1f)),
+                    glowMid(primary).copy(alpha = (0.84f * a).coerceAtMost(1f)),
+                    glowDeep(primary).copy(alpha = (0.48f * a).coerceAtMost(1f)),
                     Color.Transparent,
                 ),
                 center = Offset(0f, radiusY * 0.2f),
@@ -439,7 +429,7 @@ private fun GlowGlobalSearchToolbar(
     val query = searchQuery.orEmpty()
     val isSearching = total > 0 && progress < total
 
-    Column(modifier = Modifier.fillMaxWidth().background(SearchHeaderBackground).statusBarsPadding()) {
+    Column(modifier = Modifier.fillMaxWidth().background(searchHeaderBackground()).statusBarsPadding()) {
         Column(
             modifier = Modifier.padding(start = 14.dp, top = 14.dp, end = 14.dp, bottom = 12.dp),
         ) {
@@ -544,7 +534,7 @@ private fun GlowGlobalSearchToolbar(
                 modifier = Modifier.fillMaxWidth(),
             )
         }
-        HorizontalDivider(color = SearchDivider)
+        HorizontalDivider(color = searchDivider())
     }
 }
 
@@ -602,13 +592,14 @@ private fun SearchGlowPill(
 
     val pillShape = RoundedCornerShape(50)
     val intensity = if (isSearching) 1.25f else 1f
+    val primary = MaterialTheme.colorScheme.primary
     Box(
         modifier = Modifier
             .fillMaxWidth()
             .height(60.dp)
             .clip(pillShape)
-            .background(SearchPillFill)
-            .border(1.dp, SearchPillRim, pillShape),
+            .background(searchPillFill())
+            .border(1.dp, searchPillRim(), pillShape),
     ) {
         // Primary glow: 84% wide, 24px below the edge, blurred 11px, drifts -18%..18%, scales X 0.95..1.18
         // and Y 1..1.15, opacity 0.85..1, nudges up 3px at its far point.
@@ -623,6 +614,7 @@ private fun SearchGlowPill(
                 translateY = -3.dp.toPx() * primaryPhase,
                 alpha = 0.85f + 0.15f * primaryPhase,
                 intensity = intensity,
+                primary = primary,
             )
         }
         // Secondary glow: 68% wide, blurred 13px, drifts the opposite way (+22%..-22%), scales X 1.05..0.9,
@@ -638,6 +630,7 @@ private fun SearchGlowPill(
                 translateY = (2f - 4f * secondaryPhase).dp.toPx(),
                 alpha = 0.7f + 0.28f * secondaryPhase,
                 intensity = intensity,
+                primary = primary,
             )
         }
         // Top vignette (the mockup's ::before): pure black at the top so only the bottom glows,
@@ -657,7 +650,7 @@ private fun SearchGlowPill(
                 brush = Brush.verticalGradient(
                     colorStops = arrayOf(
                         0.6f to Color.Transparent,
-                        1f to Color(0xFF826CF5).copy(alpha = 0.34f),
+                        1f to primary.copy(alpha = 0.34f),
                     ),
                 ),
             )
@@ -673,7 +666,7 @@ private fun SearchGlowPill(
             Icon(
                 imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                 contentDescription = null,
-                tint = Color(0xFFE3E3E6),
+                tint = MaterialTheme.colorScheme.onSurface,
             )
         }
 
@@ -691,7 +684,7 @@ private fun SearchGlowPill(
             if (query.isEmpty()) {
                 Text(
                     text = "Search...",
-                    color = SearchPlaceholder,
+                    color = searchPlaceholder(),
                     fontSize = 17.sp,
                     maxLines = 1,
                 )
@@ -702,8 +695,8 @@ private fun SearchGlowPill(
                 modifier = Modifier
                     .fillMaxWidth()
                     .focusRequester(focusRequester),
-                textStyle = TextStyle(color = SearchInputText, fontSize = 17.sp),
-                cursorBrush = SolidColor(Color(0xFFA594F9)),
+                textStyle = TextStyle(color = searchInputText(), fontSize = 17.sp),
+                cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
                 singleLine = true,
                 keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
                 keyboardActions = KeyboardActions(
@@ -721,7 +714,7 @@ private fun SearchGlowPill(
                 Icon(
                     imageVector = Icons.Filled.Close,
                     contentDescription = null,
-                    tint = SearchPlaceholder,
+                    tint = searchPlaceholder(),
                     modifier = Modifier.size(16.dp),
                 )
             }
@@ -765,13 +758,13 @@ private fun SearchFilterChip(
     trailingRotation: Float? = null,
 ) {
     val shape = RoundedCornerShape(9.dp)
-    val textColor = if (selected) SearchChipActiveText else SearchChipText
+    val textColor = if (selected) searchChipActiveText() else searchChipText()
     Row(
         modifier = Modifier
             .height(35.dp)
             .clip(shape)
-            .background(if (selected) SearchChipActiveFill else SearchChipFill)
-            .border(1.dp, if (selected) SearchChipActiveBorder else SearchChipBorder, shape)
+            .background(if (selected) searchChipActiveFill() else searchChipFill())
+            .border(1.dp, if (selected) searchChipActiveBorder() else searchChipBorder(), shape)
             .clickable(onClick = onClick)
             .padding(horizontal = 13.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -804,4 +797,22 @@ private fun SearchFilterChip(
     }
 }
 
-                        
+// Glow and chip colours follow the app theme instead of the fixed mockup violet and greys.
+private fun glowLight(primary: Color): Color = lerp(primary, Color.White, 0.45f)
+private fun glowMid(primary: Color): Color = primary
+private fun glowDeep(primary: Color): Color = lerp(primary, Color.Black, 0.45f)
+
+@Composable private fun searchHeaderBackground(): Color = MaterialTheme.colorScheme.background
+@Composable private fun searchPillFill(): Color = MaterialTheme.colorScheme.surfaceContainerLowest
+@Composable private fun searchPillRim(): Color = MaterialTheme.colorScheme.primary.copy(alpha = 0.25f)
+@Composable private fun searchDivider(): Color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)
+@Composable private fun searchInputText(): Color = MaterialTheme.colorScheme.onSurface
+@Composable private fun searchPlaceholder(): Color = MaterialTheme.colorScheme.onSurfaceVariant
+@Composable private fun searchChipFill(): Color = MaterialTheme.colorScheme.surfaceContainerHigh
+@Composable private fun searchChipActiveFill(): Color = MaterialTheme.colorScheme.primaryContainer
+@Composable private fun searchChipBorder(): Color = MaterialTheme.colorScheme.outlineVariant
+@Composable private fun searchChipActiveBorder(): Color = MaterialTheme.colorScheme.primary.copy(alpha = 0.6f)
+@Composable private fun searchChipText(): Color = MaterialTheme.colorScheme.onSurfaceVariant
+@Composable private fun searchChipActiveText(): Color = MaterialTheme.colorScheme.onPrimaryContainer
+
+          
