@@ -69,6 +69,8 @@ fun animeSourcesTab(
             AnimeSourceRowData(
                 source = source,
                 sourceId = runCatching { source.id }.getOrNull(),
+                openError = runCatching { source.id }.exceptionOrNull()
+                    ?.let { "${it::class.java.simpleName}: ${it.message ?: "no message"}" },
                 sourceName = runCatching { source.name }.getOrNull()?.takeIf { it.isNotBlank() } ?: ext.name,
                 sourceLang = runCatching { source.lang }.getOrNull()?.takeIf { it.isNotBlank() } ?: ext.lang,
                 pkgName = ext.pkgName,
@@ -150,6 +152,8 @@ private data class AnimeSourceRowData(
     val source: AnimeSource,
     /** Null when the extension can't provide an id, so the source can't be opened. */
     val sourceId: Long?,
+    /** The error reading the source id, shown when the source can't be opened. */
+    val openError: String?,
     val sourceName: String,
     val sourceLang: String,
     val pkgName: String,
@@ -198,7 +202,7 @@ private fun AnimeSourceRow(
                 }
                 if (row.sourceId == null) {
                     Text(
-                        text = "Can't be opened: this extension is incompatible with the app",
+                        text = "Can't be opened: ${row.openError ?: "unknown error"}",
                         color = MaterialTheme.colorScheme.error,
                         maxLines = 2,
                         overflow = TextOverflow.Ellipsis,
