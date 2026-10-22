@@ -172,7 +172,7 @@ data class AnimeBrowseScreen(
 }
 
 @Composable
-private fun AnimeBrowseCard(anime: SAnime, onClick: () -> Unit) {
+internal fun AnimeBrowseCard(anime: SAnime, onClick: () -> Unit) {
     Column(modifier = Modifier.fillMaxWidth().clickable(onClick = onClick)) {
         AsyncImage(
             model = anime.thumbnail_url,
