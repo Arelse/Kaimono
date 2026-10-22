@@ -64,12 +64,12 @@ fun animeSourcesTab(
     val rows = extState.installed.flatMap { ext ->
         ext.sources
             .filter { isUsableAnimeSource(it) }
-            .map { AnimeSourceRowData(source = it, pkgName = ext.pkgName, nsfw = ext.isNsfw) }
+            .map { AnimeSourceRowData(source = it, pkgName = ext.pkgName, nsfw = ext.isNsfw, extName = ext.name, extLang = ext.lang) }
     }
     val groups = rows
         .filter { !nsfwOnly || it.nsfw }
         .groupBy { row ->
-            row.source.lang.takeIf { it.isNotBlank() }
+            row.extLang.takeIf { it.isNotBlank() }
                 ?.let { LocaleHelper.getSourceDisplayName(it, context) }
                 ?: "Other"
         }
@@ -132,12 +132,14 @@ fun animeSourcesTab(
  * sources are left out of the list instead of crashing the screen.
  */
 fun isUsableAnimeSource(source: AnimeSource): Boolean =
-    runCatching { listOf(source.id, source.name, source.lang) }.isSuccess
+    runCatching { source.id }.isSuccess
 
 private data class AnimeSourceRowData(
     val source: AnimeSource,
     val pkgName: String,
     val nsfw: Boolean,
+    val extName: String,
+    val extLang: String,
 )
 
 @Composable
@@ -148,7 +150,7 @@ private fun AnimeSourceRow(
 ) {
     val context = LocalContext.current
     val browsable = row.source is AnimeCatalogueSource
-    val langLabel = row.source.lang.takeIf { it.isNotBlank() }
+    val langLabel = row.extLang.takeIf { it.isNotBlank() }
         ?.let { LocaleHelper.getSourceDisplayName(it, context) }
 
     // Same row as the Manga Sources tab: icon, name and language, then a primary "Latest" action.
@@ -165,7 +167,7 @@ private fun AnimeSourceRow(
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
-                        text = row.source.name,
+                        text = row.extName,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                         style = MaterialTheme.typography.bodyMedium,
