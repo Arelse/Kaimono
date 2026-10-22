@@ -114,6 +114,7 @@ fun LazyListScope.animeHubItems(
     onOpen: (AnimeHubItem) -> Unit,
     onSchedule: () -> Unit,
     onGenres: () -> Unit,
+    onBrowse: () -> Unit,
 ) {
     if (hub.loading) {
         item {
@@ -129,16 +130,21 @@ fun LazyListScope.animeHubItems(
 
     if (hub.popular.isEmpty() && hub.latest.isEmpty()) {
         item {
-            Text(
-                text = if (hub.sourceCount == 0) {
-                    "No anime sources installed. Install an anime extension to see titles here."
-                } else {
-                    "No anime loaded from your sources yet."
-                },
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(horizontal = 20.dp),
-            )
+            if (hub.sourceCount == 0) {
+                // Same empty state as the Novels and Manga categories, with a Browse extensions button.
+                HubNoSources(
+                    message = "No anime sources are enabled.",
+                    accent = accent,
+                    onBrowse = onBrowse,
+                )
+            } else {
+                Text(
+                    text = "No anime loaded from your sources yet.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(horizontal = 20.dp),
+                )
+            }
         }
         return
     }
