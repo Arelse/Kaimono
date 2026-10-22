@@ -193,6 +193,9 @@ class UiPreferences(
     /** Pure black background for the Media Hub home layout. */
     val homeHubAmoled: Preference<Boolean> = preferenceStore.getBoolean("pref_home_hub_amoled", false)
 
+    /** Keep the Featured title and category tabs floating at the top; off means they scroll away. */
+    val homeStickyHeader: Preference<Boolean> = preferenceStore.getBoolean("pref_home_sticky_header", true)
+
     /** Use the Default mode's iOS tab bar in every UI mode, instead of each mode's own bar. */
     val navBarFromDefault: Preference<Boolean> = preferenceStore.getBoolean("pref_nav_bar_from_default", false)
 
