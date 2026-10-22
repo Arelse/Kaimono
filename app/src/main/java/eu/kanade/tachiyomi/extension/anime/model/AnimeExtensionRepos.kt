@@ -120,7 +120,7 @@ object AnimeExtensionRepos {
                     isNsfw = entry.nsfw == 1,
                     apkUrl = "$apkBase/apk/${entry.apk}",
                     sourceNames = entry.sources.map { it.name },
-                    iconUrl = entry.icon.takeIf { it.isNotBlank() }?.let { "$apkBase/icon/$it" },
+                    iconUrl = "$apkBase/icon/${entry.pkg}.png",
                 )
             }
         } catch (e: Exception) {
