@@ -2,7 +2,9 @@ package eu.kanade.tachiyomi.extension.anime
 
 import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.net.Uri
+import androidx.core.content.pm.PackageInfoCompat
 import eu.kanade.domain.extension.interactor.TrustExtension
 import eu.kanade.tachiyomi.animesource.AnimeSource
 import eu.kanade.tachiyomi.extension.anime.api.AnimeExtensionRepos
@@ -83,11 +85,33 @@ object AnimeExtensionManager {
             }
         }
 
+        // Installing from inside the app counts as the user's approval, so trust it before the
+        // installer runs. Otherwise the new extension would show up under Untrusted.
+        trustDownloadedApk(context, file, extension)
+
         val intent = Intent(Intent.ACTION_VIEW).apply {
             setDataAndType(file.getUriCompat(context), "application/vnd.android.package-archive")
             addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_ACTIVITY_NEW_TASK)
         }
         context.startActivity(intent)
+    }
+
+    /**
+     * Reads the signing key and version from the downloaded APK and marks it trusted, using the
+     * same signature rules as the loader so the trust check matches once it is installed.
+     */
+    private fun trustDownloadedApk(context: Context, file: File, extension: AnimeExtension.Available) {
+        val pkgInfo = context.packageManager.getPackageArchiveInfo(
+            file.absolutePath,
+            PackageManager.GET_SIGNATURES or PackageManager.GET_SIGNING_CERTIFICATES,
+        ) ?: return
+        if (pkgInfo.packageName != extension.pkgName) return
+        val signatures = AnimeExtensionLoader.getSignatures(pkgInfo) ?: return
+        Injekt.get<TrustExtension>().trust(
+            pkgName = pkgInfo.packageName,
+            versionCode = PackageInfoCompat.getLongVersionCode(pkgInfo),
+            signatureHash = signatures.last(),
+        )
     }
 
     /**
