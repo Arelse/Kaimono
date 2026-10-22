@@ -1,5 +1,6 @@
 package eu.kanade.presentation.browse
 
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -135,11 +136,19 @@ private fun GlobalSearchMinimisePill(
     modifier: Modifier = Modifier,
 ) {
     val shape = RoundedCornerShape(50)
+    val glowPrimary = MaterialTheme.colorScheme.primary
     Row(
         modifier = modifier
             .clip(shape)
             .background(Color.Black)
-            .drawBehind { drawSearchBottomGlow(widthFraction = 0.5f, height = 20.dp.toPx(), overhang = 12.dp.toPx()) }
+            .drawBehind {
+                drawSearchBottomGlow(
+                    widthFraction = 0.5f,
+                    height = 20.dp.toPx(),
+                    overhang = 12.dp.toPx(),
+                    primary = glowPrimary,
+                )
+            }
             .border(1.dp, Color(0x1FFFFFFF), shape)
             .clickable(onClick = onClick)
             .height(44.dp)
