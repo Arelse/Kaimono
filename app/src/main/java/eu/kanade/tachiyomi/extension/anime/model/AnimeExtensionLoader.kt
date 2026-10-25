@@ -121,7 +121,12 @@ object AnimeExtensionLoader {
         }
 
         val classLoader = try {
-            ChildFirstPathClassLoader(appInfo.sourceDir, null, context.classLoader)
+            ChildFirstPathClassLoader(
+                appInfo.sourceDir,
+                null,
+                context.classLoader,
+                parentFirstPrefixes = listOf("eu.kanade.tachiyomi.animesource."),
+            )
         } catch (e: Exception) {
             logcat(LogPriority.ERROR, e) { "Anime extension load error: $extName ($pkgName)" }
             return AnimeLoadResult.Error(pkgName, "class loader failed: ${e.message}")
@@ -142,11 +147,11 @@ object AnimeExtensionLoader {
                     instantiate(className, PathClassLoader(appInfo.sourceDir, null, context.classLoader))
                 } catch (fallbackError: Throwable) {
                     logcat(LogPriority.ERROR, fallbackError) { "Anime extension load error: $extName ($className)" }
-                    return AnimeLoadResult.Error(pkgName, "source $className failed: ${fallbackError.message}")
+                    return AnimeLoadResult.Error(pkgName, "source $className failed: ${describe(fallbackError)}")
                 }
             } catch (e: Throwable) {
                 logcat(LogPriority.ERROR, e) { "Anime extension load error: $extName ($className)" }
-                return AnimeLoadResult.Error(pkgName, "source $className failed: ${e.message}")
+                return AnimeLoadResult.Error(pkgName, "source $className failed: ${describe(e)}")
             }
         }
 
@@ -171,8 +176,17 @@ object AnimeExtensionLoader {
         )
     }
 
+    /** A readable failure reason. Reflection failures have no message, so the class name is kept. */
+    private fun describe(e: Throwable): String = "${e.javaClass.simpleName}: ${e.message ?: "no message"}"
+
     private fun instantiate(className: String, classLoader: ClassLoader): List<AnimeSource> {
-        return when (val obj = Class.forName(className, false, classLoader).getDeclaredConstructor().newInstance()) {
+        val obj = try {
+            Class.forName(className, false, classLoader).getDeclaredConstructor().newInstance()
+        } catch (e: java.lang.reflect.InvocationTargetException) {
+            // The constructor itself threw; report that exception instead of the wrapper.
+            throw e.targetException ?: e
+        }
+        return when (obj) {
             is AnimeSource -> listOf(obj)
             is AnimeSourceFactory -> obj.createSources()
             else -> throw Exception("Unknown anime source class type: ${obj.javaClass}")
