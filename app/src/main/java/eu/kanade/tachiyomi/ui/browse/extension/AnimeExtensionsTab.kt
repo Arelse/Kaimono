@@ -178,6 +178,22 @@ private fun AnimeExtensionList(
             }
         }
 
+        // Installed packages the app couldn't load, with the reason, so a missing extension can be diagnosed.
+        if (state.loadErrors.isNotEmpty()) {
+            item(key = "anime-header-load-errors") { AnimeSectionHeader("Couldn't load") }
+            items(state.loadErrors, key = { "load-error-${it.pkgName}" }) { err ->
+                Text(
+                    text = "${err.pkgName}\n${err.reason}",
+                    color = MaterialTheme.colorScheme.error,
+                    style = MaterialTheme.typography.bodySmall,
+                    modifier = Modifier.padding(
+                        horizontal = MaterialTheme.padding.medium,
+                        vertical = MaterialTheme.padding.small,
+                    ),
+                )
+            }
+        }
+
         if (available.isNotEmpty()) {
             item(key = "anime-header-available") { AnimeSectionHeader("Available") }
             items(available, key = { "available-${it.pkgName}" }) { ext ->
