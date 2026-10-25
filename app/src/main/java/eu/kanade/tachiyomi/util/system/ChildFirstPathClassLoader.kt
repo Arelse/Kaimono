@@ -16,11 +16,20 @@ class ChildFirstPathClassLoader(
     dexPath: String,
     librarySearchPath: String?,
     parent: ClassLoader,
+    /**
+     * Class name prefixes that always come from the app (parent) instead of the extension's own
+     * bundled copy. Keeps an extension's old copy of the source API from replacing the app's.
+     */
+    private val parentFirstPrefixes: List<String> = emptyList(),
 ) : PathClassLoader(dexPath, librarySearchPath, parent) {
 
     private val systemClassLoader: ClassLoader? = getSystemClassLoader()
 
     override fun loadClass(name: String?, resolve: Boolean): Class<*> {
+        if (name != null && parentFirstPrefixes.any { name.startsWith(it) }) {
+            return super.loadClass(name, resolve)
+        }
+
         var c = findLoadedClass(name)
 
         if (c == null && systemClassLoader != null) {
