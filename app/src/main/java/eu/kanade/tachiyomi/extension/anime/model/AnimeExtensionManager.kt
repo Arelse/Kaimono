@@ -1,9 +1,12 @@
 package eu.kanade.tachiyomi.extension.anime
 
 import android.content.Context
+import android.content.BroadcastReceiver
 import android.content.Intent
+import android.content.IntentFilter
 import android.content.pm.PackageManager
 import android.net.Uri
+import androidx.core.content.ContextCompat
 import androidx.core.content.pm.PackageInfoCompat
 import eu.kanade.domain.extension.interactor.TrustExtension
 import eu.kanade.tachiyomi.animesource.AnimeSource
@@ -15,7 +18,10 @@ import eu.kanade.tachiyomi.network.GET
 import eu.kanade.tachiyomi.network.NetworkHelper
 import eu.kanade.tachiyomi.network.awaitSuccess
 import eu.kanade.tachiyomi.util.storage.getUriCompat
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -66,6 +72,32 @@ object AnimeExtensionManager {
         }
     }
 
+    private val installScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    private var installReceiverRegistered = false
+
+    /**
+     * Reloads the anime extension list whenever a package is installed, updated or removed, so a
+     * new extension shows up without reopening the screen. Registered once, on the first install.
+     */
+    @Synchronized
+    private fun registerInstallReceiver(context: Context) {
+        if (installReceiverRegistered) return
+        installReceiverRegistered = true
+        val appContext = context.applicationContext
+        val filter = IntentFilter().apply {
+            addAction(Intent.ACTION_PACKAGE_ADDED)
+            addAction(Intent.ACTION_PACKAGE_REPLACED)
+            addAction(Intent.ACTION_PACKAGE_REMOVED)
+            addDataScheme("package")
+        }
+        val receiver = object : BroadcastReceiver() {
+            override fun onReceive(ctx: Context, intent: Intent?) {
+                installScope.launch { refresh(appContext) }
+            }
+        }
+        ContextCompat.registerReceiver(appContext, receiver, filter, ContextCompat.RECEIVER_NOT_EXPORTED)
+    }
+
     fun trust(extension: AnimeExtension.Untrusted) {
         Injekt.get<TrustExtension>().trust(extension.pkgName, extension.versionCode, extension.signatureHash)
     }
@@ -74,6 +106,7 @@ object AnimeExtensionManager {
      * Downloads the APK and opens the system installer for it.
      */
     suspend fun install(context: Context, extension: AnimeExtension.Available) {
+        registerInstallReceiver(context)
         val dir = File(context.cacheDir, "anime_extensions").apply { mkdirs() }
         val file = File(dir, "${extension.pkgName}.apk")
 
