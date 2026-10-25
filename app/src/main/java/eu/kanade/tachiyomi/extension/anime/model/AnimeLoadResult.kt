@@ -5,5 +5,6 @@ sealed class AnimeLoadResult {
 
     data class Untrusted(val extension: AnimeExtension.Untrusted) : AnimeLoadResult()
 
-    data object Error : AnimeLoadResult()
+    /** A package that could not be loaded, with the reason shown in the Anime Extensions tab. */
+    data class Error(val pkgName: String, val reason: String) : AnimeLoadResult()
 }
