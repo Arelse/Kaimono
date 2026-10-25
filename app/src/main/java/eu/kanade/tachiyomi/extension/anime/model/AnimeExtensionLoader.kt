@@ -69,9 +69,9 @@ object AnimeExtensionLoader {
         val sourcePreferences = Injekt.get<SourcePreferences>()
         val pkgManager = context.packageManager
 
-        val appInfo = pkgInfo.applicationInfo ?: return AnimeLoadResult.Error
         val pkgName = pkgInfo.packageName
-        val meta = appInfo.metaData ?: return AnimeLoadResult.Error
+        val appInfo = pkgInfo.applicationInfo ?: return AnimeLoadResult.Error(pkgName, "no application info")
+        val meta = appInfo.metaData ?: return AnimeLoadResult.Error(pkgName, "no metadata in manifest")
 
         val extName = meta.getString(METADATA_NAME)
             ?: pkgManager.getApplicationLabel(appInfo).toString().substringAfter("Aniyomi: ")
@@ -80,7 +80,7 @@ object AnimeExtensionLoader {
 
         if (versionName.isNullOrEmpty()) {
             logcat(LogPriority.WARN) { "Missing versionName for anime extension $extName" }
-            return AnimeLoadResult.Error
+            return AnimeLoadResult.Error(pkgName, "missing version name")
         }
 
         // Validate lib version
@@ -93,13 +93,13 @@ object AnimeExtensionLoader {
             logcat(LogPriority.WARN) {
                 "Anime lib version is $libVersion, while only version(s) ${SUPPORTED_LIB_VERSIONS.joinToString()} are supported"
             }
-            return AnimeLoadResult.Error
+            return AnimeLoadResult.Error(pkgName, "unsupported lib version $libVersion")
         }
 
         val signatures = getSignatures(pkgInfo)
         if (signatures.isNullOrEmpty()) {
             logcat(LogPriority.WARN) { "Anime package $pkgName isn't signed" }
-            return AnimeLoadResult.Error
+            return AnimeLoadResult.Error(pkgName, "package is not signed")
         } else if (!trustExtension.isTrusted(pkgInfo, signatures)) {
             logcat(LogPriority.WARN) { "Anime extension $pkgName isn't trusted" }
             return AnimeLoadResult.Untrusted(
@@ -117,14 +117,14 @@ object AnimeExtensionLoader {
         val isNsfw = meta.getInt(METADATA_CONTENT_WARNING) > 0 || meta.getInt(METADATA_NSFW) == 1
         if (isNsfw && !sourcePreferences.showNsfwSource.get()) {
             logcat(LogPriority.WARN) { "NSFW anime extension $pkgName not allowed" }
-            return AnimeLoadResult.Error
+            return AnimeLoadResult.Error(pkgName, "NSFW extension is hidden (enable NSFW sources in settings)")
         }
 
         val classLoader = try {
             ChildFirstPathClassLoader(appInfo.sourceDir, null, context.classLoader)
         } catch (e: Exception) {
             logcat(LogPriority.ERROR, e) { "Anime extension load error: $extName ($pkgName)" }
-            return AnimeLoadResult.Error
+            return AnimeLoadResult.Error(pkgName, "class loader failed: ${e.message}")
         }
 
         val sourceClasses = meta.getString(METADATA_SOURCE_CLASS).orEmpty()
@@ -142,11 +142,11 @@ object AnimeExtensionLoader {
                     instantiate(className, PathClassLoader(appInfo.sourceDir, null, context.classLoader))
                 } catch (fallbackError: Throwable) {
                     logcat(LogPriority.ERROR, fallbackError) { "Anime extension load error: $extName ($className)" }
-                    return AnimeLoadResult.Error
+                    return AnimeLoadResult.Error(pkgName, "source $className failed: ${fallbackError.message}")
                 }
             } catch (e: Throwable) {
                 logcat(LogPriority.ERROR, e) { "Anime extension load error: $extName ($className)" }
-                return AnimeLoadResult.Error
+                return AnimeLoadResult.Error(pkgName, "source $className failed: ${e.message}")
             }
         }
 
