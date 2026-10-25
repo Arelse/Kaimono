@@ -46,6 +46,11 @@ object AnimeExtensionManager {
     private val _untrusted = MutableStateFlow<List<AnimeExtension.Untrusted>>(emptyList())
     val untrusted: StateFlow<List<AnimeExtension.Untrusted>> = _untrusted.asStateFlow()
 
+    private val _loadErrors = MutableStateFlow<List<AnimeLoadResult.Error>>(emptyList())
+
+    /** Installed anime packages the app could not load, with the reason for each. */
+    val loadErrors: StateFlow<List<AnimeLoadResult.Error>> = _loadErrors.asStateFlow()
+
     private val _available = MutableStateFlow<List<AnimeExtension.Available>>(emptyList())
     val available: StateFlow<List<AnimeExtension.Available>> = _available.asStateFlow()
 
@@ -65,6 +70,7 @@ object AnimeExtensionManager {
                 val results = withContext(Dispatchers.IO) { AnimeExtensionLoader.loadInstalled(context) }
                 _installed.value = results.filterIsInstance<AnimeLoadResult.Success>().map { it.extension }
                 _untrusted.value = results.filterIsInstance<AnimeLoadResult.Untrusted>().map { it.extension }
+                _loadErrors.value = results.filterIsInstance<AnimeLoadResult.Error>()
                 _available.value = withContext(Dispatchers.IO) { AnimeExtensionRepos.fetchAvailable() }
             } finally {
                 _isLoading.value = false
