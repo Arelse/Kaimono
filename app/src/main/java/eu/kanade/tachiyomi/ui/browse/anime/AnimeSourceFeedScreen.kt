@@ -1,25 +1,50 @@
 package eu.kanade.tachiyomi.ui.browse.anime
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
+import androidx.compose.material.icons.outlined.FavoriteBorder
+import androidx.compose.material.icons.outlined.FilterList
+import androidx.compose.material.icons.outlined.GridView
+import androidx.compose.material.icons.outlined.Public
 import androidx.compose.material.icons.outlined.Search
+import androidx.compose.material.icons.outlined.Update
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.ViewModel
@@ -29,12 +54,13 @@ import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import cafe.adriel.voyager.navigator.LocalNavigator
 import cafe.adriel.voyager.navigator.currentOrThrow
-import eu.kanade.presentation.browse.components.GlobalSearchLoadingResultItem
-import eu.kanade.presentation.browse.components.GlobalSearchResultItem
+import coil3.compose.AsyncImage
 import eu.kanade.presentation.util.Screen
 import eu.kanade.tachiyomi.animesource.AnimeCatalogueSource
 import eu.kanade.tachiyomi.animesource.model.SAnime
+import eu.kanade.tachiyomi.animesource.online.AnimeHttpSource
 import eu.kanade.tachiyomi.extension.anime.AnimeExtensionManager
+import eu.kanade.tachiyomi.ui.webview.WebViewScreen
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -45,8 +71,9 @@ import kotlinx.coroutines.withContext
 import tachiyomi.presentation.core.components.material.Scaffold
 
 /**
- * Anime counterpart of the manga source feed: a Latest row and a Popular row of covers for one
- * source. Tapping a row header opens the full browse list; tapping a cover opens its details.
+ * Anime counterpart of the manga source feed, laid out like it: filter chips, a Latest row, a
+ * Popular row with title panels, and a grid of larger covers. Tapping a section title or a chip
+ * opens the full browse list; tapping a cover opens its details.
  */
 data class AnimeSourceFeedScreen(
     val sourceId: Long,
@@ -64,6 +91,22 @@ data class AnimeSourceFeedScreen(
         val state by viewModel.state.collectAsState()
         val source = viewModel.source
         val sourceName = source?.name ?: "Anime source"
+        val supportsLatest = source?.supportsLatest == true
+
+        fun openDetails(anime: SAnime) {
+            navigator.push(
+                AnimeDetailsScreen(
+                    sourceId = sourceId,
+                    animeUrl = anime.url,
+                    title = anime.title,
+                    thumbnailUrl = anime.thumbnail_url,
+                ),
+            )
+        }
+
+        fun openBrowse(startLatest: Boolean = false) {
+            navigator.push(AnimeBrowseScreen(sourceId = sourceId, startLatest = startLatest))
+        }
 
         Scaffold(
             topBar = {
@@ -84,55 +127,77 @@ data class AnimeSourceFeedScreen(
                         }
                     },
                     actions = {
-                        IconButton(onClick = { navigator.push(AnimeBrowseScreen(sourceId = sourceId)) }) {
+                        // Opens the source's website in the WebView. Some sites (Cloudflare) only
+                        // serve content after a browser session is established there.
+                        val baseUrl = (source as? AnimeHttpSource)?.baseUrl.orEmpty()
+                        if (baseUrl.isNotBlank()) {
+                            IconButton(
+                                onClick = {
+                                    navigator.push(
+                                        WebViewScreen(
+                                            url = baseUrl,
+                                            initialTitle = sourceName,
+                                            sourceId = sourceId,
+                                        ),
+                                    )
+                                },
+                            ) {
+                                Icon(imageVector = Icons.Outlined.Public, contentDescription = null)
+                            }
+                        }
+                        IconButton(onClick = { openBrowse() }) {
                             Icon(imageVector = Icons.Outlined.Search, contentDescription = null)
+                        }
+                        IconButton(onClick = { openBrowse() }) {
+                            Icon(imageVector = Icons.Outlined.FilterList, contentDescription = null)
                         }
                     },
                 )
             },
         ) { paddingValues ->
+            val grid = state.popular?.getOrNull().orEmpty()
             LazyColumn(contentPadding = paddingValues) {
-                if (source?.supportsLatest == true) {
+                item(key = "anime-feed-chips") {
+                    FeedChips(
+                        supportsLatest = supportsLatest,
+                        onPopular = { openBrowse() },
+                        onLatest = { openBrowse(startLatest = true) },
+                        onFilter = { openBrowse() },
+                    )
+                }
+                if (supportsLatest) {
                     item(key = "anime-feed-latest") {
-                        AnimeFeedSection(
+                        FeedRow(
                             title = "Latest",
-                            subtitle = sourceName,
                             animes = state.latest,
-                            onHeaderClick = {
-                                navigator.push(AnimeBrowseScreen(sourceId = sourceId, startLatest = true))
-                            },
-                            onAnimeClick = { anime ->
-                                navigator.push(
-                                    AnimeDetailsScreen(
-                                        sourceId = sourceId,
-                                        animeUrl = anime.url,
-                                        title = anime.title,
-                                        thumbnailUrl = anime.thumbnail_url,
-                                    ),
-                                )
-                            },
+                            onTitleClick = { openBrowse(startLatest = true) },
+                            onAnimeClick = { openDetails(it) },
                         )
                     }
                 }
                 item(key = "anime-feed-popular") {
-                    AnimeFeedSection(
+                    FeedRow(
                         title = "Popular",
-                        subtitle = sourceName,
                         animes = state.popular,
-                        onHeaderClick = {
-                            navigator.push(AnimeBrowseScreen(sourceId = sourceId))
-                        },
-                        onAnimeClick = { anime ->
-                            navigator.push(
-                                AnimeDetailsScreen(
-                                    sourceId = sourceId,
-                                    animeUrl = anime.url,
-                                    title = anime.title,
-                                    thumbnailUrl = anime.thumbnail_url,
-                                ),
-                            )
-                        },
+                        onTitleClick = { openBrowse() },
+                        onAnimeClick = { openDetails(it) },
                     )
+                }
+                // Grid of larger covers with the title over the image, three per row.
+                items(grid.chunked(3), key = { row -> row.first().url }) { row ->
+                    Row(
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp),
+                        horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    ) {
+                        row.forEach { anime ->
+                            FeedGridCard(
+                                anime = anime,
+                                modifier = Modifier.weight(1f),
+                                onClick = { openDetails(anime) },
+                            )
+                        }
+                        repeat(3 - row.size) { Spacer(modifier = Modifier.weight(1f)) }
+                    }
                 }
             }
         }
@@ -140,46 +205,163 @@ data class AnimeSourceFeedScreen(
 }
 
 @Composable
-private fun AnimeFeedSection(
+private fun FeedChips(
+    supportsLatest: Boolean,
+    onPopular: () -> Unit,
+    onLatest: () -> Unit,
+    onFilter: () -> Unit,
+) {
+    LazyRow(
+        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        item {
+            FilterChip(
+                selected = true,
+                onClick = {},
+                label = { Text("Home") },
+                leadingIcon = { Icon(Icons.Outlined.GridView, contentDescription = null, modifier = Modifier.size(18.dp)) },
+            )
+        }
+        item {
+            FilterChip(
+                selected = false,
+                onClick = onPopular,
+                label = { Text("Popular") },
+                leadingIcon = { Icon(Icons.Outlined.FavoriteBorder, contentDescription = null, modifier = Modifier.size(18.dp)) },
+            )
+        }
+        if (supportsLatest) {
+            item {
+                FilterChip(
+                    selected = false,
+                    onClick = onLatest,
+                    label = { Text("Latest") },
+                    leadingIcon = { Icon(Icons.Outlined.Update, contentDescription = null, modifier = Modifier.size(18.dp)) },
+                )
+            }
+        }
+        item {
+            FilterChip(
+                selected = false,
+                onClick = onFilter,
+                label = { Text("Filter") },
+                leadingIcon = { Icon(Icons.Outlined.FilterList, contentDescription = null, modifier = Modifier.size(18.dp)) },
+            )
+        }
+    }
+}
+
+@Composable
+private fun FeedRow(
     title: String,
-    subtitle: String,
     animes: Result<List<SAnime>>?,
-    onHeaderClick: () -> Unit,
+    onTitleClick: () -> Unit,
     onAnimeClick: (SAnime) -> Unit,
 ) {
-    GlobalSearchResultItem(
-        title = title,
-        subtitle = subtitle,
-        onClick = onHeaderClick,
-    ) {
+    Column(modifier = Modifier.padding(top = 12.dp)) {
+        Text(
+            text = title,
+            style = MaterialTheme.typography.titleLarge,
+            fontWeight = FontWeight.Bold,
+            modifier = Modifier
+                .padding(horizontal = 16.dp, vertical = 4.dp)
+                .clickable(onClick = onTitleClick),
+        )
         when {
-            animes == null -> GlobalSearchLoadingResultItem()
+            animes == null -> Box(
+                modifier = Modifier.fillMaxWidth().padding(24.dp),
+                contentAlignment = Alignment.Center,
+            ) {
+                CircularProgressIndicator(modifier = Modifier.size(24.dp), strokeWidth = 2.dp)
+            }
             animes.isFailure -> Text(
                 text = animes.exceptionOrNull()?.message ?: "Failed to load anime",
                 color = MaterialTheme.colorScheme.error,
                 modifier = Modifier.padding(16.dp),
             )
-            else -> {
-                val list = animes.getOrNull().orEmpty()
-                if (list.isEmpty()) {
-                    Text(
-                        text = "No anime found",
-                        modifier = Modifier.padding(16.dp),
-                    )
-                } else {
-                    LazyRow(
-                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
-                        horizontalArrangement = Arrangement.spacedBy(10.dp),
-                    ) {
-                        items(list, key = { it.url }) { anime ->
-                            Box(modifier = Modifier.width(120.dp)) {
-                                AnimeBrowseCard(anime = anime, onClick = { onAnimeClick(anime) })
-                            }
-                        }
-                    }
+            animes.getOrNull().isNullOrEmpty() -> Text(
+                text = "No anime found",
+                modifier = Modifier.padding(16.dp),
+            )
+            else -> LazyRow(
+                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                items(animes.getOrThrow(), key = { it.url }) { anime ->
+                    FeedCard(anime = anime, onClick = { onAnimeClick(anime) })
                 }
             }
         }
+    }
+}
+
+/** A cover with its title in a rounded panel underneath, as on the manga feed. */
+@Composable
+private fun FeedCard(anime: SAnime, onClick: () -> Unit) {
+    Column(modifier = Modifier.width(120.dp).clickable(onClick = onClick)) {
+        AsyncImage(
+            model = anime.thumbnail_url,
+            contentDescription = null,
+            contentScale = ContentScale.Crop,
+            modifier = Modifier
+                .fillMaxWidth()
+                .aspectRatio(0.7f)
+                .clip(RoundedCornerShape(14.dp)),
+        )
+        Surface(
+            modifier = Modifier.fillMaxWidth().padding(top = 6.dp),
+            shape = RoundedCornerShape(10.dp),
+            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+        ) {
+            Text(
+                text = anime.title,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+                style = MaterialTheme.typography.bodyMedium,
+                modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp),
+            )
+        }
+    }
+}
+
+/** A large cover with the title over a dark fade at the bottom. */
+@Composable
+private fun FeedGridCard(anime: SAnime, modifier: Modifier, onClick: () -> Unit) {
+    Box(
+        modifier = modifier
+            .aspectRatio(0.7f)
+            .clip(RoundedCornerShape(14.dp))
+            .clickable(onClick = onClick),
+    ) {
+        AsyncImage(
+            model = anime.thumbnail_url,
+            contentDescription = null,
+            contentScale = ContentScale.Crop,
+            modifier = Modifier.fillMaxSize(),
+        )
+        Box(
+            modifier = Modifier
+                .align(Alignment.BottomStart)
+                .fillMaxWidth()
+                .height(96.dp)
+                .background(
+                    Brush.verticalGradient(
+                        colors = listOf(Color.Transparent, Color.Black.copy(alpha = 0.85f)),
+                    ),
+                ),
+        )
+        Text(
+            text = anime.title,
+            color = Color.White,
+            fontWeight = FontWeight.Bold,
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis,
+            style = MaterialTheme.typography.bodyMedium,
+            modifier = Modifier
+                .align(Alignment.BottomStart)
+                .padding(10.dp),
+        )
     }
 }
 
