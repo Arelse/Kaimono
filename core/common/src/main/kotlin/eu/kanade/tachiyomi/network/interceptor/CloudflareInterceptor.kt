@@ -142,6 +142,16 @@ class CloudflareInterceptor(
             }
         }
 
+        // Debug toast: whether the hidden WebView got a clearance cookie, and whether the shared
+        // cookie jar can see it for this URL. Shows why a solved challenge still fails in the app.
+        val clearanceInJar = cookieManager.get(originalRequest.url)
+            .firstOrNull { it.name == "cf_clearance" } != null
+        context.toast(
+            "CF debug: bypassed=$cloudflareBypassed, clearance in jar=$clearanceInJar, " +
+                "challengeFound=$challengeFound",
+            Toast.LENGTH_LONG,
+        )
+
         // Throw exception if we failed to bypass Cloudflare
         if (!cloudflareBypassed) {
             // Prompt user to update WebView if it seems too outdated
