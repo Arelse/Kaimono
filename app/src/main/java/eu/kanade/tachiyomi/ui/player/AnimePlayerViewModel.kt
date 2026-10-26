@@ -3,7 +3,9 @@ package eu.kanade.tachiyomi.ui.player
 import android.app.Application
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import androidx.media3.common.C
 import androidx.media3.common.Format
+import androidx.media3.common.VideoSize
 import androidx.media3.common.MediaItem
 import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
@@ -72,6 +74,10 @@ class AnimePlayerViewModel(
         val position: Long = 0L,
         val duration: Long = 0L,
         val speed: Float = 1f,
+        /** Codec of the stream's video track, or "no video track". Shown when the picture is black. */
+        val videoInfo: String = "",
+        /** Size the decoder reports, e.g. "1280x720"; "0x0" means no picture is being decoded. */
+        val videoSize: String = "",
     )
 
     private val _state = MutableStateFlow(State(title = title))
@@ -83,6 +89,16 @@ class AnimePlayerViewModel(
         player.addListener(object : Player.Listener {
             override fun onIsPlayingChanged(isPlaying: Boolean) {
                 _state.update { it.copy(isPlaying = isPlaying) }
+            }
+
+            override fun onTracksChanged(tracks: Tracks) {
+                val video = tracks.groups.firstOrNull { it.type == C.TRACK_TYPE_VIDEO }?.getTrackFormat(0)
+                val info = video?.let { it.sampleMimeType ?: "unknown codec" } ?: "no video track"
+                _state.update { it.copy(videoInfo = info) }
+            }
+
+            override fun onVideoSizeChanged(videoSize: VideoSize) {
+                _state.update { it.copy(videoSize = "${videoSize.width}x${videoSize.height}") }
             }
 
             override fun onPlaybackStateChanged(playbackState: Int) {
@@ -134,12 +150,15 @@ class AnimePlayerViewModel(
         val episode = _state.value.episodes.getOrNull(index) ?: return
         _state.update { it.copy(episodeIndex = index, loading = true, error = null, videos = emptyList()) }
         viewModelScope.launch {
-            val videos = withContext(Dispatchers.IO) {
-                runCatching { src.getVideoList(episode) }.getOrDefault(emptyList())
-            }.filter { it.videoUrl.isNotBlank() }
+            val result = withContext(Dispatchers.IO) { runCatching { src.getVideoList(episode) } }
+            val videos = result.getOrDefault(emptyList()).filter { it.videoUrl.isNotBlank() }
 
             if (videos.isEmpty()) {
-                _state.update { it.copy(loading = false, error = "No stream found for this episode") }
+                // Show the extension's real error when it threw, instead of hiding it.
+                val reason = result.exceptionOrNull()
+                    ?.let { "Could not load streams: ${it::class.java.simpleName}: ${it.message ?: "no message"}" }
+                    ?: "No stream found for this episode"
+                _state.update { it.copy(loading = false, error = reason) }
                 return@launch
             }
             val preferred = videos.indexOfFirst { it.preferred }.takeIf { it >= 0 } ?: 0
