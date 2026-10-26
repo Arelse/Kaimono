@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -34,6 +35,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -70,10 +72,23 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import tachiyomi.presentation.core.components.material.Scaffold
 
+/** Which part of the feed is showing. Chips and section titles switch between them in place. */
+enum class AnimeFeedMode { HOME, POPULAR, LATEST }
+
+/** One paged list (Popular or Latest shown as a full grid). */
+data class AnimeFeedListing(
+    val animes: List<SAnime> = emptyList(),
+    val nextPage: Int = 1,
+    val hasNext: Boolean = true,
+    val loading: Boolean = false,
+    val error: String? = null,
+)
+
 /**
  * Anime counterpart of the manga source feed, laid out like it: filter chips, a Latest row, a
- * Popular row with title panels, and a grid of larger covers. Tapping a section title or a chip
- * opens the full browse list; tapping a cover opens its details.
+ * Popular row with title panels, and a grid of larger covers. Popular and Latest switch the feed
+ * in place into a paged grid, the way the manga feed does, instead of opening the browse screen.
+ * Filter still opens the browse screen, because the filter sheet lives there.
  */
 data class AnimeSourceFeedScreen(
     val sourceId: Long,
@@ -148,56 +163,56 @@ data class AnimeSourceFeedScreen(
                         IconButton(onClick = { openBrowse() }) {
                             Icon(imageVector = Icons.Outlined.Search, contentDescription = null)
                         }
-                        IconButton(onClick = { openBrowse() }) {
-                            Icon(imageVector = Icons.Outlined.FilterList, contentDescription = null)
-                        }
                     },
                 )
             },
         ) { paddingValues ->
-            val grid = state.popular?.getOrNull().orEmpty()
             LazyColumn(contentPadding = paddingValues) {
                 item(key = "anime-feed-chips") {
                     FeedChips(
+                        mode = state.mode,
                         supportsLatest = supportsLatest,
-                        onPopular = { openBrowse() },
-                        onLatest = { openBrowse(startLatest = true) },
+                        onHome = { viewModel.setMode(AnimeFeedMode.HOME) },
+                        onPopular = { viewModel.setMode(AnimeFeedMode.POPULAR) },
+                        onLatest = { viewModel.setMode(AnimeFeedMode.LATEST) },
                         onFilter = { openBrowse() },
                     )
                 }
-                if (supportsLatest) {
-                    item(key = "anime-feed-latest") {
-                        FeedRow(
-                            title = "Latest",
-                            animes = state.latest,
-                            onTitleClick = { openBrowse(startLatest = true) },
-                            onAnimeClick = { openDetails(it) },
-                        )
-                    }
-                }
-                item(key = "anime-feed-popular") {
-                    FeedRow(
-                        title = "Popular",
-                        animes = state.popular,
-                        onTitleClick = { openBrowse() },
-                        onAnimeClick = { openDetails(it) },
-                    )
-                }
-                // Grid of larger covers with the title over the image, three per row.
-                items(grid.chunked(3), key = { row -> row.first().url }) { row ->
-                    Row(
-                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp),
-                        horizontalArrangement = Arrangement.spacedBy(10.dp),
-                    ) {
-                        row.forEach { anime ->
-                            FeedGridCard(
-                                anime = anime,
-                                modifier = Modifier.weight(1f),
-                                onClick = { openDetails(anime) },
+                when (state.mode) {
+                    AnimeFeedMode.HOME -> {
+                        if (supportsLatest) {
+                            item(key = "anime-feed-latest") {
+                                FeedRow(
+                                    title = "Latest",
+                                    animes = state.latest,
+                                    onTitleClick = { viewModel.setMode(AnimeFeedMode.LATEST) },
+                                    onAnimeClick = { openDetails(it) },
+                                )
+                            }
+                        }
+                        item(key = "anime-feed-popular") {
+                            FeedRow(
+                                title = "Popular",
+                                animes = state.popular,
+                                onTitleClick = { viewModel.setMode(AnimeFeedMode.POPULAR) },
+                                onAnimeClick = { openDetails(it) },
                             )
                         }
-                        repeat(3 - row.size) { Spacer(modifier = Modifier.weight(1f)) }
+                        // Grid of larger covers with the title over the image, three per row.
+                        animeGrid(state.popular?.getOrNull().orEmpty()) { openDetails(it) }
                     }
+                    AnimeFeedMode.POPULAR -> animeListing(
+                        title = "Popular",
+                        listing = state.popularListing,
+                        onLoadMore = { viewModel.loadMore(AnimeFeedMode.POPULAR) },
+                        onAnimeClick = { openDetails(it) },
+                    )
+                    AnimeFeedMode.LATEST -> animeListing(
+                        title = "Latest",
+                        listing = state.latestListing,
+                        onLoadMore = { viewModel.loadMore(AnimeFeedMode.LATEST) },
+                        onAnimeClick = { openDetails(it) },
+                    )
                 }
             }
         }
@@ -206,7 +221,9 @@ data class AnimeSourceFeedScreen(
 
 @Composable
 private fun FeedChips(
+    mode: AnimeFeedMode,
     supportsLatest: Boolean,
+    onHome: () -> Unit,
     onPopular: () -> Unit,
     onLatest: () -> Unit,
     onFilter: () -> Unit,
@@ -217,15 +234,15 @@ private fun FeedChips(
     ) {
         item {
             FilterChip(
-                selected = true,
-                onClick = {},
+                selected = mode == AnimeFeedMode.HOME,
+                onClick = onHome,
                 label = { Text("Home") },
                 leadingIcon = { Icon(Icons.Outlined.GridView, contentDescription = null, modifier = Modifier.size(18.dp)) },
             )
         }
         item {
             FilterChip(
-                selected = false,
+                selected = mode == AnimeFeedMode.POPULAR,
                 onClick = onPopular,
                 label = { Text("Popular") },
                 leadingIcon = { Icon(Icons.Outlined.FavoriteBorder, contentDescription = null, modifier = Modifier.size(18.dp)) },
@@ -234,7 +251,7 @@ private fun FeedChips(
         if (supportsLatest) {
             item {
                 FilterChip(
-                    selected = false,
+                    selected = mode == AnimeFeedMode.LATEST,
                     onClick = onLatest,
                     label = { Text("Latest") },
                     leadingIcon = { Icon(Icons.Outlined.Update, contentDescription = null, modifier = Modifier.size(18.dp)) },
@@ -292,6 +309,60 @@ private fun FeedRow(
                     FeedCard(anime = anime, onClick = { onAnimeClick(anime) })
                 }
             }
+        }
+    }
+}
+
+/** A paged list shown as a full grid, with a title, a load-more footer and retry on failure. */
+private fun LazyListScope.animeListing(
+    title: String,
+    listing: AnimeFeedListing,
+    onLoadMore: () -> Unit,
+    onAnimeClick: (SAnime) -> Unit,
+) {
+    item(key = "anime-listing-title-$title") {
+        Text(
+            text = title,
+            style = MaterialTheme.typography.titleLarge,
+            fontWeight = FontWeight.Bold,
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
+        )
+    }
+    animeGrid(listing.animes, onAnimeClick)
+    item(key = "anime-listing-footer-$title") {
+        Box(
+            modifier = Modifier.fillMaxWidth().padding(16.dp),
+            contentAlignment = Alignment.Center,
+        ) {
+            val error = listing.error
+            when {
+                listing.loading -> CircularProgressIndicator(modifier = Modifier.size(24.dp), strokeWidth = 2.dp)
+                error != null -> Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text(text = error, color = MaterialTheme.colorScheme.error)
+                    TextButton(onClick = onLoadMore) { Text("Retry") }
+                }
+                listing.hasNext -> TextButton(onClick = onLoadMore) { Text("Load more") }
+                listing.animes.isEmpty() -> Text("No anime found")
+            }
+        }
+    }
+}
+
+/** Covers in rows of three, each with its title over a dark fade. */
+private fun LazyListScope.animeGrid(animes: List<SAnime>, onAnimeClick: (SAnime) -> Unit) {
+    items(animes.distinctBy { it.url }.chunked(3), key = { row -> row.first().url }) { row ->
+        Row(
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp),
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            row.forEach { anime ->
+                FeedGridCard(
+                    anime = anime,
+                    modifier = Modifier.weight(1f),
+                    onClick = { onAnimeClick(anime) },
+                )
+            }
+            repeat(3 - row.size) { Spacer(modifier = Modifier.weight(1f)) }
         }
     }
 }
@@ -376,6 +447,9 @@ class AnimeSourceFeedViewModel(
     data class State(
         val latest: Result<List<SAnime>>? = null,
         val popular: Result<List<SAnime>>? = null,
+        val mode: AnimeFeedMode = AnimeFeedMode.HOME,
+        val popularListing: AnimeFeedListing = AnimeFeedListing(),
+        val latestListing: AnimeFeedListing = AnimeFeedListing(),
     )
 
     private val _state = MutableStateFlow(State())
@@ -404,6 +478,64 @@ class AnimeSourceFeedViewModel(
             launch {
                 val popular = fetch { src.getPopularAnime(1).animes }
                 _state.update { it.copy(popular = popular) }
+            }
+        }
+    }
+
+    /** Switches the feed in place. Popular and Latest load their first page when first shown. */
+    fun setMode(mode: AnimeFeedMode) {
+        _state.update { it.copy(mode = mode) }
+        if (mode == AnimeFeedMode.HOME) return
+        val listing = listingFor(_state.value, mode)
+        if (listing.animes.isEmpty() && listing.error == null && !listing.loading) {
+            loadMore(mode)
+        }
+    }
+
+    /** Fetches the next page of Popular or Latest and appends it. */
+    fun loadMore(mode: AnimeFeedMode) {
+        val current = listingFor(_state.value, mode)
+        if (current.loading || !current.hasNext) return
+        val src = source
+        if (src == null) {
+            setListing(mode) { it.copy(error = "This source is no longer installed") }
+            return
+        }
+        val page = current.nextPage
+        setListing(mode) { it.copy(loading = true, error = null) }
+        viewModelScope.launch {
+            val result = withContext(Dispatchers.IO) {
+                runCatching {
+                    if (mode == AnimeFeedMode.LATEST) src.getLatestUpdates(page) else src.getPopularAnime(page)
+                }
+            }
+            setListing(mode) { listing ->
+                result.fold(
+                    onSuccess = { pageResult ->
+                        listing.copy(
+                            animes = (listing.animes + pageResult.animes).distinctBy { it.url },
+                            nextPage = page + 1,
+                            hasNext = pageResult.hasNextPage,
+                            loading = false,
+                        )
+                    },
+                    onFailure = { e ->
+                        listing.copy(loading = false, error = e.message ?: "Failed to load anime")
+                    },
+                )
+            }
+        }
+    }
+
+    private fun listingFor(state: State, mode: AnimeFeedMode): AnimeFeedListing =
+        if (mode == AnimeFeedMode.LATEST) state.latestListing else state.popularListing
+
+    private fun setListing(mode: AnimeFeedMode, block: (AnimeFeedListing) -> AnimeFeedListing) {
+        _state.update { s ->
+            if (mode == AnimeFeedMode.LATEST) {
+                s.copy(latestListing = block(s.latestListing))
+            } else {
+                s.copy(popularListing = block(s.popularListing))
             }
         }
     }
