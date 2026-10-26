@@ -145,12 +145,24 @@ class AnimePlayerViewModel(
         }
     }
 
+    /**
+     * Some extensions implement getVideoList(episode); others only implement the hoster API
+     * (getHosterList, then getVideoList per hoster). Try the first, and fall back to the second when
+     * the extension says it isn't implemented.
+     */
+    private suspend fun streamsFor(src: AnimeCatalogueSource, episode: SEpisode): List<Video> =
+        try {
+            src.getVideoList(episode)
+        } catch (e: UnsupportedOperationException) {
+            src.getHosterList(episode).flatMap { hoster -> src.getVideoList(hoster) }
+        }
+
     fun playEpisode(index: Int) {
         val src = source ?: return
         val episode = _state.value.episodes.getOrNull(index) ?: return
         _state.update { it.copy(episodeIndex = index, loading = true, error = null, videos = emptyList()) }
         viewModelScope.launch {
-            val result = withContext(Dispatchers.IO) { runCatching { src.getVideoList(episode) } }
+            val result = withContext(Dispatchers.IO) { runCatching { streamsFor(src, episode) } }
             val videos = result.getOrDefault(emptyList()).filter { it.videoUrl.isNotBlank() }
 
             if (videos.isEmpty()) {
