@@ -4,6 +4,12 @@
 -keep,allowoptimization class tachiyomi.**
 -keep,allowoptimization class mihon.**
 
+# Extensions call public and protected members of the source API (for example getNetwork() and
+# getClient()). Without member rules, R8 removes members the app itself never calls, which causes
+# NoSuchMethodError when an extension loads.
+-keep,allowoptimization class eu.kanade.tachiyomi.animesource.** { public protected *; }
+-keep,allowoptimization class eu.kanade.tachiyomi.source.** { public protected *; }
+
 # Keep common dependencies used in extensions
 -keep,allowoptimization class androidx.preference.** { public protected *; }
 -keep,allowoptimization class kotlin.** { public protected *; }
