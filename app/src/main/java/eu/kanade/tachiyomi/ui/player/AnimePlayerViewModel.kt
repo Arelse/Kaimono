@@ -1,9 +1,11 @@
 package eu.kanade.tachiyomi.ui.player
 
 import android.app.Application
+import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.media3.common.C
+import androidx.media3.common.MimeTypes
 import androidx.media3.common.Format
 import androidx.media3.common.VideoSize
 import androidx.media3.common.MediaItem
@@ -254,8 +256,23 @@ class AnimePlayerViewModel(
         val httpFactory = DefaultHttpDataSource.Factory()
             .setAllowCrossProtocolRedirects(true)
             .setDefaultRequestProperties(headers)
+        // Subtitle files shipped with the stream (VTT or SRT) are attached to the item so the
+        // player can offer them in its subtitle track list.
+        val subtitles = video.subtitleTracks.filter { it.url.isNotBlank() }.map { track ->
+            val path = track.url.substringBefore('?').lowercase()
+            val mime = if (path.endsWith(".srt")) MimeTypes.APPLICATION_SUBRIP else MimeTypes.TEXT_VTT
+            MediaItem.SubtitleConfiguration.Builder(Uri.parse(track.url))
+                .setMimeType(mime)
+                .setLanguage(track.lang.takeIf { it.isNotBlank() })
+                .setSelectionFlags(C.SELECTION_FLAG_DEFAULT)
+                .build()
+        }
+        val mediaItem = MediaItem.Builder()
+            .setUri(video.videoUrl)
+            .setSubtitleConfigurations(subtitles)
+            .build()
         val mediaSource = DefaultMediaSourceFactory(httpFactory)
-            .createMediaSource(MediaItem.fromUri(video.videoUrl))
+            .createMediaSource(mediaItem)
         player.setMediaSource(mediaSource)
         player.prepare()
         if (keepPosition > 0L) player.seekTo(keepPosition)
