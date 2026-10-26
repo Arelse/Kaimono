@@ -253,17 +253,16 @@ class AnimePlayerScreen(
                 )
             }
 
-            // Diagnostic for a black picture: what the stream's video track reports.
-            if (state.error == null && !state.loading &&
-                (state.videoSize == "0x0" || state.videoInfo == "no video track")
-            ) {
+            // Debug line, always shown while playing: what the stream's video track reports and the
+            // decoded frame size. Used to tell a missing picture apart from a drawing problem.
+            if (state.error == null && !state.loading) {
                 Text(
-                    text = "No picture: ${state.videoInfo.ifEmpty { "unknown" }}, decoded size ${state.videoSize.ifEmpty { "none" }}",
-                    color = Color.White.copy(alpha = 0.8f),
-                    textAlign = TextAlign.Center,
+                    text = "Video: ${state.videoInfo.ifEmpty { "unknown" }}, decoded ${state.videoSize.ifEmpty { "none" }}",
+                    color = Color.Yellow,
+                    style = MaterialTheme.typography.labelSmall,
                     modifier = Modifier
-                        .align(Alignment.Center)
-                        .padding(16.dp),
+                        .align(Alignment.TopStart)
+                        .padding(start = 16.dp, top = 96.dp),
                 )
             }
 
