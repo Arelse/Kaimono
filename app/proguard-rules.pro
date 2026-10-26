@@ -30,12 +30,10 @@
 -keep,allowoptimization class com.squareup.zstd.** { public protected *; }
 
 # From extensions-lib
--keep,allowoptimization class eu.kanade.tachiyomi.network.interceptor.RateLimitInterceptorKt { public protected *; }
--keep,allowoptimization class eu.kanade.tachiyomi.network.interceptor.SpecificHostRateLimitInterceptorKt { public protected *; }
--keep,allowoptimization class eu.kanade.tachiyomi.network.NetworkHelper { public protected *; }
--keep,allowoptimization class eu.kanade.tachiyomi.network.OkHttpExtensionsKt { public protected *; }
--keep,allowoptimization class eu.kanade.tachiyomi.network.RequestsKt { public protected *; }
--keep,allowoptimization class eu.kanade.tachiyomi.AppInfo { public protected *; }
+# Keep every member as written. "public protected *" skips the synthetic default-argument methods
+# (e.g. RequestsKt.get$default), so extensions calling GET(...) with defaults got NoSuchMethodError.
+-keep class eu.kanade.tachiyomi.network.** { *; }
+-keep class eu.kanade.tachiyomi.AppInfo { *; }
 
 -keepclassmembers class * implements java.io.Serializable {
     java.lang.Object writeReplace();
