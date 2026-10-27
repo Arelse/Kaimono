@@ -10,7 +10,8 @@ class NetworkPreferences(
 
     val verboseLogging: Preference<Boolean> = preferenceStore.getBoolean("verbose_logging", verboseLoggingDefault)
 
-    val dohProvider: Preference<Int> = preferenceStore.getInt("doh_provider", -1)
+    // 1 = Cloudflare DNS-over-HTTPS (PREF_DOH_CLOUDFLARE). Was -1 (off). Turn it off in Settings > Advanced.
+    val dohProvider: Preference<Int> = preferenceStore.getInt("doh_provider", 1)
 
     val defaultUserAgent: Preference<String> = preferenceStore.getString(
         "default_user_agent",
