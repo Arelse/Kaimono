@@ -31,6 +31,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 import uy.kohesive.injekt.Injekt
 import uy.kohesive.injekt.api.get
 
@@ -106,7 +107,16 @@ class AnimePlayerViewModel(
 
             override fun onTracksChanged(tracks: Tracks) {
                 val video = tracks.groups.firstOrNull { it.type == C.TRACK_TYPE_VIDEO }?.getTrackFormat(0)
-                val info = video?.let { it.sampleMimeType ?: "unknown codec" } ?: "no video track"
+                // Diagnostic readout: what ExoPlayer detected for the video track, plus the
+                // container type and the host/file the stream came from.
+                val host = currentVideo?.videoUrl?.toHttpUrlOrNull()?.host ?: "?"
+                val file = currentVideo?.videoUrl?.substringAfterLast('/')?.substringBefore('?')?.take(40) ?: "?"
+                val info = if (video == null) {
+                    "no video track"
+                } else {
+                    "sample=${video.sampleMimeType ?: "null"}, codecs=${video.codecs ?: "null"}, " +
+                        "container=${video.containerMimeType ?: "null"}, host=$host, file=$file"
+                }
                 _state.update { it.copy(videoInfo = info) }
             }
 
