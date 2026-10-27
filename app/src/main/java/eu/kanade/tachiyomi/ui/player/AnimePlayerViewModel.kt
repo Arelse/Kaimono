@@ -1,21 +1,10 @@
 package eu.kanade.tachiyomi.ui.player
 
 import android.app.Application
-import android.net.Uri
+import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.media3.common.C
-import androidx.media3.common.MimeTypes
-import androidx.media3.common.Format
-import androidx.media3.common.VideoSize
-import androidx.media3.common.MediaItem
-import androidx.media3.common.PlaybackException
-import androidx.media3.common.Player
-import androidx.media3.common.TrackSelectionOverride
-import androidx.media3.common.Tracks
-import androidx.media3.datasource.DefaultHttpDataSource
-import androidx.media3.exoplayer.ExoPlayer
-import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
 import eu.kanade.tachiyomi.animesource.AnimeCatalogueSource
 import eu.kanade.tachiyomi.animesource.model.SAnime
 import eu.kanade.tachiyomi.animesource.model.SEpisode
@@ -35,37 +24,30 @@ import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 import uy.kohesive.injekt.Injekt
 import uy.kohesive.injekt.api.get
 
-/** One audio or subtitle track as the player reports it. */
+/** One audio or subtitle track the player offers. [id] is the track id the player selects by. */
 data class TrackOption(
-    val groupIndex: Int,
-    val trackIndex: Int,
+    val id: Int,
     val label: String,
     val selected: Boolean,
 )
 
 /**
  * Plays episodes from an installed anime source. Episodes come from the source's episode list,
- * streams from its video list, and playback runs in ExoPlayer.
+ * streams from its video list, and playback runs in mpv through [MpvEngine].
  */
 class AnimePlayerViewModel(
     private val sourceId: Long,
     animeUrl: String,
     title: String,
     private val initialEpisodeUrl: String,
-) : ViewModel() {
+) : ViewModel(), MpvEngine.Listener {
 
     private val app: Application = Injekt.get()
 
-    // The stream currently loaded, and the container types already tried for it. When the player
-    // can't identify a stream, it retries with the next type in fallbackMimes.
+    private val engine = MpvEngine(app)
+
+    // The stream currently loaded, used for the diagnostic readout.
     private var currentVideo: Video? = null
-    private val triedMimes = mutableSetOf<String?>()
-    private val fallbackMimes = listOf(
-        MimeTypes.APPLICATION_M3U8,
-        MimeTypes.APPLICATION_MPD,
-        MimeTypes.VIDEO_MP4,
-        MimeTypes.VIDEO_MATROSKA,
-    )
 
     private val source: AnimeCatalogueSource? = AnimeExtensionManager.installedSources()
         .filterIsInstance<AnimeCatalogueSource>()
@@ -88,63 +70,18 @@ class AnimePlayerViewModel(
         val position: Long = 0L,
         val duration: Long = 0L,
         val speed: Float = 1f,
-        /** Codec of the stream's video track, or "no video track". Shown when the picture is black. */
+        /** Codec and stream details of the current video, or "no video track". Shown when the picture is black. */
         val videoInfo: String = "",
-        /** Size the decoder reports, e.g. "1280x720"; "0x0" means no picture is being decoded. */
+        /** Size the decoder reports, e.g. "1280x720"; empty means no picture is being decoded. */
         val videoSize: String = "",
     )
 
     private val _state = MutableStateFlow(State(title = title))
     val state: StateFlow<State> = _state.asStateFlow()
 
-    val player: ExoPlayer = ExoPlayer.Builder(app).build()
-
     init {
-        player.addListener(object : Player.Listener {
-            override fun onIsPlayingChanged(isPlaying: Boolean) {
-                _state.update { it.copy(isPlaying = isPlaying) }
-            }
-
-            override fun onTracksChanged(tracks: Tracks) {
-                val video = tracks.groups.firstOrNull { it.type == C.TRACK_TYPE_VIDEO }?.getTrackFormat(0)
-                // Diagnostic readout: what ExoPlayer detected for the video track, plus the
-                // container type and the host/file the stream came from.
-                val host = currentVideo?.videoUrl?.toHttpUrlOrNull()?.host ?: "?"
-                val file = currentVideo?.videoUrl?.substringAfterLast('/')?.substringBefore('?')?.take(40) ?: "?"
-                val info = if (video == null) {
-                    "no video track"
-                } else {
-                    "sample=${video.sampleMimeType ?: "null"}, codecs=${video.codecs ?: "null"}, " +
-                        "container=${video.containerMimeType ?: "null"}, host=$host, file=$file"
-                }
-                _state.update { it.copy(videoInfo = info) }
-            }
-
-            override fun onVideoSizeChanged(videoSize: VideoSize) {
-                _state.update { it.copy(videoSize = "${videoSize.width}x${videoSize.height}") }
-            }
-
-            override fun onPlaybackStateChanged(playbackState: Int) {
-                // Autoplay the next episode when this one ends.
-                if (playbackState == Player.STATE_ENDED) {
-                    val next = _state.value.episodeIndex + 1
-                    if (next < _state.value.episodes.size) playEpisode(next)
-                }
-            }
-
-            override fun onPlayerError(error: PlaybackException) {
-                // The player couldn't identify the stream: retry with the next container type.
-                val video = currentVideo
-                val next = fallbackMimes.firstOrNull { it !in triedMimes }
-                if (error.errorCode == PlaybackException.ERROR_CODE_PARSING_CONTAINER_UNSUPPORTED &&
-                    video != null && next != null
-                ) {
-                    prepare(video, keepPosition = player.currentPosition, mimeOverride = next)
-                    return
-                }
-                _state.update { it.copy(loading = false, error = "Playback failed (${error.errorCodeName})") }
-            }
-        })
+        engine.listener = this
+        engine.start()
 
         viewModelScope.launch {
             val src = source
@@ -163,18 +100,46 @@ class AnimePlayerViewModel(
             playEpisode(episodes.indexOfFirst { it.url == initialEpisodeUrl }.coerceAtLeast(0))
         }
 
-        // Keeps the position and duration in state so the controls can show them.
+        // Keeps the playback state, position, and diagnostics in state so the controls can show them.
         viewModelScope.launch {
             while (isActive) {
-                _state.update {
-                    it.copy(
-                        position = player.currentPosition.coerceAtLeast(0L),
-                        duration = player.duration.takeIf { d -> d > 0L } ?: 0L,
-                    )
-                }
+                refresh()
                 delay(500)
             }
         }
+    }
+
+    private fun refresh() {
+        if (!engine.isStarted) return
+        val codec = engine.videoCodec()
+        val host = currentVideo?.videoUrl?.toHttpUrlOrNull()?.host ?: "?"
+        val file = currentVideo?.videoUrl?.substringAfterLast('/')?.substringBefore('?')?.take(40) ?: "?"
+        val info = if (codec == null) "no video track" else "codec=$codec, host=$host, file=$file"
+        _state.update {
+            it.copy(
+                isPlaying = !engine.isPaused() && !engine.isEndOfFile(),
+                position = engine.positionMs(),
+                duration = engine.durationMs(),
+                videoInfo = info,
+                videoSize = engine.videoSize(),
+            )
+        }
+    }
+
+    // MpvEngine.Listener
+
+    override fun onFileLoaded() {
+        _state.update { it.copy(loading = false, error = null) }
+    }
+
+    override fun onEndOfFile() {
+        // Autoplay the next episode when this one ends.
+        val next = _state.value.episodeIndex + 1
+        if (next < _state.value.episodes.size) playEpisode(next)
+    }
+
+    override fun onLoadFailed() {
+        _state.update { it.copy(loading = false, error = "Playback failed: the player could not open this stream") }
     }
 
     /**
@@ -207,136 +172,75 @@ class AnimePlayerViewModel(
             }
             val preferred = videos.indexOfFirst { it.preferred }.takeIf { it >= 0 } ?: 0
             _state.update { it.copy(videos = videos, videoIndex = preferred) }
-            prepare(videos[preferred], keepPosition = 0L)
-            _state.update { it.copy(loading = false) }
+            prepare(videos[preferred], keepPositionMs = 0L)
         }
     }
 
     /** Switches to another stream of the same episode, keeping the current position. */
     fun selectVideo(index: Int) {
         val video = _state.value.videos.getOrNull(index) ?: return
-        val keep = player.currentPosition
+        val keep = engine.positionMs()
         _state.update { it.copy(videoIndex = index, error = null) }
-        prepare(video, keepPosition = keep)
+        prepare(video, keepPositionMs = keep)
     }
 
     fun playNeighbour(delta: Int) = playEpisode(_state.value.episodeIndex + delta)
 
     fun togglePlay() {
-        if (player.isPlaying) {
-            player.pause()
+        if (engine.isPaused()) {
+            if (engine.isEndOfFile()) engine.seekAbsoluteMs(0L)
+            engine.setPaused(false)
         } else {
-            if (player.playbackState == Player.STATE_ENDED) player.seekTo(0L)
-            player.play()
+            engine.setPaused(true)
         }
     }
 
-    fun seekBy(deltaMs: Long) {
-        val duration = player.duration.takeIf { it > 0L }
-        val target = (player.currentPosition + deltaMs).coerceAtLeast(0L)
-        player.seekTo(if (duration != null) target.coerceAtMost(duration) else target)
+    /** Pauses playback, for when the app goes to the background. */
+    fun pausePlayback() {
+        engine.setPaused(true)
     }
 
-    fun seekTo(positionMs: Long) {
-        player.seekTo(positionMs.coerceAtLeast(0L))
-    }
+    fun seekBy(deltaMs: Long) = engine.seekRelativeMs(deltaMs)
+
+    fun seekTo(positionMs: Long) = engine.seekAbsoluteMs(positionMs)
 
     fun setSpeed(speed: Float) {
-        player.setPlaybackSpeed(speed)
+        engine.setSpeed(speed)
         _state.update { it.copy(speed = speed) }
     }
 
-    /** Audio or subtitle tracks the player currently has, for [type] (a C.TRACK_TYPE_* value). */
-    fun trackOptions(type: Int): List<TrackOption> {
-        val tracks: Tracks = player.currentTracks
-        return tracks.groups.flatMapIndexed { groupIndex, group ->
-            if (group.type != type) {
-                emptyList()
-            } else {
-                (0 until group.length).map { trackIndex ->
-                    TrackOption(
-                        groupIndex = groupIndex,
-                        trackIndex = trackIndex,
-                        label = labelFor(group.getTrackFormat(trackIndex)),
-                        selected = group.isTrackSelected(trackIndex),
-                    )
-                }
-            }
-        }
-    }
+    /** 0 fits the picture, 1 fills the view by cropping, and values between zoom in part way. */
+    fun setPanscan(value: Double) = engine.setPanscan(value)
 
-    fun selectTrack(option: TrackOption, type: Int) {
-        val group = player.currentTracks.groups.getOrNull(option.groupIndex) ?: return
-        player.trackSelectionParameters = player.trackSelectionParameters.buildUpon()
-            .setTrackTypeDisabled(type, false)
-            .setOverrideForType(TrackSelectionOverride(group.mediaTrackGroup, option.trackIndex))
-            .build()
-    }
+    /** The view the picture is drawn into. Its surface is attached to the engine as it appears. */
+    fun createSurface(context: Context): MpvSurfaceView = MpvSurfaceView(context, engine)
 
-    fun disableTrack(type: Int) {
-        player.trackSelectionParameters = player.trackSelectionParameters.buildUpon()
-            .setTrackTypeDisabled(type, true)
-            .build()
-    }
+    /** Audio or subtitle tracks the current file has, for [type] (a C.TRACK_TYPE_* value). */
+    fun trackOptions(type: Int): List<TrackOption> =
+        engine.tracks(mpvType(type)).map { TrackOption(it.id, it.label, it.selected) }
 
-    private fun prepare(video: Video, keepPosition: Long, mimeOverride: String? = null) {
+    fun selectTrack(option: TrackOption, type: Int) = engine.selectTrack(mpvType(type), option.id)
+
+    fun disableTrack(type: Int) = engine.disableTrack(mpvType(type))
+
+    private fun mpvType(type: Int): String = if (type == C.TRACK_TYPE_AUDIO) "audio" else "sub"
+
+    private fun prepare(video: Video, keepPositionMs: Long) {
         currentVideo = video
-        if (mimeOverride == null) triedMimes.clear()
-        val mime = mimeOverride ?: mimeFor(video.videoUrl)
-        triedMimes += mime
         val headers: Map<String, String> = video.headers?.let { h ->
             (0 until h.size).associate { h.name(it) to h.value(it) }
         }.orEmpty()
-        val httpFactory = DefaultHttpDataSource.Factory()
-            .setAllowCrossProtocolRedirects(true)
-            .setDefaultRequestProperties(headers)
-        // Subtitle files shipped with the stream (VTT or SRT) are attached to the item so the
-        // player can offer them in its subtitle track list.
-        val subtitles = video.subtitleTracks.filter { it.url.isNotBlank() }.map { track ->
-            val path = track.url.substringBefore('?').lowercase()
-            val mime = if (path.endsWith(".srt")) MimeTypes.APPLICATION_SUBRIP else MimeTypes.TEXT_VTT
-            MediaItem.SubtitleConfiguration.Builder(Uri.parse(track.url))
-                .setMimeType(mime)
-                .setLanguage(track.lang.takeIf { it.isNotBlank() })
-                .setSelectionFlags(C.SELECTION_FLAG_DEFAULT)
-                .build()
-        }
-        // Some streams don't identify their container, so the player can't tell what it is and
-        // fails with ERROR_CODE_PARSING_CONTAINER_UNSUPPORTED. Passing the type from the URL fixes that.
-        val mediaItem = MediaItem.Builder()
-            .setUri(video.videoUrl)
-            .setMimeType(mime)
-            .setSubtitleConfigurations(subtitles)
-            .build()
-        val mediaSource = DefaultMediaSourceFactory(httpFactory)
-            .createMediaSource(mediaItem)
-        player.setMediaSource(mediaSource)
-        player.prepare()
-        if (keepPosition > 0L) player.seekTo(keepPosition)
-        player.playWhenReady = true
-        player.setPlaybackSpeed(_state.value.speed)
-    }
-
-    /** The container type implied by the URL's file extension, or null when there isn't one. */
-    private fun mimeFor(url: String): String? {
-        val path = url.substringBefore('?').lowercase()
-        return when {
-            path.endsWith(".m3u8") -> MimeTypes.APPLICATION_M3U8
-            path.endsWith(".mpd") -> MimeTypes.APPLICATION_MPD
-            path.endsWith(".mp4") -> MimeTypes.VIDEO_MP4
-            path.endsWith(".mkv") -> MimeTypes.VIDEO_MATROSKA
-            else -> null
-        }
-    }
-
-    private fun labelFor(format: Format): String {
-        format.label?.takeIf { it.isNotBlank() }?.let { return it }
-        format.language?.takeIf { it.isNotBlank() }?.let { return it.uppercase() }
-        return "Track"
+        // Subtitle files shipped with the stream are added once the file has loaded.
+        val subtitles = video.subtitleTracks
+            .filter { it.url.isNotBlank() }
+            .map { it.url to it.lang }
+        engine.loadFile(video.videoUrl, headers, subtitles, keepPositionMs)
+        engine.setSpeed(_state.value.speed)
     }
 
     override fun onCleared() {
-        player.release()
+        engine.listener = null
+        engine.stop()
         super.onCleared()
     }
 }
