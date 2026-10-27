@@ -73,8 +73,6 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import androidx.media3.common.C
-import androidx.media3.ui.AspectRatioFrameLayout
-import androidx.media3.ui.PlayerView
 import cafe.adriel.voyager.navigator.LocalNavigator
 import cafe.adriel.voyager.navigator.currentOrThrow
 import eu.kanade.presentation.util.Screen
@@ -88,15 +86,12 @@ private enum class PlayerSheet { EPISODES, QUALITY, AUDIO, SUBTITLES, SPEED, OPT
 
 private val playerSpeeds = listOf(0.5f, 0.75f, 1f, 1.25f, 1.5f, 2f)
 
-private val resizeModes = listOf(
-    AspectRatioFrameLayout.RESIZE_MODE_FIT,
-    AspectRatioFrameLayout.RESIZE_MODE_FILL,
-    AspectRatioFrameLayout.RESIZE_MODE_ZOOM,
-)
+// mpv panscan values: 0 fits the picture, 1 fills the view by cropping, 0.5 zooms part way.
+private val resizeModes = listOf(0.0, 1.0, 0.5)
 private val resizeLabels = listOf("Fit", "Fill", "Zoom")
 
 /**
- * In-app anime player. Plays one episode at a time through ExoPlayer and shows the same set of
+ * In-app anime player. Plays one episode at a time through mpv and shows the same set of
  * controls in one of three themes, each with its own button names and placement.
  */
 class AnimePlayerScreen(
@@ -158,7 +153,7 @@ class AnimePlayerScreen(
         // Pause when the app goes to the background, so audio doesn't keep playing.
         DisposableEffect(lifecycleOwner) {
             val observer = LifecycleEventObserver { _, event ->
-                if (event == Lifecycle.Event.ON_STOP) vm.player.pause()
+                if (event == Lifecycle.Event.ON_STOP) vm.pausePlayback()
             }
             lifecycleOwner.lifecycle.addObserver(observer)
             onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
@@ -243,15 +238,13 @@ class AnimePlayerScreen(
                     )
                 },
         ) {
+            LaunchedEffect(resizeIndex) {
+                vm.setPanscan(resizeModes[resizeIndex])
+            }
             AndroidView(
                 modifier = Modifier.fillMaxSize(),
-                factory = { ctx ->
-                    PlayerView(ctx).apply {
-                        useController = false
-                        player = vm.player
-                    }
-                },
-                update = { view -> view.resizeMode = resizeModes[resizeIndex] },
+                factory = { ctx -> vm.createSurface(ctx) },
+                onRelease = { view -> view.release() },
             )
 
             if (state.loading) {
@@ -809,3 +802,5 @@ private fun openExternal(context: Context, url: String?) {
 private fun toast(context: Context, message: String) {
     Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
 }
+
+                
