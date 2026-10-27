@@ -33,6 +33,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 enum class PlayerTheme(val label: String, val description: String) {
     CINEMA("Cinema", "Big centre transport, a tool strip along the bottom, no boxes"),
     FROSTED("Frosted Glass", "Glass capsules on the top and bottom bars"),
+    GLASS_PANE("Liquid Pane", "Blurred glass panels: split top controls, a floating bottom panel"),
     CLASSIC("Classic Bar", "Compact edge buttons with one bottom bar"),
     ;
 
@@ -78,6 +79,19 @@ fun PlayerTheme.layout(): PlayerLayout = when (this) {
             PlayerAction.PREV, PlayerAction.NEXT, PlayerAction.EPISODES, PlayerAction.QUALITY,
             PlayerAction.AUDIO, PlayerAction.SUBTITLES, PlayerAction.SPEED, PlayerAction.ASPECT,
             PlayerAction.SHADERS, PlayerAction.SYNC_SUBS, PlayerAction.FULLSCREEN,
+        ),
+    )
+    PlayerTheme.GLASS_PANE -> PlayerLayout(
+        topLeft = listOf(PlayerAction.BACK, PlayerAction.LOCK),
+        topRight = listOf(PlayerAction.FULLSCREEN, PlayerAction.OPTIONS, PlayerAction.EXTERNAL),
+        centre = listOf(
+            PlayerAction.PREV, PlayerAction.REPLAY, PlayerAction.PLAY_PAUSE,
+            PlayerAction.FORWARD, PlayerAction.NEXT,
+        ),
+        bottomTools = listOf(
+            PlayerAction.EPISODES, PlayerAction.QUALITY, PlayerAction.AUDIO, PlayerAction.SUBTITLES,
+            PlayerAction.SPEED, PlayerAction.ASPECT, PlayerAction.PIP, PlayerAction.CAST,
+            PlayerAction.SHADERS, PlayerAction.SYNC_SUBS,
         ),
     )
     PlayerTheme.CLASSIC -> PlayerLayout(
@@ -138,6 +152,28 @@ fun PlayerTheme.label(action: PlayerAction): String = when (this) {
         PlayerAction.SHADERS -> "Colour"
         PlayerAction.SYNC_SUBS -> "Timing"
     }
+    PlayerTheme.GLASS_PANE -> when (action) {
+        PlayerAction.BACK -> "Back"
+        PlayerAction.LOCK -> "Lock"
+        PlayerAction.OPTIONS -> "Tune"
+        PlayerAction.PIP -> "Mini"
+        PlayerAction.EXTERNAL -> "Open"
+        PlayerAction.PREV -> "Prev"
+        PlayerAction.REPLAY -> "15"
+        PlayerAction.PLAY_PAUSE -> "Play"
+        PlayerAction.FORWARD -> "15"
+        PlayerAction.NEXT -> "Next"
+        PlayerAction.EPISODES -> "Eps"
+        PlayerAction.QUALITY -> "Quality"
+        PlayerAction.AUDIO -> "Sound"
+        PlayerAction.SUBTITLES -> "Text"
+        PlayerAction.SPEED -> "Pace"
+        PlayerAction.ASPECT -> "Frame"
+        PlayerAction.FULLSCREEN -> "Expand"
+        PlayerAction.CAST -> "Cast"
+        PlayerAction.SHADERS -> "Grade"
+        PlayerAction.SYNC_SUBS -> "Delay"
+    }
     PlayerTheme.CLASSIC -> when (action) {
         PlayerAction.BACK -> "Back"
         PlayerAction.LOCK -> "Locked"
@@ -184,4 +220,3 @@ fun PlayerAction.icon(isPlaying: Boolean, fullscreen: Boolean): ImageVector = wh
     PlayerAction.SHADERS -> Icons.Filled.Palette
     PlayerAction.SYNC_SUBS -> Icons.Filled.Sync
 }
-
