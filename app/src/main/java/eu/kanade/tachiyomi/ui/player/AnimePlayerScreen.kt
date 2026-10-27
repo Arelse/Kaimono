@@ -344,19 +344,21 @@ class AnimePlayerScreen(
             }
         }
 
-        sheet?.let { current ->
+        if (sheet == PlayerSheet.EPISODES) {
+            AnimeEpisodePanel(
+                episodes = state.episodes.map { episodeNumberLabel(it.episode_number) to it.name },
+                currentIndex = state.episodeIndex,
+                onPick = { index ->
+                    vm.playEpisode(index)
+                    sheet = null
+                },
+                onDismiss = { sheet = null },
+            )
+        }
+        sheet?.takeIf { it != PlayerSheet.EPISODES }?.let { current ->
             ModalBottomSheet(onDismissRequest = { sheet = null }) {
                 when (current) {
-                    PlayerSheet.EPISODES -> OptionSheet(
-                        title = "Episodes",
-                        options = state.episodes.mapIndexed { index, episode ->
-                            "Episode ${episodeNumberLabel(episode.episode_number)}" to (index == state.episodeIndex)
-                        },
-                        onPick = { index ->
-                            vm.playEpisode(index)
-                            sheet = null
-                        },
-                    )
+                    PlayerSheet.EPISODES -> Unit // Shown as AnimeEpisodePanel above.
                     PlayerSheet.QUALITY -> OptionSheet(
                         title = "Quality",
                         options = state.videos.mapIndexed { index, video ->
@@ -504,6 +506,7 @@ private fun PlayerOverlay(
                 when (theme) {
                     PlayerTheme.CINEMA -> 28.dp
                     PlayerTheme.FROSTED -> 20.dp
+                    PlayerTheme.GLASS_PANE -> 24.dp
                     PlayerTheme.CLASSIC -> 16.dp
                 },
             ),
@@ -536,7 +539,7 @@ private fun PlayerOverlay(
                 scrub = scrub,
                 onScrub = onScrub,
                 onSeekFraction = onSeekFraction,
-                glass = theme == PlayerTheme.FROSTED,
+                glass = theme == PlayerTheme.FROSTED || theme == PlayerTheme.GLASS_PANE,
             )
             Row(
                 modifier = Modifier
@@ -571,7 +574,7 @@ private fun ActionGroup(
     labelled: Boolean,
 ) {
     Row(
-        modifier = if (theme == PlayerTheme.FROSTED) {
+        modifier = if (theme == PlayerTheme.FROSTED || theme == PlayerTheme.GLASS_PANE) {
             Modifier
                 .playerGlass(RoundedCornerShape(26.dp))
                 .padding(horizontal = 4.dp, vertical = 2.dp)
@@ -618,6 +621,7 @@ private fun PlayerButton(
     val fill = when (theme) {
         PlayerTheme.CINEMA -> Color.Transparent
         PlayerTheme.FROSTED -> Color(0x66181818)
+        PlayerTheme.GLASS_PANE -> Color(0x4D1E1E28)
         PlayerTheme.CLASSIC -> Color(0xAA000000)
     }
     val alpha = if (enabled) 0.95f else 0.35f
@@ -633,7 +637,7 @@ private fun PlayerButton(
                 .size(size)
                 .background(fill, shape)
                 .then(
-                    if (theme == PlayerTheme.FROSTED) {
+                    if (theme == PlayerTheme.FROSTED || theme == PlayerTheme.GLASS_PANE) {
                         Modifier.border(1.dp, Color.White.copy(alpha = 0.2f), shape)
                     } else {
                         Modifier
