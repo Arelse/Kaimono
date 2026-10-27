@@ -112,6 +112,9 @@
     public void destroy();
 }
 
+# mpv's native code looks up these classes and methods by name, so R8 must not rename or strip them
+-keep class is.xyz.mpv.** { *; }
+
 # Keep Compose Theme from being stripped/mangled by R8
 -keep class eu.kanade.presentation.theme.TachiyomiThemeKt { *; }
 -keep class eu.kanade.presentation.theme.** { *; }
