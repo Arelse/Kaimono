@@ -267,8 +267,11 @@ class AnimePlayerViewModel(
                 .setSelectionFlags(C.SELECTION_FLAG_DEFAULT)
                 .build()
         }
+        // Some streams don't identify their container, so the player can't tell what it is and
+        // fails with ERROR_CODE_PARSING_CONTAINER_UNSUPPORTED. Passing the type from the URL fixes that.
         val mediaItem = MediaItem.Builder()
             .setUri(video.videoUrl)
+            .setMimeType(mimeFor(video.videoUrl))
             .setSubtitleConfigurations(subtitles)
             .build()
         val mediaSource = DefaultMediaSourceFactory(httpFactory)
@@ -278,6 +281,18 @@ class AnimePlayerViewModel(
         if (keepPosition > 0L) player.seekTo(keepPosition)
         player.playWhenReady = true
         player.setPlaybackSpeed(_state.value.speed)
+    }
+
+    /** The container type implied by the URL's file extension, or null when there isn't one. */
+    private fun mimeFor(url: String): String? {
+        val path = url.substringBefore('?').lowercase()
+        return when {
+            path.endsWith(".m3u8") -> MimeTypes.APPLICATION_M3U8
+            path.endsWith(".mpd") -> MimeTypes.APPLICATION_MPD
+            path.endsWith(".mp4") -> MimeTypes.VIDEO_MP4
+            path.endsWith(".mkv") -> MimeTypes.VIDEO_MATROSKA
+            else -> null
+        }
     }
 
     private fun labelFor(format: Format): String {
