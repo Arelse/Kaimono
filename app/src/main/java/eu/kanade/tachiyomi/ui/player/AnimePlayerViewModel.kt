@@ -55,6 +55,17 @@ class AnimePlayerViewModel(
 
     private val app: Application = Injekt.get()
 
+    // The stream currently loaded, and the container types already tried for it. When the player
+    // can't identify a stream, it retries with the next type in fallbackMimes.
+    private var currentVideo: Video? = null
+    private val triedMimes = mutableSetOf<String?>()
+    private val fallbackMimes = listOf(
+        MimeTypes.APPLICATION_M3U8,
+        MimeTypes.APPLICATION_MPD,
+        MimeTypes.VIDEO_MP4,
+        MimeTypes.VIDEO_MATROSKA,
+    )
+
     private val source: AnimeCatalogueSource? = AnimeExtensionManager.installedSources()
         .filterIsInstance<AnimeCatalogueSource>()
         .firstOrNull { isUsableAnimeSource(it) && it.id == sourceId }
@@ -112,6 +123,15 @@ class AnimePlayerViewModel(
             }
 
             override fun onPlayerError(error: PlaybackException) {
+                // The player couldn't identify the stream: retry with the next container type.
+                val video = currentVideo
+                val next = fallbackMimes.firstOrNull { it !in triedMimes }
+                if (error.errorCode == PlaybackException.ERROR_CODE_PARSING_CONTAINER_UNSUPPORTED &&
+                    video != null && next != null
+                ) {
+                    prepare(video, keepPosition = player.currentPosition, mimeOverride = next)
+                    return
+                }
                 _state.update { it.copy(loading = false, error = "Playback failed (${error.errorCodeName})") }
             }
         })
@@ -249,7 +269,11 @@ class AnimePlayerViewModel(
             .build()
     }
 
-    private fun prepare(video: Video, keepPosition: Long) {
+    private fun prepare(video: Video, keepPosition: Long, mimeOverride: String? = null) {
+        currentVideo = video
+        if (mimeOverride == null) triedMimes.clear()
+        val mime = mimeOverride ?: mimeFor(video.videoUrl)
+        triedMimes += mime
         val headers: Map<String, String> = video.headers?.let { h ->
             (0 until h.size).associate { h.name(it) to h.value(it) }
         }.orEmpty()
@@ -271,7 +295,7 @@ class AnimePlayerViewModel(
         // fails with ERROR_CODE_PARSING_CONTAINER_UNSUPPORTED. Passing the type from the URL fixes that.
         val mediaItem = MediaItem.Builder()
             .setUri(video.videoUrl)
-            .setMimeType(mimeFor(video.videoUrl))
+            .setMimeType(mime)
             .setSubtitleConfigurations(subtitles)
             .build()
         val mediaSource = DefaultMediaSourceFactory(httpFactory)
