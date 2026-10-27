@@ -146,13 +146,11 @@ class CloudflareInterceptor(
         // cookie jar can see it for this URL. Shows why a solved challenge still fails in the app.
         val clearanceInJar = cookieManager.get(originalRequest.url)
             .firstOrNull { it.name == "cf_clearance" } != null
-        // Toasts must run on the main thread; this runs on the network thread.
-        executor.execute {
-            context.toast(
-                "CF debug: bypassed=$cloudflareBypassed, clearance in jar=$clearanceInJar, " +
-                    "challengeFound=$challengeFound",
-                Toast.LENGTH_LONG,
-            )
+        // Toasts must be shown on the main thread; this runs on the network thread.
+        val debugText = "CF debug: bypassed=$cloudflareBypassed, clearance in jar=$clearanceInJar, " +
+            "challengeFound=$challengeFound"
+        android.os.Handler(android.os.Looper.getMainLooper()).post {
+            Toast.makeText(context, debugText, Toast.LENGTH_LONG).show()
         }
 
         // Throw exception if we failed to bypass Cloudflare
