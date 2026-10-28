@@ -5,7 +5,7 @@ import android.os.Handler
 import android.os.Looper
 import android.view.SurfaceHolder
 import android.view.SurfaceView
-import `is`.xyz.mpv.MPVLib
+import dev.jdtech.mpv.MPVLib
 
 /** One audio or subtitle track as mpv reports it. [id] is the value mpv uses to select it. */
 data class MpvTrack(val id: Int, val label: String, val selected: Boolean)
@@ -26,7 +26,9 @@ class MpvEngine(private val appContext: Context) {
     var listener: Listener? = null
 
     private val main = Handler(Looper.getMainLooper())
-    private var started = false
+
+    // The libmpv instance, created by start() and cleared by stop().
+    private var mpv: MPVLib? = null
 
     // Set while a new file is being opened, so the end-of-file event from the old file is ignored.
     @Volatile private var switching = false
@@ -35,7 +37,7 @@ class MpvEngine(private val appContext: Context) {
     private var pendingStartMs = 0L
     private var pendingSubtitles: List<Pair<String, String>> = emptyList()
 
-    val isStarted: Boolean get() = started
+    val isStarted: Boolean get() = mpv != null
 
     private val observer = object : MPVLib.EventObserver {
         override fun eventProperty(property: String) {}
@@ -51,12 +53,12 @@ class MpvEngine(private val appContext: Context) {
 
         override fun event(eventId: Int) {
             when (eventId) {
-                MPVLib.MpvEvent.MPV_EVENT_FILE_LOADED -> {
+                EVENT_FILE_LOADED -> {
                     switching = false
                     applyPendingWork()
                     main.post { listener?.onFileLoaded() }
                 }
-                MPVLib.MpvEvent.MPV_EVENT_END_FILE -> {
+                EVENT_END_FILE -> {
                     if (!switching) main.post { listener?.onLoadFailed() }
                 }
             }
@@ -65,32 +67,32 @@ class MpvEngine(private val appContext: Context) {
 
     /** Creates and starts the mpv instance. Safe to call more than once. */
     fun start() {
-        if (started) return
-        MPVLib.create(appContext)
-        MPVLib.setOptionString("config", "no")
+        if (mpv != null) return
+        val player = MPVLib.create(appContext)
+        mpv = player
+        player.setOptionString("config", "no")
         val cache = appContext.cacheDir.absolutePath
-        MPVLib.setOptionString("gpu-shader-cache-dir", cache)
-        MPVLib.setOptionString("icc-cache-dir", cache)
-        MPVLib.setOptionString("hwdec", "mediacodec-copy")
-        MPVLib.setOptionString("ao", "audiotrack,opensles")
-        MPVLib.setOptionString("vo", "null")
+        player.setOptionString("gpu-shader-cache-dir", cache)
+        player.setOptionString("icc-cache-dir", cache)
+        player.setOptionString("hwdec", "mediacodec-copy")
+        player.setOptionString("ao", "audiotrack,opensles")
+        player.setOptionString("vo", "null")
         // Stay on the last frame at the end of an episode instead of closing, so the autoplay check
         // can read eof-reached.
-        MPVLib.setOptionString("keep-open", "yes")
-        MPVLib.setOptionString("idle", "once")
-        MPVLib.setOptionString("force-window", "no")
-        MPVLib.init()
-        MPVLib.addObserver(observer)
-        MPVLib.observeProperty("eof-reached", MPVLib.MpvFormat.MPV_FORMAT_FLAG)
-        started = true
+        player.setOptionString("keep-open", "yes")
+        player.setOptionString("idle", "once")
+        player.setOptionString("force-window", "no")
+        player.init()
+        player.addObserver(observer)
+        player.observeProperty("eof-reached", FORMAT_FLAG)
     }
 
     /** Stops mpv. Detach the video surface before calling this. */
     fun stop() {
-        if (!started) return
-        MPVLib.removeObserver(observer)
-        MPVLib.destroy()
-        started = false
+        val player = mpv ?: return
+        player.removeObserver(observer)
+        player.destroy()
+        mpv = null
     }
 
     /**
@@ -98,27 +100,28 @@ class MpvEngine(private val appContext: Context) {
      * (url, language) pairs added once the file has loaded.
      */
     fun loadFile(url: String, headers: Map<String, String>, subtitles: List<Pair<String, String>>, startMs: Long) {
-        if (!started) return
+        val player = mpv ?: return
         switching = true
         pendingStartMs = startMs
         pendingSubtitles = subtitles
         // Always set the header list, even when empty, so the previous stream's headers don't carry over.
-        MPVLib.setPropertyString(
+        player.setPropertyString(
             "http-header-fields",
             headers.entries.joinToString(",") { "${it.key}: ${it.value}" },
         )
-        MPVLib.command(arrayOf("loadfile", url))
+        player.command(arrayOf("loadfile", url))
     }
 
     private fun applyPendingWork() {
+        val player = mpv ?: return
         val start = pendingStartMs
-        if (start > 0L) MPVLib.command(arrayOf("seek", (start / 1000.0).toString(), "absolute+exact"))
+        if (start > 0L) player.command(arrayOf("seek", (start / 1000.0).toString(), "absolute+exact"))
         pendingStartMs = 0L
         for ((url, lang) in pendingSubtitles) {
             if (lang.isBlank()) {
-                MPVLib.command(arrayOf("sub-add", url, "auto"))
+                player.command(arrayOf("sub-add", url, "auto"))
             } else {
-                MPVLib.command(arrayOf("sub-add", url, "auto", lang))
+                player.command(arrayOf("sub-add", url, "auto", lang))
             }
         }
         pendingSubtitles = emptyList()
@@ -126,86 +129,97 @@ class MpvEngine(private val appContext: Context) {
 
     // Playback controls
 
-    fun isPaused(): Boolean = MPVLib.getPropertyBoolean("pause") ?: true
+    fun isPaused(): Boolean = mpv?.getPropertyBoolean("pause") ?: true
 
     fun setPaused(paused: Boolean) {
-        if (started) MPVLib.setPropertyBoolean("pause", paused)
+        mpv?.setPropertyBoolean("pause", paused)
     }
 
-    fun isEndOfFile(): Boolean = MPVLib.getPropertyBoolean("eof-reached") ?: false
+    fun isEndOfFile(): Boolean = mpv?.getPropertyBoolean("eof-reached") ?: false
 
-    fun positionMs(): Long = ((MPVLib.getPropertyDouble("time-pos") ?: 0.0) * 1000).toLong().coerceAtLeast(0L)
+    fun positionMs(): Long =
+        ((mpv?.getPropertyDouble("time-pos") ?: 0.0) * 1000).toLong().coerceAtLeast(0L)
 
-    fun durationMs(): Long = ((MPVLib.getPropertyDouble("duration") ?: 0.0) * 1000).toLong().coerceAtLeast(0L)
+    fun durationMs(): Long =
+        ((mpv?.getPropertyDouble("duration") ?: 0.0) * 1000).toLong().coerceAtLeast(0L)
 
     fun seekAbsoluteMs(ms: Long) {
-        MPVLib.command(arrayOf("seek", (ms.coerceAtLeast(0L) / 1000.0).toString(), "absolute+exact"))
+        mpv?.command(arrayOf("seek", (ms.coerceAtLeast(0L) / 1000.0).toString(), "absolute+exact"))
     }
 
     fun seekRelativeMs(deltaMs: Long) {
-        MPVLib.command(arrayOf("seek", (deltaMs / 1000.0).toString(), "relative+exact"))
+        mpv?.command(arrayOf("seek", (deltaMs / 1000.0).toString(), "relative+exact"))
     }
 
     fun setSpeed(speed: Float) {
-        MPVLib.setPropertyDouble("speed", speed.toDouble())
+        mpv?.setPropertyDouble("speed", speed.toDouble())
     }
 
     /** Video panscan: 0 fits the picture, 1 fills the view by cropping, values between zoom in part way. */
     fun setPanscan(value: Double) {
-        if (started) MPVLib.setPropertyDouble("panscan", value)
+        mpv?.setPropertyDouble("panscan", value)
     }
 
     /** "WIDTHxHEIGHT" of the decoded picture, or "" when nothing is decoded yet. */
     fun videoSize(): String {
-        val w = MPVLib.getPropertyInt("video-params/w") ?: return ""
-        val h = MPVLib.getPropertyInt("video-params/h") ?: return ""
+        val player = mpv ?: return ""
+        val w = player.getPropertyInt("video-params/w") ?: return ""
+        val h = player.getPropertyInt("video-params/h") ?: return ""
         return if (w > 0 && h > 0) "${w}x$h" else ""
     }
 
     /** Codec of the current video track, or null when the file has no video track. */
-    fun videoCodec(): String? = MPVLib.getPropertyString("video-format")?.takeIf { it.isNotBlank() }
+    fun videoCodec(): String? = mpv?.getPropertyString("video-format")?.takeIf { it.isNotBlank() }
 
     /** Tracks of [type] ("audio" or "sub") in the current file. */
     fun tracks(type: String): List<MpvTrack> {
-        val count = MPVLib.getPropertyInt("track-list/count") ?: 0
+        val player = mpv ?: return emptyList()
+        val count = player.getPropertyInt("track-list/count") ?: 0
         return (0 until count).mapNotNull { index ->
             val prefix = "track-list/$index"
-            if (MPVLib.getPropertyString("$prefix/type") != type) return@mapNotNull null
-            val id = MPVLib.getPropertyInt("$prefix/id") ?: return@mapNotNull null
-            val title = MPVLib.getPropertyString("$prefix/title")?.takeIf { it.isNotBlank() }
-            val lang = MPVLib.getPropertyString("$prefix/lang")?.takeIf { it.isNotBlank() }?.uppercase()
+            if (player.getPropertyString("$prefix/type") != type) return@mapNotNull null
+            val id = player.getPropertyInt("$prefix/id") ?: return@mapNotNull null
+            val title = player.getPropertyString("$prefix/title")?.takeIf { it.isNotBlank() }
+            val lang = player.getPropertyString("$prefix/lang")?.takeIf { it.isNotBlank() }?.uppercase()
             MpvTrack(
                 id = id,
                 label = title ?: lang ?: "Track $id",
-                selected = MPVLib.getPropertyBoolean("$prefix/selected") ?: false,
+                selected = player.getPropertyBoolean("$prefix/selected") ?: false,
             )
         }
     }
 
     fun selectTrack(type: String, id: Int) {
-        MPVLib.setPropertyInt(if (type == "audio") "aid" else "sid", id)
+        mpv?.setPropertyInt(if (type == "audio") "aid" else "sid", id)
     }
 
     fun disableTrack(type: String) {
-        MPVLib.setPropertyString(if (type == "audio") "aid" else "sid", "no")
+        mpv?.setPropertyString(if (type == "audio") "aid" else "sid", "no")
     }
 
     // Surface
 
     fun attachSurface(holder: SurfaceHolder) {
-        if (!started) return
-        MPVLib.attachSurface(holder.surface)
-        MPVLib.setPropertyString("vo", "gpu")
+        val player = mpv ?: return
+        player.attachSurface(holder.surface)
+        player.setPropertyString("vo", "gpu")
     }
 
     fun surfaceSizeChanged(width: Int, height: Int) {
-        if (started) MPVLib.setPropertyString("android-surface-size", "${width}x$height")
+        mpv?.setPropertyString("android-surface-size", "${width}x$height")
     }
 
     fun detachSurface() {
-        if (!started) return
-        MPVLib.setPropertyString("vo", "null")
-        MPVLib.detachSurface()
+        val player = mpv ?: return
+        player.setPropertyString("vo", "null")
+        player.detachSurface()
+    }
+
+    private companion object {
+        // libmpv's event ids and property format for flags, as the native library defines them.
+        const val EVENT_END_FILE = 7
+        const val EVENT_FILE_LOADED = 8
+        const val FORMAT_FLAG = 3
     }
 }
 
