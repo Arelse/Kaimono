@@ -68,7 +68,8 @@ class MpvEngine(private val appContext: Context) {
     /** Creates and starts the mpv instance. Safe to call more than once. */
     fun start() {
         if (mpv != null) return
-        val player = MPVLib.create(appContext)
+        // create() returns null when libmpv can't make an instance; the player then shows an error.
+        val player = MPVLib.create(appContext) ?: return
         mpv = player
         player.setOptionString("config", "no")
         val cache = appContext.cacheDir.absolutePath
