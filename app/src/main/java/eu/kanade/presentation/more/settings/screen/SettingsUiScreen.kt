@@ -168,6 +168,12 @@ object SettingsUiScreen : SearchableSettings {
                     ),
                     title = "Font family",
                 ),
+                Preference.PreferenceItem.ListPreference(
+                    preference = uiPreferences.animeLook,
+                    entries = eu.kanade.domain.ui.model.AnimeLook.entries.associateWith { it.label },
+                    title = "Anime look",
+                    subtitle = "Colours and shape of the anime home and details screens",
+                ),
                 Preference.PreferenceItem.SliderPreference(
                     value = navMargin,
                     valueRange = 0..48,
