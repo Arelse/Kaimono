@@ -49,6 +49,10 @@ class AnimePlayerViewModel(
     // The stream currently loaded, used for the diagnostic readout.
     private var currentVideo: Video? = null
 
+    // Timing of the current episode's load, shown in the debug line.
+    private var episodeStartMs = 0L
+    private var timing = ""
+
     private val source: AnimeCatalogueSource? = AnimeExtensionManager.installedSources()
         .filterIsInstance<AnimeCatalogueSource>()
         .firstOrNull { isUsableAnimeSource(it) && it.id == sourceId }
@@ -114,7 +118,7 @@ class AnimePlayerViewModel(
         val codec = engine.videoCodec()
         val host = currentVideo?.videoUrl?.toHttpUrlOrNull()?.host ?: "?"
         val file = currentVideo?.videoUrl?.substringAfterLast('/')?.substringBefore('?')?.take(40) ?: "?"
-        val info = if (codec == null) "no video track" else "codec=$codec, host=$host, file=$file"
+        val info = (if (codec == null) "no video track" else "codec=$codec, host=$host, file=$file") + " | $timing"
         _state.update {
             it.copy(
                 isPlaying = !engine.isPaused() && !engine.isEndOfFile(),
@@ -129,6 +133,7 @@ class AnimePlayerViewModel(
     // MpvEngine.Listener
 
     override fun onFileLoaded() {
+        timing += ", opened in ${System.currentTimeMillis() - episodeStartMs} ms"
         _state.update { it.copy(loading = false, error = null) }
     }
 
@@ -158,8 +163,10 @@ class AnimePlayerViewModel(
         val src = source ?: return
         val episode = _state.value.episodes.getOrNull(index) ?: return
         _state.update { it.copy(episodeIndex = index, loading = true, error = null, videos = emptyList()) }
+        episodeStartMs = System.currentTimeMillis()
         viewModelScope.launch {
             val result = withContext(Dispatchers.IO) { runCatching { streamsFor(src, episode) } }
+            timing = "streams in ${System.currentTimeMillis() - episodeStartMs} ms"
             val videos = result.getOrDefault(emptyList()).filter { it.videoUrl.isNotBlank() }
 
             if (videos.isEmpty()) {
