@@ -116,7 +116,8 @@ class MpvEngine(private val appContext: Context) {
         val waiting = player.getPropertyBoolean("paused-for-cache") ?: false
         val cacheSecs = player.getPropertyDouble("demuxer-cache-duration")?.let { "%.1f".format(it) } ?: "?"
         val state = if (waiting) "BUFFERING" else "buffered"
-        return "$state, cache ${cacheSecs}s, last mpv log: ${lastLog.take(120).ifEmpty { "none" }}"
+        return "$state, cache ${cacheSecs}s, surface attached $surfaceAttachCount / detached $surfaceDetachCount, " +
+            "last mpv log: ${lastLog.take(120).ifEmpty { "none" }}"
     }
 
     /** Stops mpv. Detach the video surface before calling this. */
@@ -231,8 +232,15 @@ class MpvEngine(private val appContext: Context) {
 
     // Surface
 
+    // How many times the video surface has been attached and detached, shown in the debug line.
+    @Volatile var surfaceAttachCount = 0
+        private set
+    @Volatile var surfaceDetachCount = 0
+        private set
+
     fun attachSurface(holder: SurfaceHolder) {
         val player = mpv ?: return
+        surfaceAttachCount++
         player.attachSurface(holder.surface)
         player.setPropertyString("vo", "gpu")
     }
@@ -243,6 +251,7 @@ class MpvEngine(private val appContext: Context) {
 
     fun detachSurface() {
         val player = mpv ?: return
+        surfaceDetachCount++
         player.setPropertyString("vo", "null")
         player.detachSurface()
     }
