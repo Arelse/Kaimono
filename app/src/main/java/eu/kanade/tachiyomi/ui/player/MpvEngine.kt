@@ -83,6 +83,17 @@ class MpvEngine(private val appContext: Context) {
         player.setOptionString("keep-open", "yes")
         player.setOptionString("idle", "once")
         player.setOptionString("force-window", "no")
+        // Network buffering: read well ahead of playback so short slowdowns don't stop the video.
+        player.setOptionString("cache", "yes")
+        player.setOptionString("demuxer-max-bytes", "200MiB")
+        player.setOptionString("demuxer-max-back-bytes", "50MiB")
+        player.setOptionString("demuxer-readahead-secs", "120")
+        player.setOptionString("cache-secs", "120")
+        player.setOptionString("network-timeout", "30")
+        // Start as soon as a little data has arrived instead of waiting for a large buffer.
+        player.setOptionString("cache-pause-initial", "no")
+        // Reconnect when the server drops the connection partway through a stream.
+        player.setOptionString("stream-lavf-o", "reconnect=1,reconnect_streamed=1,reconnect_delay_max=5")
         player.init()
         player.addObserver(observer)
         player.observeProperty("eof-reached", FORMAT_FLAG)
