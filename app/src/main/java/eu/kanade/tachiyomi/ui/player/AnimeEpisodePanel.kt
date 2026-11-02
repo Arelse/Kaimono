@@ -39,6 +39,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import eu.kanade.presentation.theme.rememberAnimeLook
 
 /**
  * Episode panel that slides in from the right over the player. It shows a list with number badges,
@@ -136,6 +137,7 @@ private fun EpisodeRow(
     selected: Boolean,
     onPick: (Int) -> Unit,
 ) {
+    val look = rememberAnimeLook()
     val (number, name) = episode
     Row(
         modifier = Modifier
@@ -150,12 +152,12 @@ private fun EpisodeRow(
             modifier = Modifier
                 .size(width = 58.dp, height = 40.dp)
                 .clip(RoundedCornerShape(10.dp))
-                .background(if (selected) Color(0xFF9D80FF) else Color(0x33FFFFFF)),
+                .background(if (selected) look.accent else Color(0x33FFFFFF)),
             contentAlignment = Alignment.Center,
         ) {
             Text(
                 text = "EP $number",
-                color = if (selected) Color(0xFF12002E) else Color.White,
+                color = if (selected) look.onAccent else Color.White,
                 style = MaterialTheme.typography.labelLarge,
                 fontWeight = FontWeight.Bold,
             )
@@ -180,6 +182,7 @@ private fun EpisodeTile(
     modifier: Modifier,
     onPick: (Int) -> Unit,
 ) {
+    val look = rememberAnimeLook()
     val (number, name) = episode
     Column(
         modifier = modifier
@@ -192,12 +195,12 @@ private fun EpisodeTile(
             modifier = Modifier
                 .size(width = 44.dp, height = 30.dp)
                 .clip(RoundedCornerShape(8.dp))
-                .background(if (selected) Color(0xFF9D80FF) else Color(0x33FFFFFF)),
+                .background(if (selected) look.accent else Color(0x33FFFFFF)),
             contentAlignment = Alignment.Center,
         ) {
             Text(
                 text = number,
-                color = if (selected) Color(0xFF12002E) else Color.White,
+                color = if (selected) look.onAccent else Color.White,
                 style = MaterialTheme.typography.labelLarge,
                 fontWeight = FontWeight.Bold,
             )
