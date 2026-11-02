@@ -2,6 +2,7 @@
 
 import com.materialkolor.PaletteStyle
 import eu.kanade.domain.ui.model.AccentColor
+import eu.kanade.domain.ui.model.AnimeLook
 import eu.kanade.domain.ui.model.AppFont
 import eu.kanade.domain.ui.model.AppTheme
 import eu.kanade.domain.ui.model.HistoryCardStyle
@@ -74,6 +75,8 @@ class UiPreferences(
     val cardAnimationMs: Preference<Int> = preferenceStore.getInt("pref_card_animation_ms", 200)
 
     val appFont: Preference<AppFont> = preferenceStore.getEnum("pref_app_font", AppFont.DEFAULT)
+
+    val animeLook: Preference<AnimeLook> = preferenceStore.getEnum("pref_anime_look", AnimeLook.CINEMATIC)
 
     val navBarStyle: Preference<NavBarStyle> = preferenceStore.getEnum("pref_nav_bar_style", NavBarStyle.CLASSIC)
 
