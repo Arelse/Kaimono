@@ -96,7 +96,27 @@ class MpvEngine(private val appContext: Context) {
         player.setOptionString("stream-lavf-o", "reconnect=1,reconnect_streamed=1,reconnect_delay_max=5")
         player.init()
         player.addObserver(observer)
+        player.addLogObserver(logObserver)
         player.observeProperty("eof-reached", FORMAT_FLAG)
+    }
+
+    // Keeps the latest warning or error mpv reports, so it can be shown on screen.
+    @Volatile private var lastLog = ""
+
+    private val logObserver = object : MPVLib.LogObserver {
+        override fun logMessage(prefix: String, level: Int, text: String) {
+            // mpv levels: 20 is error, 30 is warning.
+            if (level <= 30 && text.isNotBlank()) lastLog = "$prefix: ${text.trim()}"
+        }
+    }
+
+    /** Buffering state and the latest mpv warning, for the debug line. */
+    fun status(): String {
+        val player = mpv ?: return ""
+        val waiting = player.getPropertyBoolean("paused-for-cache") ?: false
+        val cacheSecs = player.getPropertyDouble("demuxer-cache-duration")?.let { "%.1f".format(it) } ?: "?"
+        val state = if (waiting) "BUFFERING" else "buffered"
+        return "$state, cache ${cacheSecs}s, last mpv log: ${lastLog.take(120).ifEmpty { "none" }}"
     }
 
     /** Stops mpv. Detach the video surface before calling this. */
