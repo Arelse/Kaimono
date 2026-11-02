@@ -118,7 +118,8 @@ class AnimePlayerViewModel(
         val codec = engine.videoCodec()
         val host = currentVideo?.videoUrl?.toHttpUrlOrNull()?.host ?: "?"
         val file = currentVideo?.videoUrl?.substringAfterLast('/')?.substringBefore('?')?.take(40) ?: "?"
-        val info = (if (codec == null) "no video track" else "codec=$codec, host=$host, file=$file") + " | $timing"
+        val info = (if (codec == null) "no video track" else "codec=$codec, host=$host, file=$file") +
+            " | $timing | ${engine.status()}"
         _state.update {
             it.copy(
                 isPlaying = !engine.isPaused() && !engine.isEndOfFile(),
