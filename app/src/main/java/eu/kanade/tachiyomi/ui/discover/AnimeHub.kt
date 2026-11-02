@@ -46,6 +46,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
+import eu.kanade.presentation.theme.rememberAnimeLook
 import eu.kanade.tachiyomi.animesource.AnimeCatalogueSource
 import eu.kanade.tachiyomi.animesource.model.SAnime
 import eu.kanade.tachiyomi.extension.anime.AnimeExtensionManager
@@ -182,6 +183,7 @@ private fun AnimeHeroPager(
     accent: Color,
     onOpen: (AnimeHubItem) -> Unit,
 ) {
+    val look = rememberAnimeLook()
     val pagerState = rememberPagerState(pageCount = { items.size })
 
     // Advance every 5 seconds unless the user is dragging the card.
@@ -215,7 +217,7 @@ private fun AnimeHeroPager(
                         .height(6.dp)
                         .width(if (selected) 24.dp else 6.dp)
                         .clip(RoundedCornerShape(3.dp))
-                        .background(if (selected) accent else Color.White.copy(alpha = 0.25f)),
+                        .background(if (selected) look.accent else look.textMuted.copy(alpha = 0.4f)),
                 )
             }
         }
@@ -228,7 +230,8 @@ private fun AnimeHeroCard(
     accent: Color,
     onOpen: (AnimeHubItem) -> Unit,
 ) {
-    val shape = RoundedCornerShape(24.dp)
+    val look = rememberAnimeLook()
+    val shape = RoundedCornerShape(look.cornerRadius)
     Box(
         modifier = Modifier
             .fillMaxWidth()
@@ -241,12 +244,13 @@ private fun AnimeHeroCard(
             contentScale = ContentScale.Crop,
             modifier = Modifier.fillMaxSize(),
         )
+        // Scrim fades into the look's background so the title sits on a clean base in every theme.
         Box(
             modifier = Modifier
                 .fillMaxSize()
                 .background(
                     Brush.verticalGradient(
-                        colors = listOf(Color.Transparent, Color.Black.copy(alpha = 0.9f)),
+                        colors = listOf(Color.Transparent, look.background.copy(alpha = 0.92f)),
                     ),
                 ),
         )
@@ -260,7 +264,7 @@ private fun AnimeHeroCard(
                 text = item.anime.title,
                 style = MaterialTheme.typography.headlineMedium,
                 fontWeight = FontWeight.Bold,
-                color = Color.White,
+                color = look.textPrimary,
                 textAlign = TextAlign.Center,
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
@@ -274,7 +278,7 @@ private fun AnimeHeroCard(
                         .joinToString("  ·  ")
                         .uppercase(),
                     style = MaterialTheme.typography.labelMedium,
-                    color = Color.White.copy(alpha = 0.8f),
+                    color = look.textMuted,
                     textAlign = TextAlign.Center,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
@@ -288,9 +292,10 @@ private fun AnimeHeroCard(
             ) {
                 Button(
                     onClick = { onOpen(item) },
+                    shape = RoundedCornerShape(look.cornerRadius),
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = Color.White,
-                        contentColor = Color.Black,
+                        containerColor = look.accent,
+                        contentColor = look.onAccent,
                     ),
                 ) {
                     Icon(
@@ -304,14 +309,14 @@ private fun AnimeHeroCard(
                     modifier = Modifier
                         .size(48.dp)
                         .clip(CircleShape)
-                        .background(Color.White.copy(alpha = 0.15f))
+                        .background(look.surfaceHigh)
                         .clickable { onOpen(item) },
                     contentAlignment = Alignment.Center,
                 ) {
                     Icon(
                         imageVector = Icons.Outlined.Info,
                         contentDescription = "Details",
-                        tint = Color.White,
+                        tint = look.textPrimary,
                         modifier = Modifier.size(22.dp),
                     )
                 }
@@ -354,10 +359,11 @@ private fun AnimeQuickTile(
     modifier: Modifier = Modifier,
     onClick: () -> Unit,
 ) {
+    val look = rememberAnimeLook()
     Box(
         modifier = modifier
             .height(72.dp)
-            .clip(RoundedCornerShape(16.dp))
+            .clip(RoundedCornerShape(look.cornerRadius))
             .clickable(onClick = onClick),
     ) {
         AsyncImage(
@@ -369,13 +375,13 @@ private fun AnimeQuickTile(
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .background(Color.Black.copy(alpha = 0.55f)),
+                .background(look.background.copy(alpha = 0.6f)),
         )
         Text(
             text = label,
             style = MaterialTheme.typography.titleSmall,
             fontWeight = FontWeight.Bold,
-            color = Color.White,
+            color = look.textPrimary,
             modifier = Modifier.align(Alignment.Center),
         )
     }
@@ -383,10 +389,12 @@ private fun AnimeQuickTile(
 
 @Composable
 private fun AnimeSectionHeader(title: String) {
+    val look = rememberAnimeLook()
     Text(
         text = title,
         style = MaterialTheme.typography.titleLarge,
         fontWeight = FontWeight.Bold,
+        color = look.textPrimary,
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 20.dp, vertical = 8.dp),
@@ -398,6 +406,7 @@ private fun AnimeCardRow(
     items: List<AnimeHubItem>,
     onOpen: (AnimeHubItem) -> Unit,
 ) {
+    val look = rememberAnimeLook()
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -418,12 +427,13 @@ private fun AnimeCardRow(
                     modifier = Modifier
                         .fillMaxWidth()
                         .aspectRatio(0.7f)
-                        .clip(RoundedCornerShape(14.dp)),
+                        .clip(RoundedCornerShape(look.cornerRadius)),
                 )
                 Text(
                     text = item.anime.title,
                     style = MaterialTheme.typography.bodyMedium,
                     fontWeight = FontWeight.SemiBold,
+                    color = look.textPrimary,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.padding(top = 8.dp),
