@@ -85,6 +85,8 @@ import kotlinx.coroutines.withTimeoutOrNull
 import tachiyomi.domain.source.service.SourceManager
 import uy.kohesive.injekt.Injekt
 import uy.kohesive.injekt.api.get
+import androidx.compose.ui.draw.blur
+import eu.kanade.presentation.theme.rememberAnimeLook
 
 /**
  * Details for one anime from an installed source, laid out like the reference: a backdrop hero with
@@ -135,10 +137,12 @@ data class AnimeDetailsScreen(
             Toast.makeText(context, "Anime library isn't available yet", Toast.LENGTH_SHORT).show()
         }
 
+        val look = rememberAnimeLook()
+
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
-                .background(MaterialTheme.colorScheme.background),
+                .background(look.background),
             contentPadding = PaddingValues(bottom = 32.dp),
         ) {
             item {
@@ -205,11 +209,10 @@ data class AnimeDetailsScreen(
                 item {
                     SectionTitle(text = "Episodes ($episodeCount)")
                 }
-                items(state.episodes, key = { it.url }) { episode ->
-                    EpisodeRow(
-                        episode = episode,
-                        onClick = { playEpisode(episode) },
-                        modifier = Modifier.padding(horizontal = 20.dp),
+                item {
+                    EpisodeGrid(
+                        episodes = state.episodes,
+                        onClick = playEpisode,
                     )
                 }
             }
@@ -246,27 +249,30 @@ private fun DetailsHero(
     genreLine: String?,
     onBack: () -> Unit,
 ) {
+    val look = rememberAnimeLook()
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .height(420.dp),
+            .height(360.dp),
     ) {
+        // Blurred backdrop: the poster itself, softened and darkened, so the page reads as one piece.
         AsyncImage(
             model = imageUrl,
             contentDescription = null,
             contentScale = ContentScale.Crop,
-            modifier = Modifier.fillMaxSize(),
+            modifier = Modifier
+                .fillMaxSize()
+                .blur(28.dp),
         )
-        // Darkens the top for the back button and fades the bottom into the page background.
         Box(
             modifier = Modifier
                 .fillMaxSize()
                 .background(
                     Brush.verticalGradient(
                         colors = listOf(
-                            Color.Black.copy(alpha = 0.5f),
-                            Color.Transparent,
-                            MaterialTheme.colorScheme.background,
+                            look.background.copy(alpha = 0.55f),
+                            look.background.copy(alpha = 0.85f),
+                            look.background,
                         ),
                     ),
                 ),
@@ -283,38 +289,51 @@ private fun DetailsHero(
                 onClick = onBack,
             )
         }
-        Column(
+        // Poster on the left, title block on the right.
+        Row(
             modifier = Modifier
-                .align(Alignment.BottomCenter)
+                .align(Alignment.BottomStart)
                 .fillMaxWidth()
-                .padding(horizontal = 24.dp, vertical = 12.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
+                .statusBarsPadding()
+                .padding(start = 20.dp, end = 20.dp, bottom = 12.dp),
+            verticalAlignment = Alignment.Bottom,
+            horizontalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            Text(
-                text = title,
-                style = MaterialTheme.typography.headlineSmall,
-                fontWeight = FontWeight.Bold,
-                textAlign = TextAlign.Center,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis,
+            AsyncImage(
+                model = imageUrl,
+                contentDescription = title,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier
+                    .width(120.dp)
+                    .aspectRatio(0.7f)
+                    .clip(RoundedCornerShape(look.cornerRadius))
+                    .background(look.surface),
             )
-            Text(
-                text = metaLine,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                textAlign = TextAlign.Center,
-                modifier = Modifier.padding(top = 10.dp),
-            )
-            genreLine?.takeIf { it.isNotBlank() }?.let {
+            Column(modifier = Modifier.weight(1f).padding(bottom = 4.dp)) {
                 Text(
-                    text = it,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    textAlign = TextAlign.Center,
-                    maxLines = 2,
+                    text = title,
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold,
+                    color = look.textPrimary,
+                    maxLines = 3,
                     overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.padding(top = 4.dp),
                 )
+                Text(
+                    text = metaLine,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = look.textMuted,
+                    modifier = Modifier.padding(top = 8.dp),
+                )
+                genreLine?.takeIf { it.isNotBlank() }?.let {
+                    Text(
+                        text = it,
+                        style = MaterialTheme.typography.labelMedium,
+                        color = look.textMuted,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.padding(top = 4.dp),
+                    )
+                }
             }
         }
     }
@@ -326,23 +345,23 @@ private fun DetailsActions(
     onWatch: () -> Unit,
     onMyList: () -> Unit,
 ) {
+    val look = rememberAnimeLook()
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 24.dp, vertical = 12.dp),
+            .padding(horizontal = 20.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.SpaceBetween,
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        ActionIconLabel(icon = Icons.Outlined.Share, label = "Share", onClick = onShare)
         Button(
             onClick = onWatch,
-            shape = RoundedCornerShape(50),
+            shape = RoundedCornerShape(look.cornerRadius),
             colors = ButtonDefaults.buttonColors(
-                containerColor = Color.White,
-                contentColor = Color.Black,
+                containerColor = look.accent,
+                contentColor = look.onAccent,
             ),
             modifier = Modifier
-                .width(200.dp)
+                .weight(1f)
                 .height(52.dp),
         ) {
             Icon(
@@ -351,38 +370,22 @@ private fun DetailsActions(
                 modifier = Modifier.size(20.dp),
             )
             Text(
-                text = "  Watch",
+                text = "  Play",
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
             )
         }
-        ActionIconLabel(icon = Icons.Outlined.FavoriteBorder, label = "My List", onClick = onMyList)
-    }
-}
-
-@Composable
-private fun ActionIconLabel(
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
-    label: String,
-    onClick: () -> Unit,
-) {
-    Column(
-        modifier = Modifier
-            .clickable(onClick = onClick)
-            .padding(8.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-    ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = label,
-            tint = MaterialTheme.colorScheme.onSurface,
-            modifier = Modifier.size(24.dp),
+        CircleIconButton(
+            icon = Icons.Outlined.FavoriteBorder,
+            description = "Add to my list",
+            onClick = onMyList,
+            filled = false,
         )
-        Text(
-            text = label,
-            style = MaterialTheme.typography.labelMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(top = 4.dp),
+        CircleIconButton(
+            icon = Icons.Outlined.Share,
+            description = "Share",
+            onClick = onShare,
+            filled = false,
         )
     }
 }
@@ -392,19 +395,21 @@ private fun CircleIconButton(
     icon: androidx.compose.ui.graphics.vector.ImageVector,
     description: String,
     onClick: () -> Unit,
+    filled: Boolean = true,
 ) {
+    val look = rememberAnimeLook()
     Box(
         modifier = Modifier
-            .size(40.dp)
+            .size(52.dp)
             .clip(CircleShape)
-            .background(Color.Black.copy(alpha = 0.4f))
+            .background(if (filled) Color.Black.copy(alpha = 0.4f) else look.surface)
             .clickable(onClick = onClick),
         contentAlignment = Alignment.Center,
     ) {
         Icon(
             imageVector = icon,
             contentDescription = description,
-            tint = Color.White,
+            tint = if (filled) Color.White else look.textPrimary,
             modifier = Modifier.size(22.dp),
         )
     }
@@ -478,14 +483,26 @@ private fun formatLabel(source: CatalogueSource): String = when {
 
 @Composable
 private fun SectionTitle(text: String) {
-    Text(
-        text = text,
-        style = MaterialTheme.typography.titleLarge,
-        fontWeight = FontWeight.Bold,
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(start = 20.dp, end = 20.dp, top = 20.dp, bottom = 8.dp),
-    )
+    val look = rememberAnimeLook()
+    Row(
+        modifier = Modifier.padding(start = 20.dp, end = 20.dp, top = 20.dp, bottom = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Box(
+            modifier = Modifier
+                .width(4.dp)
+                .height(20.dp)
+                .clip(RoundedCornerShape(2.dp))
+                .background(look.accent),
+        )
+        Text(
+            text = text,
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Bold,
+            color = look.textPrimary,
+            modifier = Modifier.padding(start = 10.dp),
+        )
+    }
 }
 
 @Composable
@@ -528,26 +545,47 @@ private fun RelatedRow(
     }
 }
 
+/** Numbered episode buttons, seven to a row. Tapping one plays that episode. */
 @Composable
-private fun EpisodeRow(episode: SEpisode, onClick: () -> Unit, modifier: Modifier = Modifier) {
+private fun EpisodeGrid(
+    episodes: List<SEpisode>,
+    onClick: (SEpisode) -> Unit,
+) {
+    val look = rememberAnimeLook()
+    val perRow = 7
     Column(
-        modifier = modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(12.dp))
-            .clickable(onClick = onClick)
-            .padding(vertical = 10.dp, horizontal = 4.dp),
+        modifier = Modifier.padding(horizontal = 20.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
-        Text(
-            text = episode.name,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-            style = MaterialTheme.typography.bodyLarge,
-        )
-        Text(
-            text = "Episode ${formatEpisodeNumber(episode.episode_number)}",
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
+        episodes.withIndex().toList().chunked(perRow).forEach { row ->
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(10.dp, Alignment.CenterHorizontally),
+            ) {
+                row.forEach { (index, episode) ->
+                    val number = if (episode.episode_number > 0f) {
+                        episode.episode_number.toInt().toString()
+                    } else {
+                        (index + 1).toString()
+                    }
+                    Box(
+                        modifier = Modifier
+                            .size(44.dp)
+                            .clip(RoundedCornerShape(look.cornerRadius))
+                            .background(look.surface)
+                            .clickable { onClick(episode) },
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Text(
+                            text = number,
+                            style = MaterialTheme.typography.labelLarge,
+                            fontWeight = FontWeight.SemiBold,
+                            color = look.textPrimary,
+                        )
+                    }
+                }
+            }
+        }
     }
 }
 
