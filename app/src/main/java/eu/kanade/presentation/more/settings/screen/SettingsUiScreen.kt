@@ -117,9 +117,10 @@ object SettingsUiScreen : SearchableSettings {
                     entries = mapOf(
                         eu.kanade.domain.ui.model.HomeLayout.DEFAULT to "Default",
                         eu.kanade.domain.ui.model.HomeLayout.MEDIA_HUB to "Featured",
+                        eu.kanade.domain.ui.model.HomeLayout.ATSU_HOME to "Atsu Home",
                     ),
                     title = "Home screen layout",
-                    subtitle = "Default keeps the classic Home. Featured adds search, filters, and the palette, sync, trophy and account sheets",
+                    subtitle = "Default keeps the classic Home. Featured adds search, filters, and the palette, sync, trophy and account sheets. Atsu Home is a new anime-first layout",
                 ),
                 Preference.PreferenceItem.ListPreference(
                     preference = uiPreferences.homeScreenStyle,
