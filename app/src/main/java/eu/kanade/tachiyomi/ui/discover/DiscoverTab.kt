@@ -152,11 +152,31 @@ object DiscoverTab : Tab {
     override fun Content() {
         val uiPreferences = remember { Injekt.get<UiPreferences>() }
         val homeLayout by uiPreferences.homeLayout.collectAsState()
-        if (homeLayout == eu.kanade.domain.ui.model.HomeLayout.MEDIA_HUB) {
-            MediaHubHome()
-        } else {
-            DefaultDiscoverContent()
+        when (homeLayout) {
+            eu.kanade.domain.ui.model.HomeLayout.MEDIA_HUB -> MediaHubHome()
+            eu.kanade.domain.ui.model.HomeLayout.ATSU_HOME -> AtsuHomeTab()
+            else -> DefaultDiscoverContent()
         }
+    }
+
+    @Composable
+    private fun AtsuHomeTab() {
+        val navigator = LocalNavigator.currentOrThrow
+        val tabNavigator = LocalTabNavigator.current
+        AtsuHomeContent(
+            onOpen = { item ->
+                navigator.push(
+                    eu.kanade.tachiyomi.ui.browse.anime.AnimeDetailsScreen(
+                        sourceId = item.sourceId,
+                        animeUrl = item.anime.url,
+                        title = item.anime.title,
+                        thumbnailUrl = item.anime.thumbnail_url,
+                    ),
+                )
+            },
+            onSchedule = { navigator.push(eu.kanade.tachiyomi.ui.updates.UpdatesScheduleScreen) },
+            onBrowse = { tabNavigator.current = BrowseTab },
+        )
     }
 
     @Composable
