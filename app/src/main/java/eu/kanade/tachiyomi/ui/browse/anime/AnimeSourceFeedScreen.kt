@@ -30,13 +30,14 @@ import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.outlined.Update
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -57,6 +58,8 @@ import androidx.lifecycle.viewmodel.viewModelFactory
 import cafe.adriel.voyager.navigator.LocalNavigator
 import cafe.adriel.voyager.navigator.currentOrThrow
 import coil3.compose.AsyncImage
+import eu.kanade.presentation.theme.AnimeLookTokens
+import eu.kanade.presentation.theme.rememberAnimeLook
 import eu.kanade.presentation.util.Screen
 import eu.kanade.tachiyomi.animesource.AnimeCatalogueSource
 import eu.kanade.tachiyomi.animesource.model.SAnime
@@ -85,10 +88,10 @@ data class AnimeFeedListing(
 )
 
 /**
- * Anime counterpart of the manga source feed, laid out like it: filter chips, a Latest row, a
- * Popular row with title panels, and a grid of larger covers. Popular and Latest switch the feed
- * in place into a paged grid, the way the manga feed does, instead of opening the browse screen.
- * Filter still opens the browse screen, because the filter sheet lives there.
+ * Anime counterpart of the manga source feed. Home opens with a featured title, then Latest and
+ * Popular rows and a grid of covers. Popular and Latest switch the feed in place into a paged grid,
+ * the way the manga feed does. Filter still opens the browse screen, because the filter sheet lives
+ * there. Colours, corners and accents come from the selected anime look.
  */
 data class AnimeSourceFeedScreen(
     val sourceId: Long,
@@ -107,6 +110,7 @@ data class AnimeSourceFeedScreen(
         val source = viewModel.source
         val sourceName = source?.name ?: "Anime source"
         val supportsLatest = source?.supportsLatest == true
+        val look = rememberAnimeLook()
 
         fun openDetails(anime: SAnime) {
             navigator.push(
@@ -127,11 +131,20 @@ data class AnimeSourceFeedScreen(
             topBar = {
                 TopAppBar(
                     title = {
-                        Text(
-                            text = sourceName,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                        )
+                        Column {
+                            Text(
+                                text = sourceName,
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                            Text(
+                                text = "Anime source",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = look.textMuted,
+                            )
+                        }
                     },
                     navigationIcon = {
                         IconButton(onClick = { navigator.pop() }) {
@@ -164,10 +177,22 @@ data class AnimeSourceFeedScreen(
                             Icon(imageVector = Icons.Outlined.Search, contentDescription = null)
                         }
                     },
+                    colors = TopAppBarDefaults.topAppBarColors(
+                        containerColor = look.background,
+                        titleContentColor = look.textPrimary,
+                        navigationIconContentColor = look.textPrimary,
+                        actionIconContentColor = look.textPrimary,
+                    ),
                 )
             },
         ) { paddingValues ->
-            LazyColumn(contentPadding = paddingValues) {
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(look.background),
+                contentPadding = paddingValues,
+                verticalArrangement = Arrangement.spacedBy(2.dp),
+            ) {
                 item(key = "anime-feed-chips") {
                     FeedChips(
                         mode = state.mode,
@@ -180,6 +205,13 @@ data class AnimeSourceFeedScreen(
                 }
                 when (state.mode) {
                     AnimeFeedMode.HOME -> {
+                        val popular = state.popular?.getOrNull().orEmpty()
+                        val featured = popular.firstOrNull()
+                        if (featured != null) {
+                            item(key = "anime-feed-featured") {
+                                FeaturedCard(anime = featured, onClick = { openDetails(featured) })
+                            }
+                        }
                         if (supportsLatest) {
                             item(key = "anime-feed-latest") {
                                 FeedRow(
@@ -198,16 +230,23 @@ data class AnimeSourceFeedScreen(
                                 onAnimeClick = { openDetails(it) },
                             )
                         }
-                        // Grid of larger covers with the title over the image, three per row.
-                        animeGrid(state.popular?.getOrNull().orEmpty()) { openDetails(it) }
+                        item(key = "anime-feed-more") {
+                            FeedSectionHeader(title = "More to watch")
+                        }
+                        animeGrid(
+                            look = look,
+                            animes = if (featured != null) popular.drop(1) else popular,
+                        ) { openDetails(it) }
                     }
                     AnimeFeedMode.POPULAR -> animeListing(
+                        look = look,
                         title = "Popular",
                         listing = state.popularListing,
                         onLoadMore = { viewModel.loadMore(AnimeFeedMode.POPULAR) },
                         onAnimeClick = { openDetails(it) },
                     )
                     AnimeFeedMode.LATEST -> animeListing(
+                        look = look,
                         title = "Latest",
                         listing = state.latestListing,
                         onLoadMore = { viewModel.loadMore(AnimeFeedMode.LATEST) },
@@ -228,8 +267,17 @@ private fun FeedChips(
     onLatest: () -> Unit,
     onFilter: () -> Unit,
 ) {
+    val look = rememberAnimeLook()
+    val chipColors = FilterChipDefaults.filterChipColors(
+        containerColor = look.surface,
+        labelColor = look.textMuted,
+        iconColor = look.textMuted,
+        selectedContainerColor = look.accent,
+        selectedLabelColor = look.onAccent,
+        selectedLeadingIconColor = look.onAccent,
+    )
     LazyRow(
-        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 10.dp),
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         item {
@@ -238,6 +286,7 @@ private fun FeedChips(
                 onClick = onHome,
                 label = { Text("Home") },
                 leadingIcon = { Icon(Icons.Outlined.GridView, contentDescription = null, modifier = Modifier.size(18.dp)) },
+                colors = chipColors,
             )
         }
         item {
@@ -246,6 +295,7 @@ private fun FeedChips(
                 onClick = onPopular,
                 label = { Text("Popular") },
                 leadingIcon = { Icon(Icons.Outlined.FavoriteBorder, contentDescription = null, modifier = Modifier.size(18.dp)) },
+                colors = chipColors,
             )
         }
         if (supportsLatest) {
@@ -255,6 +305,7 @@ private fun FeedChips(
                     onClick = onLatest,
                     label = { Text("Latest") },
                     leadingIcon = { Icon(Icons.Outlined.Update, contentDescription = null, modifier = Modifier.size(18.dp)) },
+                    colors = chipColors,
                 )
             }
         }
@@ -264,7 +315,94 @@ private fun FeedChips(
                 onClick = onFilter,
                 label = { Text("Filter") },
                 leadingIcon = { Icon(Icons.Outlined.FilterList, contentDescription = null, modifier = Modifier.size(18.dp)) },
+                colors = chipColors,
             )
+        }
+    }
+}
+
+/** Large first title on Home, with its name over a fade into the page background. */
+@Composable
+private fun FeaturedCard(anime: SAnime, onClick: () -> Unit) {
+    val look = rememberAnimeLook()
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 8.dp)
+            .height(210.dp)
+            .clip(RoundedCornerShape(look.cornerRadius))
+            .background(look.surface)
+            .clickable(onClick = onClick),
+    ) {
+        AsyncImage(
+            model = anime.thumbnail_url,
+            contentDescription = anime.title,
+            contentScale = ContentScale.Crop,
+            modifier = Modifier.fillMaxSize(),
+        )
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(
+                    Brush.verticalGradient(
+                        colors = listOf(Color.Transparent, look.background.copy(alpha = 0.92f)),
+                    ),
+                ),
+        )
+        Column(
+            modifier = Modifier
+                .align(Alignment.BottomStart)
+                .padding(16.dp),
+        ) {
+            Text(
+                text = "FEATURED",
+                style = MaterialTheme.typography.labelSmall,
+                fontWeight = FontWeight.Bold,
+                color = look.accent,
+            )
+            Text(
+                text = anime.title,
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                color = look.textPrimary,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.padding(top = 4.dp),
+            )
+        }
+    }
+}
+
+/** Section title with an accent bar and an optional "See all" action. */
+@Composable
+private fun FeedSectionHeader(title: String, actionLabel: String? = null, onAction: (() -> Unit)? = null) {
+    val look = rememberAnimeLook()
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(start = 20.dp, end = 8.dp, top = 14.dp, bottom = 4.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Box(
+            modifier = Modifier
+                .width(4.dp)
+                .height(18.dp)
+                .clip(RoundedCornerShape(2.dp))
+                .background(look.accent),
+        )
+        Text(
+            text = title,
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Bold,
+            color = look.textPrimary,
+            modifier = Modifier
+                .weight(1f)
+                .padding(start = 10.dp),
+        )
+        if (actionLabel != null && onAction != null) {
+            TextButton(onClick = onAction) {
+                Text(text = actionLabel, color = look.accent, style = MaterialTheme.typography.labelLarge)
+            }
         }
     }
 }
@@ -276,30 +414,29 @@ private fun FeedRow(
     onTitleClick: () -> Unit,
     onAnimeClick: (SAnime) -> Unit,
 ) {
-    Column(modifier = Modifier.padding(top = 12.dp)) {
-        Text(
-            text = title,
-            style = MaterialTheme.typography.titleLarge,
-            fontWeight = FontWeight.Bold,
-            modifier = Modifier
-                .padding(horizontal = 16.dp, vertical = 4.dp)
-                .clickable(onClick = onTitleClick),
-        )
+    val look = rememberAnimeLook()
+    Column {
+        FeedSectionHeader(title = title, actionLabel = "See all", onAction = onTitleClick)
         when {
             animes == null -> Box(
                 modifier = Modifier.fillMaxWidth().padding(24.dp),
                 contentAlignment = Alignment.Center,
             ) {
-                CircularProgressIndicator(modifier = Modifier.size(24.dp), strokeWidth = 2.dp)
+                CircularProgressIndicator(
+                    modifier = Modifier.size(24.dp),
+                    strokeWidth = 2.dp,
+                    color = look.accent,
+                )
             }
             animes.isFailure -> Text(
                 text = animes.exceptionOrNull()?.message ?: "Failed to load anime",
                 color = MaterialTheme.colorScheme.error,
-                modifier = Modifier.padding(16.dp),
+                modifier = Modifier.padding(horizontal = 20.dp, vertical = 12.dp),
             )
             animes.getOrNull().isNullOrEmpty() -> Text(
                 text = "No anime found",
-                modifier = Modifier.padding(16.dp),
+                color = look.textMuted,
+                modifier = Modifier.padding(horizontal = 20.dp, vertical = 12.dp),
             )
             else -> LazyRow(
                 contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
@@ -315,20 +452,16 @@ private fun FeedRow(
 
 /** A paged list shown as a full grid, with a title, a load-more footer and retry on failure. */
 private fun LazyListScope.animeListing(
+    look: AnimeLookTokens,
     title: String,
     listing: AnimeFeedListing,
     onLoadMore: () -> Unit,
     onAnimeClick: (SAnime) -> Unit,
 ) {
     item(key = "anime-listing-title-$title") {
-        Text(
-            text = title,
-            style = MaterialTheme.typography.titleLarge,
-            fontWeight = FontWeight.Bold,
-            modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
-        )
+        FeedSectionHeader(title = title)
     }
-    animeGrid(listing.animes, onAnimeClick)
+    animeGrid(look = look, animes = listing.animes, onAnimeClick = onAnimeClick)
     item(key = "anime-listing-footer-$title") {
         Box(
             modifier = Modifier.fillMaxWidth().padding(16.dp),
@@ -336,20 +469,28 @@ private fun LazyListScope.animeListing(
         ) {
             val error = listing.error
             when {
-                listing.loading -> CircularProgressIndicator(modifier = Modifier.size(24.dp), strokeWidth = 2.dp)
+                listing.loading -> CircularProgressIndicator(
+                    modifier = Modifier.size(24.dp),
+                    strokeWidth = 2.dp,
+                    color = look.accent,
+                )
                 error != null -> Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Text(text = error, color = MaterialTheme.colorScheme.error)
-                    TextButton(onClick = onLoadMore) { Text("Retry") }
+                    TextButton(onClick = onLoadMore) { Text("Retry", color = look.accent) }
                 }
-                listing.hasNext -> TextButton(onClick = onLoadMore) { Text("Load more") }
-                listing.animes.isEmpty() -> Text("No anime found")
+                listing.hasNext -> TextButton(onClick = onLoadMore) { Text("Load more", color = look.accent) }
+                listing.animes.isEmpty() -> Text("No anime found", color = look.textMuted)
             }
         }
     }
 }
 
-/** Covers in rows of three, each with its title over a dark fade. */
-private fun LazyListScope.animeGrid(animes: List<SAnime>, onAnimeClick: (SAnime) -> Unit) {
+/** Covers in rows of three, each with its title over a fade. */
+private fun LazyListScope.animeGrid(
+    look: AnimeLookTokens,
+    animes: List<SAnime>,
+    onAnimeClick: (SAnime) -> Unit,
+) {
     items(animes.distinctBy { it.url }.chunked(3), key = { row -> row.first().url }) { row ->
         Row(
             modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp),
@@ -358,6 +499,7 @@ private fun LazyListScope.animeGrid(animes: List<SAnime>, onAnimeClick: (SAnime)
             row.forEach { anime ->
                 FeedGridCard(
                     anime = anime,
+                    look = look,
                     modifier = Modifier.weight(1f),
                     onClick = { onAnimeClick(anime) },
                 )
@@ -367,10 +509,11 @@ private fun LazyListScope.animeGrid(animes: List<SAnime>, onAnimeClick: (SAnime)
     }
 }
 
-/** A cover with its title in a rounded panel underneath, as on the manga feed. */
+/** A cover in a rounded frame with its title underneath, in the look's text colour. */
 @Composable
 private fun FeedCard(anime: SAnime, onClick: () -> Unit) {
-    Column(modifier = Modifier.width(120.dp).clickable(onClick = onClick)) {
+    val look = rememberAnimeLook()
+    Column(modifier = Modifier.width(128.dp).clickable(onClick = onClick)) {
         AsyncImage(
             model = anime.thumbnail_url,
             contentDescription = null,
@@ -378,31 +521,34 @@ private fun FeedCard(anime: SAnime, onClick: () -> Unit) {
             modifier = Modifier
                 .fillMaxWidth()
                 .aspectRatio(0.7f)
-                .clip(RoundedCornerShape(14.dp)),
+                .clip(RoundedCornerShape(look.cornerRadius))
+                .background(look.surface),
         )
-        Surface(
-            modifier = Modifier.fillMaxWidth().padding(top = 6.dp),
-            shape = RoundedCornerShape(10.dp),
-            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-        ) {
-            Text(
-                text = anime.title,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis,
-                style = MaterialTheme.typography.bodyMedium,
-                modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp),
-            )
-        }
+        Text(
+            text = anime.title,
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis,
+            style = MaterialTheme.typography.bodyMedium,
+            fontWeight = FontWeight.SemiBold,
+            color = look.textPrimary,
+            modifier = Modifier.padding(top = 8.dp),
+        )
     }
 }
 
 /** A large cover with the title over a dark fade at the bottom. */
 @Composable
-private fun FeedGridCard(anime: SAnime, modifier: Modifier, onClick: () -> Unit) {
+private fun FeedGridCard(
+    anime: SAnime,
+    look: AnimeLookTokens,
+    modifier: Modifier,
+    onClick: () -> Unit,
+) {
     Box(
         modifier = modifier
             .aspectRatio(0.7f)
-            .clip(RoundedCornerShape(14.dp))
+            .clip(RoundedCornerShape(look.cornerRadius))
+            .background(look.surface)
             .clickable(onClick = onClick),
     ) {
         AsyncImage(
